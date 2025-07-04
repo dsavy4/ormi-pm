@@ -4,6 +4,7 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { Toaster } from 'react-hot-toast';
 
 import { AuthProvider } from '@/contexts/AuthContext';
+import { ThemeProvider } from '@/contexts/ThemeContext';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { AuthLayout } from '@/components/layout/AuthLayout';
 
@@ -38,97 +39,99 @@ const queryClient = new QueryClient({
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <Router>
-          <div className="App">
-            <Routes>
-              {/* Public routes */}
-              <Route path="/login" element={
-                <AuthLayout>
-                  <Login />
-                </AuthLayout>
-              } />
-              <Route path="/register" element={
-                <AuthLayout>
-                  <Register />
-                </AuthLayout>
-              } />
-              <Route path="/forgot-password" element={
-                <AuthLayout>
-                  <ForgotPassword />
-                </AuthLayout>
-              } />
-              <Route path="/reset-password" element={
-                <AuthLayout>
-                  <ResetPassword />
-                </AuthLayout>
-              } />
+      <ThemeProvider>
+        <AuthProvider>
+          <Router>
+            <div className="App">
+              <Routes>
+                {/* Public routes */}
+                <Route path="/login" element={
+                  <AuthLayout>
+                    <Login />
+                  </AuthLayout>
+                } />
+                <Route path="/register" element={
+                  <AuthLayout>
+                    <Register />
+                  </AuthLayout>
+                } />
+                <Route path="/forgot-password" element={
+                  <AuthLayout>
+                    <ForgotPassword />
+                  </AuthLayout>
+                } />
+                <Route path="/reset-password" element={
+                  <AuthLayout>
+                    <ResetPassword />
+                  </AuthLayout>
+                } />
 
-              {/* Protected routes */}
-              <Route path="/dashboard" element={
-                <ProtectedRoute>
-                  <DashboardLayout>
-                    <Dashboard />
-                  </DashboardLayout>
-                </ProtectedRoute>
-              } />
-              <Route path="/properties" element={
-                <ProtectedRoute>
-                  <DashboardLayout>
-                    <Properties />
-                  </DashboardLayout>
-                </ProtectedRoute>
-              } />
-              <Route path="/units" element={
-                <ProtectedRoute>
-                  <DashboardLayout>
-                    <Units />
-                  </DashboardLayout>
-                </ProtectedRoute>
-              } />
-              <Route path="/tenants" element={
-                <ProtectedRoute>
-                  <DashboardLayout>
-                    <Tenants />
-                  </DashboardLayout>
-                </ProtectedRoute>
-              } />
-              <Route path="/payments" element={
-                <ProtectedRoute>
-                  <DashboardLayout>
-                    <Payments />
-                  </DashboardLayout>
-                </ProtectedRoute>
-              } />
-              <Route path="/maintenance" element={
-                <ProtectedRoute>
-                  <DashboardLayout>
-                    <Maintenance />
-                  </DashboardLayout>
-                </ProtectedRoute>
-              } />
-              <Route path="/reports" element={
-                <ProtectedRoute>
-                  <DashboardLayout>
-                    <Reports />
-                  </DashboardLayout>
-                </ProtectedRoute>
-              } />
-              <Route path="/settings" element={
-                <ProtectedRoute>
-                  <DashboardLayout>
-                    <Settings />
-                  </DashboardLayout>
-                </ProtectedRoute>
-              } />
+                {/* Protected routes */}
+                <Route path="/dashboard" element={
+                  <ProtectedRoute>
+                    <DashboardLayout>
+                      <Dashboard />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/properties" element={
+                  <ProtectedRoute>
+                    <DashboardLayout>
+                      <Properties />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/units" element={
+                  <ProtectedRoute>
+                    <DashboardLayout>
+                      <Units />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/tenants" element={
+                  <ProtectedRoute>
+                    <DashboardLayout>
+                      <Tenants />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/payments" element={
+                  <ProtectedRoute>
+                    <DashboardLayout>
+                      <Payments />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/maintenance" element={
+                  <ProtectedRoute>
+                    <DashboardLayout>
+                      <Maintenance />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/reports" element={
+                  <ProtectedRoute>
+                    <DashboardLayout>
+                      <Reports />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/settings" element={
+                  <ProtectedRoute>
+                    <DashboardLayout>
+                      <Settings />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                } />
 
-              {/* Default redirect */}
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            </Routes>
-          </div>
-        </Router>
-        <Toaster position="top-right" />
-      </AuthProvider>
+                {/* Default redirect */}
+                <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              </Routes>
+            </div>
+          </Router>
+          <Toaster position="top-right" />
+        </AuthProvider>
+      </ThemeProvider>
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   );

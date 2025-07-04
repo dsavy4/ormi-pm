@@ -549,7 +549,7 @@ export const reportsApi = {
 // Dashboard API
 export const dashboardApi = {
   async getMetrics() {
-    const response = await fetch(`${API_BASE_URL}/api/dashboard`, {
+    const response = await fetch(`${API_BASE_URL}/api/dashboard/metrics`, {
       headers: getAuthHeaders(),
     });
     return handleResponse<any>(response);
