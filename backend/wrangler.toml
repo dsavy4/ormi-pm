@@ -1,0 +1,55 @@
+name = "ormi-api"
+compatibility_date = "2023-09-04"
+main = "dist/worker-entry.js"
+
+# Node.js compatibility flags
+compatibility_flags = ["nodejs_compat"]
+
+# Environment variables
+[vars]
+NODE_ENV = "production"
+ENVIRONMENT = "production"
+JWT_SECRET = "7c8f9e4d6a2b5c3e8f7d9c4b6a3e5f8d9c7b4a6e3f8d5c9b7a4e6f3d8c5b9a7e4f6d3c8b5a9e7f4d6c3b8a5e9f7d4c6b3a8e5f9d7c4a6b3e8f5d9c7b4a6e3f8d5c9b7a4e6f3d8c5b9a7e4f6d3c8b5a9e7f4d6c3b8a5e9f7d4c6b3a8e5f"
+
+# Workers Logs configuration
+[observability]
+enabled = true
+
+[observability.logs]
+invocation_logs = true
+head_sampling_rate = 1.0
+
+# Define the build process
+[build]
+command = "npm run build"
+
+# Routes configuration
+[[routes]]
+pattern = "api.ormi.com/*"
+zone_name = "ormi.com"
+
+# Environment-specific settings
+[env.production]
+name = "ormi-api"
+log_level = "warn"
+workers_dev = false
+
+[env.production.vars]
+NODE_ENV = "production"
+ENVIRONMENT = "production"
+JWT_SECRET = "7c8f9e4d6a2b5c3e8f7d9c4b6a3e5f8d9c7b4a6e3f8d5c9b7a4e6f3d8c5b9a7e4f6d3c8b5a9e7f4d6c3b8a5e9f7d4c6b3a8e5f9d7c4a6b3e8f5d9c7b4a6e3f8d5c9b7a4e6f3d8c5b9a7e4f6d3c8b5a9e7f4d6c3b8a5e9f7d4c6b3a8e5f"
+
+[env.staging]
+name = "ormi-api-staging"
+workers_dev = true
+routes = []
+
+[env.development]
+name = "ormi-api-dev"
+workers_dev = true
+routes = []
+vars = { NODE_ENV = "development" }
+
+# Secrets are managed using `wrangler secret put` command
+# Required secrets:
+# - DATABASE_URL: Supabase database URL 

@@ -1,0 +1,217 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                  String               @id @default(uuid())
+  email               String               @unique
+  firstName           String
+  lastName            String
+  phoneNumber         String?
+  avatar              String?
+  password            String
+  role                UserRole             @default(TENANT)
+  isActive            Boolean              @default(true)
+  emailVerified       Boolean              @default(false)
+  resetToken          String?
+  resetTokenExpiry    DateTime?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  auditLogs           AuditLog[]
+  maintenanceRequests MaintenanceRequest[]
+  rentPayments        Payment[]
+  managedProperties   Property[]           @relation("PropertyManager")
+  ownedProperties     Property[]           @relation("PropertyOwner")
+  subscriptions       Subscription[]
+  tenantUnits         Unit[]               @relation("TenantUnit")
+
+  @@map("users")
+}
+
+model Property {
+  id          String   @id @default(uuid())
+  name        String
+  address     String
+  city        String
+  state       String
+  zipCode     String
+  description String?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  ownerId     String
+  managerId   String?
+  manager     User?    @relation("PropertyManager", fields: [managerId], references: [id])
+  owner       User     @relation("PropertyOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  units       Unit[]
+
+  @@map("properties")
+}
+
+model Unit {
+  id                  String               @id @default(uuid())
+  unitNumber          String
+  monthlyRent         Decimal              @db.Decimal(10, 2)
+  securityDeposit     Decimal              @db.Decimal(10, 2)
+  leaseStatus         LeaseStatus          @default(VACANT)
+  leaseStart          DateTime?
+  leaseEnd            DateTime?
+  notes               String?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  propertyId          String
+  tenantId            String?
+  maintenanceRequests MaintenanceRequest[]
+  payments            Payment[]
+  property            Property             @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  tenant              User?                @relation("TenantUnit", fields: [tenantId], references: [id])
+
+  @@unique([propertyId, unitNumber])
+  @@map("units")
+}
+
+model Payment {
+  id              String        @id @default(uuid())
+  amount          Decimal       @db.Decimal(10, 2)
+  paymentDate     DateTime      @default(now())
+  dueDate         DateTime
+  status          PaymentStatus @default(PENDING)
+  method          PaymentMethod @default(MANUAL)
+  stripePaymentId String?
+  notes           String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  unitId          String
+  tenantId        String
+  tenant          User          @relation(fields: [tenantId], references: [id])
+  unit            Unit          @relation(fields: [unitId], references: [id], onDelete: Cascade)
+
+  @@map("payments")
+}
+
+model MaintenanceRequest {
+  id          String               @id @default(uuid())
+  title       String
+  description String
+  priority    Priority             @default(MEDIUM)
+  status      MaintenanceStatus    @default(SUBMITTED)
+  images      String[]
+  notes       String?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  unitId      String
+  tenantId    String
+  assignedTo  String?
+  comments    MaintenanceComment[]
+  tenant      User                 @relation(fields: [tenantId], references: [id])
+  unit        Unit                 @relation(fields: [unitId], references: [id], onDelete: Cascade)
+
+  @@map("maintenance_requests")
+}
+
+model MaintenanceComment {
+  id        String             @id @default(uuid())
+  content   String
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+  requestId String
+  userId    String
+  request   MaintenanceRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@map("maintenance_comments")
+}
+
+model Subscription {
+  id                   String             @id @default(uuid())
+  stripeCustomerId     String             @unique
+  stripeSubscriptionId String?            @unique
+  plan                 SubscriptionPlan   @default(BASIC)
+  status               SubscriptionStatus @default(ACTIVE)
+  currentPeriodStart   DateTime
+  currentPeriodEnd     DateTime
+  cancelAtPeriodEnd    Boolean            @default(false)
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  userId               String
+  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("subscriptions")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  action    String
+  entity    String
+  entityId  String?
+  details   Json?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("audit_logs")
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  MANAGER
+  TENANT
+}
+
+enum LeaseStatus {
+  VACANT
+  LEASED
+  PENDING
+  MAINTENANCE
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  LATE
+  FAILED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  MANUAL
+  STRIPE_CARD
+  STRIPE_ACH
+  CASH
+  CHECK
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum MaintenanceStatus {
+  SUBMITTED
+  IN_PROGRESS
+  COMPLETED
+  REJECTED
+  CANCELLED
+}
+
+enum SubscriptionPlan {
+  BASIC
+  PREMIUM
+  ENTERPRISE
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELLED
+  PAST_DUE
+  UNPAID
+}
