@@ -51,7 +51,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/contexts/ThemeContext';
 
 // Enhanced Logo Component
-const Logo = ({ size = 'md', showText = true, collapsed = false }: { size?: 'sm' | 'md' | 'lg'; showText?: boolean; collapsed?: boolean }) => {
+const Logo = ({ size = 'md', showText = true, collapsed = false }: { size?: 'sm' | 'md' | 'lg' | 'xl' | 'xxl'; showText?: boolean; collapsed?: boolean }) => {
   const { theme } = useTheme();
   const [imageError, setImageError] = useState(false);
 
@@ -59,25 +59,29 @@ const Logo = ({ size = 'md', showText = true, collapsed = false }: { size?: 'sm'
     sm: 'h-8 w-auto',
     md: 'h-10 w-auto',
     lg: 'h-12 w-auto',
+    xl: 'h-16 w-auto', // 64px 
+    xxl: 'h-24 w-auto', // 96px for sidebar - much bigger and more prominent
   };
 
   const iconSizeClasses = {
     sm: 'h-6 w-6',
     md: 'h-8 w-8',
     lg: 'h-10 w-10',
+    xl: 'h-12 w-12', // 48px
+    xxl: 'h-20 w-20', // 80px for sidebar fallback - much bigger
   };
 
   const FallbackLogo = () => (
     <div className="flex items-center gap-3">
-      <div className="bg-gradient-to-r from-primary to-blue-600 rounded-xl p-2.5 shadow-lg">
+      <div className="bg-gradient-to-r from-primary to-primary-dark rounded-xl p-4 shadow-lg">
         <Building2 className={`text-white ${iconSizeClasses[size]}`} />
       </div>
       {showText && !collapsed && (
         <div className="flex flex-col">
-          <span className="text-xl font-bold bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
+          <span className="text-2xl font-bold bg-gradient-to-r from-primary to-primary-dark bg-clip-text text-transparent">
             ORMI
           </span>
-          <span className="text-xs text-muted-foreground font-medium">
+          <span className="text-sm font-medium text-foreground">
             Property Management
           </span>
         </div>
@@ -93,19 +97,20 @@ const Logo = ({ size = 'md', showText = true, collapsed = false }: { size?: 'sm'
     <div className="flex items-center gap-3">
       <div className="relative">
         <img
-          src={theme === 'dark' ? '/ormi_logo_dark.png' : '/ormi-logo.png'}
+          src={
+            collapsed 
+              ? '/ormi-logo-fav.png'  // Use favicon when collapsed
+              : theme === 'dark' ? '/ormi_logo_dark.png' : '/ormi-logo.png'  // Use full logo when expanded
+          }
           alt="ORMI Property Management"
-          className={`${sizeClasses[size]} object-contain`}
+          className={`${sizeClasses[size]} object-contain transition-all duration-300 ${collapsed ? 'scale-100' : 'scale-100'}`}
           onError={() => setImageError(true)}
         />
       </div>
       {showText && !collapsed && (
         <div className="flex flex-col">
-          <span className="text-xl font-bold bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
-            ORMI
-          </span>
-          <span className="text-xs text-muted-foreground font-medium">
-            Property Management
+          <span className="text-sm font-medium text-foreground">
+            Professional Property Management Platform
           </span>
         </div>
       )}
@@ -217,6 +222,10 @@ const contentVariants = {
   collapsed: {
     marginLeft: '5rem',
     transition: { duration: 0.3, ease: 'easeInOut' }
+  },
+  mobile: {
+    marginLeft: '0rem',
+    transition: { duration: 0.3, ease: 'easeInOut' }
   }
 };
 
@@ -236,41 +245,104 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   // Handle window resize
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth >= 1024) {
+      const width = window.innerWidth;
+      
+      // Close mobile sidebar when switching to desktop
+      if (width >= 1024) {
         setSidebarOpen(false);
       }
-      if (window.innerWidth < 1280) {
-        setSidebarCollapsed(true);
+      
+      // Smart sidebar collapse behavior based on screen size
+      // Only auto-adjust if user hasn't manually set a preference
+      const userPreference = localStorage.getItem('sidebar-collapsed');
+      const hasUserPreference = userPreference !== null;
+      
+      if (width < 1024) {
+        // On smaller screens, always use mobile overlay
+        setSidebarCollapsed(false);
+      } else if (width >= 1024 && width < 1280) {
+        // Small desktop screens (1024-1279px) - collapsed by default for more space
+        if (!hasUserPreference) {
+          setSidebarCollapsed(true);
+        }
+      } else if (width >= 1280 && width < 1920) {
+        // Medium desktop screens (1280-1919px) - expanded by default
+        if (!hasUserPreference) {
+          setSidebarCollapsed(false);
+        }
+      } else if (width >= 1920) {
+        // Large/ultra-wide screens (1920px+) - always expanded for maximum utility
+        setSidebarCollapsed(false);
       }
     };
 
-    window.addEventListener('resize', handleResize);
+    // Debounce resize events for better performance
+    let timeoutId: NodeJS.Timeout;
+    const debouncedHandleResize = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(handleResize, 150);
+    };
+
+    window.addEventListener('resize', debouncedHandleResize);
     handleResize(); // Call on mount
-    return () => window.removeEventListener('resize', handleResize);
+    
+    return () => {
+      window.removeEventListener('resize', debouncedHandleResize);
+      clearTimeout(timeoutId);
+    };
   }, []);
+
+  // Save sidebar state to localStorage when it changes
+  useEffect(() => {
+    localStorage.setItem('sidebar-collapsed', sidebarCollapsed.toString());
+  }, [sidebarCollapsed]);
 
   return (
     <div className="h-screen flex bg-background">
       {/* Mobile sidebar overlay */}
       <AnimatePresence>
         {sidebarOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 lg:hidden"
-            onClick={() => setSidebarOpen(false)}
-          />
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 lg:hidden"
+              onClick={() => setSidebarOpen(false)}
+            />
+            {/* Mobile sidebar */}
+            <motion.aside
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed inset-y-0 left-0 z-50 w-72 bg-background border-r border-border/50 sidebar-premium lg:hidden"
+            >
+              <SidebarContent 
+                collapsed={false}
+                onToggle={() => setSidebarOpen(false)}
+                navigation={navigation}
+                location={location}
+                mobile
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+              />
+            </motion.aside>
+          </>
         )}
       </AnimatePresence>
 
       {/* Desktop sidebar */}
-      <motion.div
+      <motion.aside
         variants={sidebarVariants}
         animate={sidebarCollapsed ? 'collapsed' : 'expanded'}
-        className="hidden lg:flex flex-col bg-card border-r border-border shadow-sm"
+        className={`
+          hidden lg:flex fixed left-0 top-0 z-50 h-full bg-background border-r border-border/50 
+          sidebar-premium sidebar-collapse-animation
+          ${sidebarCollapsed ? 'w-20' : 'w-72'}
+        `}
       >
-        <SidebarContent
+        <SidebarContent 
           collapsed={sidebarCollapsed}
           onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
           navigation={navigation}
@@ -278,33 +350,12 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
         />
-      </motion.div>
-
-      {/* Mobile sidebar */}
-      <AnimatePresence>
-        {sidebarOpen && (
-          <motion.div
-            initial={{ x: '-100%' }}
-            animate={{ x: 0 }}
-            exit={{ x: '-100%' }}
-            transition={{ duration: 0.3, ease: 'easeInOut' }}
-            className="fixed inset-y-0 left-0 w-72 bg-card shadow-2xl z-50 lg:hidden border-r border-border"
-          >
-            <SidebarContent
-              collapsed={false}
-              onToggle={() => setSidebarOpen(false)}
-              navigation={navigation}
-              location={location}
-              mobile
-              searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
+      </motion.aside>
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ease-in-out ${
+        sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-72'
+      }`}>
         {/* Enhanced Header */}
         <header className="bg-card/95 backdrop-blur-sm border-b border-border/50 px-4 lg:px-6 py-3 shadow-sm">
           <div className="flex items-center justify-between">
@@ -389,7 +440,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                         <p className="text-sm font-medium">
                           {user?.firstName} {user?.lastName}
                         </p>
-                        <Badge variant="secondary" className="text-xs">
+                        <Badge variant="secondary" className="text-xs bg-primary/10 text-primary border-primary/20 font-medium">
                           <Crown className="h-3 w-3 mr-1" />
                           Premium
                         </Badge>
@@ -463,7 +514,7 @@ function SidebarContent({
       {/* Logo Section */}
       <div className="flex items-center justify-between p-4 border-b border-border/50">
         <Link to="/dashboard" className="flex items-center">
-          <Logo size="md" showText={!collapsed} collapsed={collapsed} />
+          <Logo size="xxl" showText={!collapsed} collapsed={collapsed} />
         </Link>
         {mobile && (
           <Button variant="ghost" size="sm" onClick={onToggle} className="h-9 w-9 p-0">
@@ -489,7 +540,7 @@ function SidebarContent({
       )}
 
       {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-1">
+      <nav className="flex-1 p-4 space-y-1 sidebar-scroll overflow-y-auto">
         {filteredNavigation.map((item) => {
           const isActive = location.pathname === item.href;
           return (
@@ -497,15 +548,24 @@ function SidebarContent({
               key={item.name}
               to={item.href}
               className={`
-                group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200
+                group flex items-center gap-3 px-3 py-2.5 text-sm font-medium 
+                nav-item-enhanced relative overflow-hidden
                 ${isActive
-                  ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20'
-                  : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                  ? 'nav-item-active'
+                  : 'text-muted-foreground'
                 }
               `}
               title={collapsed ? item.name : undefined}
             >
-              <item.icon className={`h-5 w-5 flex-shrink-0 ${collapsed ? 'mx-auto' : ''}`} />
+              {/* Enhanced animated background on hover */}
+              {!isActive && (
+                <motion.div
+                  className="absolute inset-0 bg-gradient-to-r from-primary/10 to-primary/15 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200 dark:from-primary/20 dark:to-primary/25"
+                  initial={false}
+                />
+              )}
+              
+              <item.icon className={`h-5 w-5 flex-shrink-0 icon-enhanced ${collapsed ? 'mx-auto' : ''} ${isActive ? 'text-primary-foreground' : 'group-hover:text-primary dark:group-hover:text-primary-foreground'}`} />
               <AnimatePresence>
                 {(!collapsed || mobile) && (
                   <motion.div
@@ -515,21 +575,31 @@ function SidebarContent({
                     className="flex items-center justify-between flex-1 overflow-hidden"
                   >
                     <div className="flex flex-col">
-                      <span className="truncate">{item.name}</span>
+                      <span className={`truncate transition-colors duration-200 ${isActive ? 'text-primary-foreground font-medium' : 'group-hover:text-primary dark:group-hover:text-primary-foreground'}`}>{item.name}</span>
                       {item.description && (
-                        <span className="text-xs text-muted-foreground/70 truncate">
+                        <span className={`text-xs truncate transition-colors duration-200 ${isActive ? 'text-primary-foreground/90 opacity-90' : 'nav-description group-hover:text-primary/80 dark:group-hover:text-primary-foreground/80'}`}>
                           {item.description}
                         </span>
                       )}
                     </div>
                     {item.badge && (
-                      <Badge variant="secondary" className="ml-auto text-xs">
+                      <Badge variant="secondary" className={`ml-auto text-xs badge-enhanced ${isActive ? 'bg-primary-foreground/20 text-primary-foreground' : 'badge-secondary group-hover:bg-primary/15 group-hover:text-primary dark:group-hover:bg-primary-foreground/20 dark:group-hover:text-primary-foreground'}`}>
                         {item.badge}
                       </Badge>
                     )}
                   </motion.div>
                 )}
               </AnimatePresence>
+              
+              {/* Enhanced active indicator */}
+              {isActive && (
+                <motion.div
+                  layoutId="activeIndicator"
+                  className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary-foreground rounded-r-full shadow-lg"
+                  initial={false}
+                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                />
+              )}
             </Link>
           );
         })}
@@ -545,11 +615,11 @@ function SidebarContent({
               exit={{ opacity: 0 }}
               className="space-y-2"
             >
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <div className="flex items-center gap-2 text-xs footer-text">
                 <Shield className="h-3 w-3" />
                 <span>Enterprise Security</span>
               </div>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <div className="flex items-center gap-2 text-xs footer-text">
                 <Award className="h-3 w-3" />
                 <span>© 2024 ORMI™</span>
               </div>

@@ -8,6 +8,20 @@ const dashboardController = new DashboardController();
 
 /**
  * @swagger
+ * /api/dashboard/metrics:
+ *   get:
+ *     summary: Get dashboard metrics (alias for overview)
+ *     tags: [Dashboard]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Dashboard metrics data
+ */
+router.get('/metrics', authenticateToken, requireManager, asyncHandler(dashboardController.getOverview));
+
+/**
+ * @swagger
  * /api/dashboard/overview:
  *   get:
  *     summary: Get dashboard overview metrics

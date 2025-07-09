@@ -1,88 +1,139 @@
 import React from 'react';
-import { useTheme } from '@/contexts/ThemeContext';
+import { motion } from 'framer-motion';
+import { Building2, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Building2 } from 'lucide-react';
 
 interface LogoProps {
+  size?: 'sm' | 'md' | 'lg' | 'xl';
+  variant?: 'default' | 'minimal' | 'full';
+  showTagline?: boolean;
   className?: string;
-  size?: 'sm' | 'md' | 'lg';
-  showText?: boolean;
+  animated?: boolean;
 }
 
-export const Logo: React.FC<LogoProps> = ({ className, size = 'md', showText = true }) => {
-  const { theme } = useTheme();
-  const [imageLoaded, setImageLoaded] = React.useState(false);
-  const [imageError, setImageError] = React.useState(false);
+const sizeClasses = {
+  sm: {
+    container: 'w-8 h-8',
+    icon: 'w-4 h-4',
+    sparkle: 'w-3 h-3 -top-0.5 -right-0.5',
+    text: 'text-lg',
+    tagline: 'text-xs'
+  },
+  md: {
+    container: 'w-12 h-12',
+    icon: 'w-6 h-6',
+    sparkle: 'w-4 h-4 -top-1 -right-1',
+    text: 'text-xl',
+    tagline: 'text-sm'
+  },
+  lg: {
+    container: 'w-16 h-16',
+    icon: 'w-8 h-8',
+    sparkle: 'w-6 h-6 -top-1 -right-1',
+    text: 'text-3xl',
+    tagline: 'text-base'
+  },
+  xl: {
+    container: 'w-20 h-20',
+    icon: 'w-10 h-10',
+    sparkle: 'w-7 h-7 -top-1.5 -right-1.5',
+    text: 'text-4xl',
+    tagline: 'text-lg'
+  }
+};
 
-  const sizeClasses = {
-    sm: 'h-8 w-auto',
-    md: 'h-10 w-auto',
-    lg: 'h-12 w-auto',
-  };
+export const Logo: React.FC<LogoProps> = ({
+  size = 'md',
+  variant = 'default',
+  showTagline = false,
+  className,
+  animated = true
+}) => {
+  const sizes = sizeClasses[size];
 
-  const iconSizeClasses = {
-    sm: 'h-6 w-6',
-    md: 'h-8 w-8',
-    lg: 'h-10 w-10',
-  };
-
-  const textSizeClasses = {
-    sm: 'text-lg',
-    md: 'text-xl',
-    lg: 'text-2xl',
-  };
-
-  const handleImageLoad = () => {
-    setImageLoaded(true);
-    setImageError(false);
-  };
-
-  const handleImageError = () => {
-    setImageError(true);
-    setImageLoaded(false);
-  };
-
-  // Fallback logo component
-  const FallbackLogo = () => (
-    <div className={cn('flex items-center gap-3', className)}>
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg p-2 shadow-lg">
-        <Building2 className={cn('text-white', iconSizeClasses[size])} />
+  const LogoIcon = ({ className: iconClassName }: { className?: string }) => (
+    <div className={cn("relative", iconClassName)}>
+      <div className={cn(
+        "bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center shadow-lg",
+        sizes.container
+      )}>
+        <Building2 className={cn("text-white", sizes.icon)} />
       </div>
-      {showText && (
-        <span className={cn('font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent', textSizeClasses[size])}>
-          ORMI
-        </span>
+      
+      {animated && (
+        <motion.div
+          className={cn(
+            "absolute w-6 h-6 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center",
+            sizes.sparkle
+          )}
+          animate={{ rotate: [0, 360] }}
+          transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+        >
+          <Sparkles className={cn("text-white", sizes.sparkle.includes('w-3') ? 'w-2 h-2' : 'w-3 h-3')} />
+        </motion.div>
+      )}
+      
+      {!animated && (
+        <div className={cn(
+          "absolute w-6 h-6 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center",
+          sizes.sparkle
+        )}>
+          <Sparkles className={cn("text-white", sizes.sparkle.includes('w-3') ? 'w-2 h-2' : 'w-3 h-3')} />
+        </div>
       )}
     </div>
   );
 
-  // If image failed to load, show fallback
-  if (imageError) {
-    return <FallbackLogo />;
+  const LogoText = ({ className: textClassName }: { className?: string }) => (
+    <div className={cn("flex flex-col", textClassName)}>
+      <h1 className={cn(
+        "font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent",
+        sizes.text
+      )}>
+        ORMI
+      </h1>
+      
+      {showTagline && (
+        <div className="space-y-1">
+          <p className={cn(
+            "font-semibold text-gray-700 dark:text-gray-300",
+            sizes.tagline
+          )}>
+            Optimal Rental Management Intelligence
+          </p>
+          <p className={cn(
+            "text-gray-500 dark:text-gray-400",
+            size === 'sm' ? 'text-[10px]' : 'text-xs'
+          )}>
+            Next-generation property management
+          </p>
+        </div>
+      )}
+    </div>
+  );
+
+  if (variant === 'minimal') {
+    return (
+      <div className={cn("flex items-center", className)}>
+        <LogoIcon />
+      </div>
+    );
   }
 
-  return (
-    <div className={cn('flex items-center gap-3', className)}>
-      <div className="relative">
-        <img
-          src={theme === 'dark' ? '/ormi_logo_dark.png' : '/ormi-logo.png'}
-          alt="ORMI Property Management"
-          className={cn(sizeClasses[size], 'object-contain transition-opacity duration-200', {
-            'opacity-0': !imageLoaded,
-            'opacity-100': imageLoaded,
-          })}
-          onLoad={handleImageLoad}
-          onError={handleImageError}
-        />
-        {!imageLoaded && !imageError && (
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg animate-pulse" />
-        )}
+  if (variant === 'full') {
+    return (
+      <div className={cn("flex items-center space-x-3", className)}>
+        <LogoIcon />
+        <LogoText />
       </div>
-      {showText && (
-        <span className={cn('font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent', textSizeClasses[size])}>
-          ORMI
-        </span>
-      )}
+    );
+  }
+
+  // Default variant
+  return (
+    <div className={cn("flex flex-col items-center text-center", className)}>
+      <LogoIcon className="mb-3" />
+      <LogoText />
     </div>
   );
 };

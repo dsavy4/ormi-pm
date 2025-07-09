@@ -137,7 +137,7 @@ const MetricCard = React.memo<MetricCardProps>(({
 }) => {
   if (loading) {
     return (
-      <Card className={`card-hover ${className}`}>
+      <Card className={`card-hover card-enhanced hover:shadow-lg transition-all duration-200 ${className}`}>
         <CardContent className="p-6">
           <div className="flex items-center justify-between">
             <div className="flex-1">
@@ -153,38 +153,38 @@ const MetricCard = React.memo<MetricCardProps>(({
   }
 
   const colorClasses = {
-    blue: 'bg-blue-50 text-blue-600',
-    green: 'bg-green-50 text-green-600',
-    orange: 'bg-orange-50 text-orange-600',
-    red: 'bg-red-50 text-red-600',
-    purple: 'bg-purple-50 text-purple-600',
-    indigo: 'bg-indigo-50 text-indigo-600'
+    blue: 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 dark:border dark:border-blue-800/30',
+    green: 'bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400 dark:border dark:border-green-800/30',
+    orange: 'bg-orange-50 text-orange-600 dark:bg-orange-900/20 dark:text-orange-400 dark:border dark:border-orange-800/30',
+    red: 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 dark:border dark:border-red-800/30',
+    purple: 'bg-purple-50 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400 dark:border dark:border-purple-800/30',
+    indigo: 'bg-indigo-50 text-indigo-600 dark:bg-indigo-900/20 dark:text-indigo-400 dark:border dark:border-indigo-800/30'
   };
 
   return (
-    <Card className={`card-hover hover:shadow-lg transition-all duration-200 ${className}`}>
+    <Card className={`card-hover card-enhanced hover:shadow-lg transition-all duration-200 ${className}`}>
       <CardContent className="p-6">
         <div className="flex items-center justify-between">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-2">
-              <p className="text-sm font-medium text-gray-600">{title}</p>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-300">{title}</p>
               {badge && (
-                <Badge variant="secondary" className="text-xs px-2 py-1">
+                <Badge variant="secondary" className="text-xs px-2 py-1 badge-enhanced">
                   {badge}
                 </Badge>
               )}
             </div>
             <div className="flex items-baseline gap-2">
-              <p className="text-2xl font-bold text-gray-900">{value}</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{value}</p>
               {trend && (
                 <div className="flex items-center gap-1">
                   {trend.isPositive ? (
-                    <ArrowUpRight className="h-3 w-3 text-green-500" />
+                    <ArrowUpRight className="h-3 w-3 text-green-500 dark:text-green-400" />
                   ) : (
-                    <ArrowDownRight className="h-3 w-3 text-red-500" />
+                    <ArrowDownRight className="h-3 w-3 text-red-500 dark:text-red-400" />
                   )}
                   <span className={`text-xs font-medium ${
-                    trend.isPositive ? 'text-green-600' : 'text-red-600'
+                    trend.isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                   }`}>
                     {trend.value}%
                   </span>
@@ -192,12 +192,12 @@ const MetricCard = React.memo<MetricCardProps>(({
               )}
             </div>
             {trend && (
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                 {trend.period || 'vs last month'}
               </p>
             )}
           </div>
-          <div className={`h-12 w-12 rounded-lg flex items-center justify-center ${colorClasses[color]}`}>
+          <div className={`h-12 w-12 rounded-lg flex items-center justify-center metric-icon-enhanced ${colorClasses[color]}`}>
             <Icon className="h-6 w-6" />
           </div>
         </div>
@@ -322,13 +322,13 @@ export function Dashboard() {
       <motion.div variants={itemVariants} className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-            <Badge variant="outline" className="bg-gradient-to-r from-blue-50 to-indigo-50">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Dashboard</h1>
+            <Badge variant="outline" className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 dark:text-blue-400 dark:border-blue-800/30">
               <Crown className="h-3 w-3 mr-1" />
               Premium
             </Badge>
           </div>
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             Welcome back, {user?.firstName}! Here's your property portfolio overview.
           </p>
         </div>
@@ -573,7 +573,7 @@ export function Dashboard() {
               ) : (
                 <div className="space-y-3">
                   {metrics?.upcomingPayments?.map((payment, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer">
+                    <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer dark:bg-gray-800 dark:hover:bg-gray-700">
                       <div className="flex items-center gap-3">
                         <Avatar className="h-8 w-8">
                           <AvatarFallback className="text-xs">
@@ -581,13 +581,13 @@ export function Dashboard() {
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <p className="font-medium text-gray-900">{payment.tenant}</p>
-                          <p className="text-sm text-gray-500">Unit {payment.unit}</p>
+                          <p className="font-medium text-gray-900 dark:text-gray-100">{payment.tenant}</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">Unit {payment.unit}</p>
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="font-medium text-gray-900">${payment.amount.toLocaleString()}</p>
-                        <p className="text-sm text-gray-500">{payment.dueDate}</p>
+                        <p className="font-medium text-gray-900 dark:text-gray-100">${payment.amount.toLocaleString()}</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">{payment.dueDate}</p>
                       </div>
                       <div className="ml-3">
                         <Badge variant={payment.status === 'overdue' ? 'destructive' : 'secondary'}>
@@ -597,8 +597,8 @@ export function Dashboard() {
                     </div>
                   ))}
                   {(!metrics?.upcomingPayments || metrics.upcomingPayments.length === 0) && (
-                    <div className="text-center py-8 text-gray-500">
-                      <CheckCircle className="h-12 w-12 mx-auto mb-2 text-green-500" />
+                    <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                      <CheckCircle className="h-12 w-12 mx-auto mb-2 text-green-500 dark:text-green-400" />
                       <p>No upcoming payments</p>
                     </div>
                   )}
@@ -649,14 +649,14 @@ export function Dashboard() {
               ) : (
                 <div className="space-y-3">
                   {metrics?.maintenanceRequestsData?.map((request) => (
-                    <div key={request.id} className="flex items-center justify-between p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer">
+                    <div key={request.id} className="flex items-center justify-between p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer dark:bg-gray-800 dark:hover:bg-gray-700">
                       <div className="flex items-center gap-3">
-                        <div className="h-8 w-8 rounded-full bg-orange-100 flex items-center justify-center">
-                          <Wrench className="h-4 w-4 text-orange-600" />
+                        <div className="h-8 w-8 rounded-full bg-orange-100 flex items-center justify-center dark:bg-orange-900/20 dark:border dark:border-orange-800/30">
+                          <Wrench className="h-4 w-4 text-orange-600 dark:text-orange-400" />
                         </div>
                         <div>
-                          <p className="font-medium text-gray-900">{request.type}</p>
-                          <p className="text-sm text-gray-500">Unit {request.unit}</p>
+                          <p className="font-medium text-gray-900 dark:text-gray-100">{request.type}</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">Unit {request.unit}</p>
                         </div>
                       </div>
                       <div className="flex items-center space-x-2">
@@ -676,8 +676,8 @@ export function Dashboard() {
                     </div>
                   ))}
                   {(!metrics?.maintenanceRequestsData || metrics.maintenanceRequestsData.length === 0) && (
-                    <div className="text-center py-8 text-gray-500">
-                      <CheckCircle className="h-12 w-12 mx-auto mb-2 text-green-500" />
+                    <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                      <CheckCircle className="h-12 w-12 mx-auto mb-2 text-green-500 dark:text-green-400" />
                       <p>No maintenance requests</p>
                     </div>
                   )}

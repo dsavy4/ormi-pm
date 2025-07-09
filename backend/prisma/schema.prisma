@@ -42,6 +42,7 @@ model Property {
   zipCode     String
   description String?
   notes       String?
+  imageUrl    String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   ownerId     String
@@ -62,6 +63,10 @@ model Unit {
   leaseStart          DateTime?
   leaseEnd            DateTime?
   notes               String?
+  imageUrl            String?
+  bedrooms            Int?
+  bathrooms           Int?
+  sqft                Int?
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
   propertyId          String

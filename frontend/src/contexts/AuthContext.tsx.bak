@@ -68,14 +68,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const data = await response.json();
         setUser(data);
       } else if (response.status === 401) {
-        // Only logout on 401 (unauthorized), not on network errors
         localStorage.removeItem('auth_token');
         setUser(null);
       }
-      // For other errors (500, network issues, etc.), keep the user logged in
     } catch (error) {
       console.error('Auth check failed:', error);
-      // Don't logout on network errors - keep user logged in
     } finally {
       setIsLoading(false);
     }
@@ -154,11 +151,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             color: 'hsl(var(--card-foreground))',
             border: '1px solid hsl(var(--border))',
             borderRadius: '12px',
-            padding: '10px 16px',
+            padding: '16px 20px',
             fontSize: '14px',
             fontWeight: '500',
             maxWidth: '400px',
-            minHeight: '32px',
+            minHeight: '60px',
             boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
           },
           success: {

@@ -18,22 +18,31 @@ export default {
     },
     extend: {
       colors: {
-        // Ormi brand colors
+        // ORMI brand colors - Professional Forest Green System (Property Management Industry Standard)
+        'ormi-primary': "hsl(var(--ormi-primary))",
+        'ormi-primary-dark': "hsl(var(--ormi-primary-dark))",
+        'ormi-primary-light': "hsl(var(--ormi-primary-light))",
+        'ormi-secondary': "hsl(var(--ormi-secondary))",
+        'ormi-accent': "hsl(var(--ormi-accent))",
+        
+        // Legacy ormi colors for backward compatibility (now using forest green)
         ormi: {
-          blue: '#1D4ED8',
-          'blue-light': '#3B82F6',
-          'blue-dark': '#1E40AF',
+          blue: "hsl(var(--ormi-primary))", // Now forest green for consistency
+          'blue-light': "hsl(var(--ormi-primary-light))",
+          'blue-dark': "hsl(var(--ormi-primary-dark))",
           gray: '#6B7280',
           'gray-light': '#9CA3AF',
           'gray-dark': '#4B5563',
         },
+        
+        // Core shadcn/ui colors
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         primary: {
-          DEFAULT: "#1D4ED8",
+          DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
         },
         secondary: {
