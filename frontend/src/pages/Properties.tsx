@@ -4749,64 +4749,101 @@ const PropertyEditSheet: React.FC<PropertyEditSheetProps> = ({
   property,
   onPropertyUpdated 
 }) => {
-  const [currentStep, setCurrentStep] = useState(0);
-  const [formData, setFormData] = useState({
-    name: '',
-    type: '',
-    address: '',
-    city: '',
-    state: '',
-    zipCode: '',
-    country: 'United States',
-    yearBuilt: '',
-    squareFootage: '',
-    totalUnits: '',
-    description: '',
-    notes: '',
-    tags: [] as string[],
-    managerId: '',
-    ownershipType: '',
-    images: [] as string[],
-    amenities: [] as string[],
-    neighborhood: '',
-    marketValue: '',
-    purchasePrice: '',
-    purchaseDate: '',
-    expenses: ''
-  });
+  const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [isDirty, setIsDirty] = useState(false);
   const [managers, setManagers] = useState<PropertyManager[]>([]);
+
+  const form = useForm<PropertyFormData>({
+    resolver: zodResolver(propertyFormSchema),
+    mode: 'onBlur',
+    defaultValues: {
+      name: '',
+      propertyType: 'Multi-Family',
+      ownershipType: 'Owned',
+      tags: [],
+      address: '',
+      unitSuite: '',
+      city: '',
+      state: '',
+      zipCode: '',
+      country: 'United States',
+      totalUnits: 1,
+      yearBuilt: undefined,
+      sqft: undefined,
+      lotSize: undefined,
+      description: '',
+      propertyManager: '',
+      rentDueDay: 1,
+      allowOnlinePayments: true,
+      enableMaintenanceRequests: true,
+      images: [],
+    },
+  });
+
+  const formValues = form.watch();
+  const formErrors = form.formState.errors;
+
+  // Check if current step is valid
+  const isCurrentStepValid = useMemo(() => {
+    const currentStepConfig = WIZARD_STEPS.find(step => step.id === currentStep);
+    if (!currentStepConfig) return false;
+
+    try {
+      currentStepConfig.schema.parse(formValues);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }, [currentStep, formValues]);
+
+  // Track form dirty state
+  useEffect(() => {
+    const subscription = form.watch((value, { name }) => {
+      if (name) {
+        setIsDirty(true);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [form]);
 
   // Pre-populate form when property changes
   useEffect(() => {
-    if (property) {
-      setFormData({
+    if (property && isOpen) {
+      form.reset({
         name: property.name || '',
-        type: property.propertyType || '',
+        propertyType: (property.propertyType as any) || 'Multi-Family',
+        ownershipType: 'Owned', // Default since not in Property interface
+        tags: property.tags || [],
         address: property.address || '',
+        unitSuite: '', // Not in Property interface
         city: property.city || '',
         state: property.state || '',
         zipCode: property.zipCode || '',
-        country: 'United States',
-        yearBuilt: property.yearBuilt ? String(property.yearBuilt) : '',
-        squareFootage: '',
-        totalUnits: property.totalUnits ? String(property.totalUnits) : '',
+        country: 'United States', // Default since not in Property interface
+        totalUnits: property.totalUnits || 1,
+        yearBuilt: property.yearBuilt,
+        sqft: undefined, // Not in Property interface
+        lotSize: undefined, // Not in Property interface
         description: property.description || '',
-        notes: property.notes || '',
-        tags: property.tags || [],
-        managerId: typeof property.manager === 'string' ? property.manager : property.manager?.id || '',
-        ownershipType: '',
-        images: property.images || [],
-        amenities: property.amenities || [],
-        neighborhood: property.neighborhood || '',
-        marketValue: property.marketValue ? String(property.marketValue) : '',
-        purchasePrice: property.purchasePrice ? String(property.purchasePrice) : '',
-        purchaseDate: property.purchaseDate || '',
-        expenses: property.expenses ? String(property.expenses) : ''
+        propertyManager: typeof property.manager === 'string' ? property.manager : property.manager?.id || '',
+        rentDueDay: 1, // Default since not in Property interface
+        allowOnlinePayments: true, // Default since not in Property interface
+        enableMaintenanceRequests: true, // Default since not in Property interface
+        images: [],
       });
-      setCurrentStep(0);
+      setCurrentStep(1);
+      setIsDirty(false);
+      
+      // Set image previews from existing images
+      if (property.images && property.images.length > 0) {
+        setImagePreviews(property.images);
+      } else {
+        setImagePreviews([]);
+      }
     }
-  }, [property]);
+  }, [property, isOpen, form]);
 
   // Fetch managers when sheet opens
   useEffect(() => {
@@ -4842,275 +4879,183 @@ const PropertyEditSheet: React.FC<PropertyEditSheetProps> = ({
     ]);
   };
 
-  const handleSubmit = async () => {
-    if (!property) return;
+  // Image upload handlers
+  const onImageDrop = useCallback((acceptedFiles: File[]) => {
+    const currentImages = form.getValues('images') || [];
+    const newImages = [...currentImages, ...acceptedFiles].slice(0, 10);
+    form.setValue('images', newImages);
+    
+    const newPreviews = acceptedFiles.map(file => URL.createObjectURL(file));
+    setImagePreviews(prev => [...prev, ...newPreviews].slice(0, 10));
+    
+    setIsDirty(true);
+  }, [form]);
 
+  const {
+    getRootProps: getImageRootProps,
+    getInputProps: getImageInputProps,
+    isDragActive: isImageDragActive,
+  } = useDropzone({
+    onDrop: onImageDrop,
+    accept: {
+      'image/*': ['.png', '.jpg', '.jpeg', '.gif'],
+    },
+    maxFiles: 10,
+    maxSize: 10 * 1024 * 1024, // 10MB
+  });
+
+  const removeImage = (index: number) => {
+    const images = form.getValues('images') || [];
+    const newImages = images.filter((_, i) => i !== index);
+    form.setValue('images', newImages);
+    
+    const newPreviews = imagePreviews.filter((_, i) => i !== index);
+    setImagePreviews(newPreviews);
+    setIsDirty(true);
+  };
+
+  const reorderImages = (fromIndex: number, toIndex: number) => {
+    const images = form.getValues('images') || [];
+    const newImages = [...images];
+    const [removed] = newImages.splice(fromIndex, 1);
+    newImages.splice(toIndex, 0, removed);
+    form.setValue('images', newImages);
+
+    const newPreviews = [...imagePreviews];
+    const [removedPreview] = newPreviews.splice(fromIndex, 1);
+    newPreviews.splice(toIndex, 0, removedPreview);
+    setImagePreviews(newPreviews);
+    setIsDirty(true);
+  };
+
+  const handleNext = () => {
+    if (currentStep < WIZARD_STEPS.length && isCurrentStepValid) {
+      setCurrentStep(prev => prev + 1);
+    }
+  };
+
+  const handleBack = () => {
+    if (currentStep > 1) {
+      setCurrentStep(prev => prev - 1);
+    }
+  };
+
+  const handleStepClick = (stepId: number) => {
+    // Allow navigation to previous steps or current step
+    if (stepId <= currentStep) {
+      setCurrentStep(stepId);
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!property || !isCurrentStepValid || isSubmitting) return;
+    
     setIsSubmitting(true);
     try {
+      const data = form.getValues();
+      
+      // Create property data
+      const propertyData = {
+        name: data.name,
+        propertyType: data.propertyType,
+        ownershipType: data.ownershipType,
+        tags: data.tags,
+        address: data.address,
+        unitSuite: data.unitSuite,
+        city: data.city,
+        state: data.state,
+        zipCode: data.zipCode,
+        country: data.country,
+        totalUnits: data.totalUnits,
+        yearBuilt: data.yearBuilt,
+        sqft: data.sqft,
+        lotSize: data.lotSize,
+        description: data.description,
+        propertyManager: data.propertyManager,
+        rentDueDay: data.rentDueDay,
+        allowOnlinePayments: data.allowOnlinePayments,
+        enableMaintenanceRequests: data.enableMaintenanceRequests,
+      };
+
+      // Update property
       const response = await fetch(`/api/properties/${property.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
-        body: JSON.stringify({
-          ...formData,
-          yearBuilt: formData.yearBuilt ? parseInt(formData.yearBuilt) : null,
-          squareFootage: formData.squareFootage ? parseInt(formData.squareFootage) : null,
-          totalUnits: formData.totalUnits ? parseInt(formData.totalUnits) : null
-        })
+        body: JSON.stringify(propertyData)
       });
 
-      if (response.ok) {
-        const updatedProperty = await response.json();
-        onPropertyUpdated(updatedProperty);
-        toast.success("Property updated successfully");
-        onClose();
-      } else {
+      if (!response.ok) {
         throw new Error('Failed to update property');
       }
+
+      const updatedProperty = await response.json();
+
+      // Upload new images if any
+      if (data.images && data.images.length > 0) {
+        await Promise.all(
+          data.images.map(file => propertiesApi.uploadImage(updatedProperty.id, file))
+        );
+      }
+
+      // Success handling
+      toast.success('🎉 Property updated successfully!');
+      onPropertyUpdated(updatedProperty);
+      
+      // Reset form and state
+      form.reset();
+      setImagePreviews([]);
+      setCurrentStep(1);
+      setIsDirty(false);
+      onClose();
+
     } catch (error) {
-      console.error('Error updating property:', error);
-      toast.error("Failed to update property. Please try again.");
+      console.error('Failed to update property:', error);
+      toast.error('Failed to update property. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const steps = [
-    {
-      title: "Basic Information",
-      icon: <Building className="h-5 w-5" />,
-      content: (
-        <div className="space-y-4">
-          <div>
-            <label className="text-sm font-medium">Property Name</label>
-            <Input
-              placeholder="Enter property name"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="mt-1"
-            />
-          </div>
-          <div>
-            <label className="text-sm font-medium">Property Type</label>
-            <Select value={formData.type} onValueChange={(value) => setFormData({ ...formData, type: value })}>
-              <SelectTrigger className="mt-1">
-                <SelectValue placeholder="Select property type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Multi-Family">Multi-Family</SelectItem>
-                <SelectItem value="Single-Family">Single-Family</SelectItem>
-                <SelectItem value="Condo">Condo</SelectItem>
-                <SelectItem value="Commercial">Commercial</SelectItem>
-                <SelectItem value="Office">Office</SelectItem>
-                <SelectItem value="Mixed Use">Mixed Use</SelectItem>
-                <SelectItem value="Duplex">Duplex</SelectItem>
-                <SelectItem value="Storage">Storage</SelectItem>
-                <SelectItem value="Land">Land</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <label className="text-sm font-medium">Assigned Manager</label>
-            <Select value={formData.managerId} onValueChange={(value) => setFormData({ ...formData, managerId: value })}>
-              <SelectTrigger className="mt-1">
-                <SelectValue placeholder="Select manager" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="unassigned">Unassigned</SelectItem>
-                {managers.map((manager) => (
-                  <SelectItem key={manager.id} value={manager.id}>
-                    <div className="flex items-center gap-2">
-                      <Avatar className="h-5 w-5">
-                        <AvatarImage src={manager.avatar} />
-                        <AvatarFallback className="text-xs">
-                          {manager.name.split(' ').map(n => n[0]).join('')}
-                        </AvatarFallback>
-                      </Avatar>
-                      {manager.name}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <label className="text-sm font-medium">Ownership Type</label>
-            <Select value={formData.ownershipType} onValueChange={(value) => setFormData({ ...formData, ownershipType: value })}>
-              <SelectTrigger className="mt-1">
-                <SelectValue placeholder="Select ownership type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Owned">Owned</SelectItem>
-                <SelectItem value="Managed">Managed</SelectItem>
-                <SelectItem value="Third-Party">Third-Party</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      )
-    },
-    {
-      title: "Location",
-      icon: <MapPin className="h-5 w-5" />,
-      content: (
-        <div className="space-y-4">
-          <div>
-            <label className="text-sm font-medium">Street Address</label>
-            <Input
-              placeholder="Enter street address"
-              value={formData.address}
-              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-              className="mt-1"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium">City</label>
-              <Input
-                placeholder="Enter city"
-                value={formData.city}
-                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                className="mt-1"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">State</label>
-              <Input
-                placeholder="Enter state"
-                value={formData.state}
-                onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                className="mt-1"
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium">ZIP Code</label>
-              <Input
-                placeholder="Enter ZIP code"
-                value={formData.zipCode}
-                onChange={(e) => setFormData({ ...formData, zipCode: e.target.value })}
-                className="mt-1"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Country</label>
-              <Input
-                placeholder="Enter country"
-                value={formData.country}
-                onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                className="mt-1"
-              />
-            </div>
-          </div>
-        </div>
-      )
-    },
-    {
-      title: "Details",
-      icon: <Info className="h-5 w-5" />,
-      content: (
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium">Year Built</label>
-              <Input
-                type="number"
-                placeholder="e.g., 1995"
-                value={formData.yearBuilt}
-                onChange={(e) => setFormData({ ...formData, yearBuilt: e.target.value })}
-                className="mt-1"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Square Footage</label>
-              <Input
-                type="number"
-                placeholder="e.g., 2500"
-                value={formData.squareFootage}
-                onChange={(e) => setFormData({ ...formData, squareFootage: e.target.value })}
-                className="mt-1"
-              />
-            </div>
-          </div>
-          <div>
-            <label className="text-sm font-medium">Total Units</label>
-            <Input
-              type="number"
-              placeholder="e.g., 12"
-              value={formData.totalUnits}
-              onChange={(e) => setFormData({ ...formData, totalUnits: e.target.value })}
-              className="mt-1"
-            />
-          </div>
-          <div>
-            <label className="text-sm font-medium">Description</label>
-            <textarea
-              placeholder="Enter property description..."
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="mt-1 w-full min-h-[100px] p-3 border rounded-md resize-none"
-            />
-          </div>
-        </div>
-      )
-    },
-    {
-      title: "Review",
-      icon: <CheckCircle2 className="h-5 w-5" />,
-      content: (
-        <div className="space-y-4">
-          <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
-            <h4 className="font-medium mb-2">Property Summary</h4>
-            <div className="space-y-2 text-sm">
-              <p><strong>Name:</strong> {formData.name}</p>
-              <p><strong>Type:</strong> {formData.type}</p>
-              <p><strong>Address:</strong> {formData.address}, {formData.city}, {formData.state} {formData.zipCode}</p>
-              <p><strong>Manager:</strong> {
-                managers.find(m => m.id === formData.managerId)?.name || 'Unassigned'
-              }</p>
-              <p><strong>Ownership:</strong> {formData.ownershipType}</p>
-              {formData.yearBuilt && <p><strong>Year Built:</strong> {formData.yearBuilt}</p>}
-              {formData.squareFootage && <p><strong>Square Footage:</strong> {formData.squareFootage}</p>}
-              {formData.totalUnits && <p><strong>Total Units:</strong> {formData.totalUnits}</p>}
-            </div>
-          </div>
-        </div>
-      )
-    }
-  ];
-
-  const canProceed = (step: number) => {
-    switch (step) {
-      case 0:
-        return formData.name && formData.type;
-      case 1:
-        return formData.address && formData.city && formData.state;
-      case 2:
-        return true; // Details are optional
-      case 3:
-        return true; // Review step
-      default:
-        return false;
+  const handleClose = () => {
+    if (isDirty) {
+      // Show confirmation dialog for dirty form
+      if (window.confirm('You have unsaved changes. Are you sure you want to close?')) {
+        form.reset();
+        setImagePreviews([]);
+        setCurrentStep(1);
+        setIsDirty(false);
+        onClose();
+      }
+    } else {
+      onClose();
     }
   };
 
-  const nextStep = () => {
-    if (currentStep < steps.length - 1) {
-      setCurrentStep(currentStep + 1);
+  // Reset form when sheet opens
+  useEffect(() => {
+    if (isOpen) {
+      setCurrentStep(1);
+      setIsDirty(false);
     }
-  };
+  }, [isOpen]);
 
-  const prevStep = () => {
-    if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
-    }
-  };
+  // Handle escape key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        handleClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [isOpen, isDirty]);
 
   return (
-    <Sheet open={isOpen} onOpenChange={onClose}>
+    <Sheet open={isOpen} onOpenChange={handleClose}>
       <SheetContent className="w-[600px] sm:w-[600px] overflow-y-auto">
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
@@ -5125,27 +5070,27 @@ const PropertyEditSheet: React.FC<PropertyEditSheetProps> = ({
         <div className="mt-6">
           {/* Progress Steps */}
           <div className="flex items-center justify-between mb-8">
-            {steps.map((step, index) => (
-              <div key={index} className="flex items-center">
+            {WIZARD_STEPS.map((step, index) => (
+              <div key={step.id} className="flex items-center">
                 <div
                   className={`flex items-center justify-center w-10 h-10 rounded-full border-2 cursor-pointer transition-all ${
-                    index === currentStep
+                    step.id === currentStep
                       ? 'bg-primary border-primary text-white'
-                      : index < currentStep
+                      : step.id < currentStep
                       ? 'bg-primary border-primary text-white'
                       : 'border-gray-300 text-gray-300'
                   }`}
-                  onClick={() => index < currentStep && setCurrentStep(index)}
+                  onClick={() => handleStepClick(step.id)}
                 >
-                  {index < currentStep ? (
+                  {step.id < currentStep ? (
                     <CheckCircle2 className="h-5 w-5" />
                   ) : (
-                    step.icon
+                    <step.icon className="h-5 w-5" />
                   )}
                 </div>
-                {index < steps.length - 1 && (
+                {index < WIZARD_STEPS.length - 1 && (
                   <div className={`w-12 h-0.5 mx-2 ${
-                    index < currentStep ? 'bg-primary' : 'bg-gray-300'
+                    step.id < currentStep ? 'bg-primary' : 'bg-gray-300'
                   }`} />
                 )}
               </div>
@@ -5154,32 +5099,61 @@ const PropertyEditSheet: React.FC<PropertyEditSheetProps> = ({
 
           {/* Step Content */}
           <div className="mb-8">
-            <h3 className="text-lg font-semibold mb-4">{steps[currentStep].title}</h3>
-            {steps[currentStep].content}
+            <h3 className="text-lg font-semibold mb-4">{WIZARD_STEPS.find(s => s.id === currentStep)?.title}</h3>
+            
+            {currentStep === 1 && (
+              <Step1BasicInfo form={form} formErrors={formErrors} formValues={formValues} />
+            )}
+            {currentStep === 2 && (
+              <Step2Location form={form} formErrors={formErrors} formValues={formValues} />
+            )}
+            {currentStep === 3 && (
+              <Step3PropertyDetails form={form} formErrors={formErrors} formValues={formValues} />
+            )}
+            {currentStep === 4 && (
+              <Step4Media
+                form={form}
+                imagePreviews={imagePreviews}
+                getImageRootProps={getImageRootProps}
+                getImageInputProps={getImageInputProps}
+                isImageDragActive={isImageDragActive}
+                removeImage={removeImage}
+                reorderImages={reorderImages}
+              />
+            )}
+            {currentStep === 5 && (
+              <Step5Review
+                form={form}
+                formErrors={formErrors}
+                formValues={formValues}
+                imagePreviews={imagePreviews}
+                onEditStep={handleStepClick}
+              />
+            )}
           </div>
 
           {/* Navigation */}
           <div className="flex justify-between items-center pt-6 border-t">
             <Button
               variant="outline"
-              onClick={prevStep}
-              disabled={currentStep === 0}
+              onClick={handleBack}
+              disabled={currentStep === 1}
             >
               <ChevronLeft className="h-4 w-4 mr-2" />
               Previous
             </Button>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={onClose}>
+              <Button variant="outline" onClick={handleClose}>
                 Cancel
               </Button>
-              {currentStep === steps.length - 1 ? (
-                <Button onClick={handleSubmit} disabled={isSubmitting}>
+              {currentStep === WIZARD_STEPS.length ? (
+                <Button onClick={handleSubmit} disabled={isSubmitting || !isCurrentStepValid}>
                   {isSubmitting ? 'Updating...' : 'Update Property'}
                 </Button>
               ) : (
                 <Button
-                  onClick={nextStep}
-                  disabled={!canProceed(currentStep)}
+                  onClick={handleNext}
+                  disabled={!isCurrentStepValid}
                 >
                   Next Step
                   <ChevronRight className="h-4 w-4 ml-2" />
