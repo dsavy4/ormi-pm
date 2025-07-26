@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useTheme } from '@/contexts/ThemeContext';
-import { Logo } from '@/components/ui/logo';
 
 export function Login() {
   const [email, setEmail] = useState('');
@@ -93,7 +92,26 @@ export function Login() {
                   whileHover={{ scale: 1.05 }}
                   transition={{ type: "spring", stiffness: 400, damping: 25 }}
                 >
-                  <Logo size="xl" variant="full" showTagline={false} animated={true} />
+                  <motion.img
+                    src={theme === 'dark' ? '/ormi_logo_dark.png' : '/ormi-logo.png'}
+                    alt="ORMI"
+                    className="h-32 w-auto object-contain max-w-full"
+                    animate={{ rotate: [0, 360] }}
+                    transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                    onError={(e) => {
+                      // Fallback to simple text logo if image fails
+                      e.currentTarget.style.display = 'none';
+                      const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                      if (fallback) fallback.style.display = 'block';
+                    }}
+                  />
+                  
+                  {/* Fallback text logo */}
+                  <div className="hidden">
+                    <h1 className="text-5xl font-bold text-ormi-gradient">
+                      ORMI
+                    </h1>
+                  </div>
                 </motion.div>
               </div>
               
