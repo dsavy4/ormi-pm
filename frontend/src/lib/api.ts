@@ -289,6 +289,22 @@ export const authApi = {
     });
     return handleResponse<{ message: string }>(response);
   },
+
+  async getProfile() {
+    const response = await fetch(`${API_BASE_URL}/api/users/profile`, {
+      headers: getAuthHeaders(),
+    });
+    const data = await handleResponse<{ user: User }>(response);
+    return data.user;
+  },
+
+  async refreshToken() {
+    const response = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse<{ token: string; user: User }>(response);
+  },
 };
 
 // Properties API

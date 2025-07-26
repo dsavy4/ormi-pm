@@ -57,25 +57,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const checkAuthStatus = async () => {
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch('https://api.ormi.com/api/users/profile', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      if (!token) {
+        setIsLoading(false);
+        return;
+      }
+
+      // Use the authApi.getProfile() function for better error handling
+      const userData = await authApi.getProfile();
+      setUser(userData);
+    } catch (error: any) {
+      console.error('Auth check failed:', error);
       
-      if (response.ok) {
-        const data = await response.json();
-        setUser(data);
-      } else if (response.status === 401) {
-        // Only logout on 401 (unauthorized), not on network errors
+      // Check if it's a 401 error (unauthorized)
+      if (error.message?.includes('401') || error.message?.includes('Unauthorized')) {
+        console.log('Token expired or invalid, logging out');
         localStorage.removeItem('auth_token');
         setUser(null);
+      } else {
+        // For network errors or other issues, keep user logged in
+        console.warn('Auth check failed but keeping user logged in:', error.message);
+        // Don't logout on network errors - keep user logged in
+        // This prevents logout on temporary network issues
       }
-      // For other errors (500, network issues, etc.), keep the user logged in
-    } catch (error) {
-      console.error('Auth check failed:', error);
-      // Don't logout on network errors - keep user logged in
     } finally {
       setIsLoading(false);
     }
