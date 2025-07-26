@@ -114,10 +114,12 @@ html {
 
 /* Active navigation state */
 .nav-item-active {
-  background: hsl(var(--primary) / 0.2) !important;
-  border-radius: 6px;
+  background: hsl(var(--primary) / 0.15) !important;
+  border: 1px solid hsl(var(--primary) / 0.3) !important;
+  border-radius: 8px;
   position: relative;
   overflow: hidden;
+  box-shadow: 0 2px 8px hsl(var(--primary) / 0.1) !important;
 }
 
 .nav-item-active * {
@@ -128,6 +130,21 @@ html {
 .nav-item-active .lucide {
   color: hsl(var(--primary)) !important;
   filter: drop-shadow(0 2px 4px hsl(var(--primary) / 0.3));
+}
+
+/* Dark mode specific active navigation */
+.dark .nav-item-active {
+  background: hsl(var(--primary) / 0.25) !important;
+  border: 1px solid hsl(var(--primary) / 0.4) !important;
+  box-shadow: 0 2px 8px hsl(var(--primary) / 0.2) !important;
+}
+
+.dark .nav-item-active * {
+  color: hsl(var(--primary-foreground)) !important;
+}
+
+.dark .nav-item-active .lucide {
+  color: hsl(var(--primary-foreground)) !important;
 }
 
 /* Dark mode fixes for all components */

@@ -565,7 +565,7 @@ function SidebarContent({
                 />
               )}
               
-              <item.icon className={`h-5 w-5 flex-shrink-0 icon-enhanced ${collapsed ? 'mx-auto' : ''} ${isActive ? 'text-primary-foreground' : 'group-hover:text-primary dark:group-hover:text-primary-foreground'}`} />
+              <item.icon className={`h-5 w-5 flex-shrink-0 icon-enhanced ${collapsed ? 'mx-auto' : ''} ${isActive ? 'text-primary' : 'group-hover:text-primary dark:group-hover:text-primary-foreground'}`} />
               <AnimatePresence>
                 {(!collapsed || mobile) && (
                   <motion.div
@@ -575,15 +575,15 @@ function SidebarContent({
                     className="flex items-center justify-between flex-1 overflow-hidden"
                   >
                     <div className="flex flex-col">
-                      <span className={`truncate transition-colors duration-200 ${isActive ? 'text-primary-foreground font-medium' : 'group-hover:text-primary dark:group-hover:text-primary-foreground'}`}>{item.name}</span>
+                      <span className={`truncate transition-colors duration-200 ${isActive ? 'text-primary font-semibold' : 'group-hover:text-primary dark:group-hover:text-primary-foreground'}`}>{item.name}</span>
                       {item.description && (
-                        <span className={`text-xs truncate transition-colors duration-200 ${isActive ? 'text-primary-foreground/90 opacity-90' : 'nav-description group-hover:text-primary/80 dark:group-hover:text-primary-foreground/80'}`}>
+                        <span className={`text-xs truncate transition-colors duration-200 ${isActive ? 'text-primary/80 font-medium' : 'nav-description group-hover:text-primary/80 dark:group-hover:text-primary-foreground/80'}`}>
                           {item.description}
                         </span>
                       )}
                     </div>
                     {item.badge && (
-                      <Badge variant="secondary" className={`ml-auto text-xs badge-enhanced ${isActive ? 'bg-primary-foreground/20 text-primary-foreground' : 'badge-secondary group-hover:bg-primary/15 group-hover:text-primary dark:group-hover:bg-primary-foreground/20 dark:group-hover:text-primary-foreground'}`}>
+                      <Badge variant="secondary" className={`ml-auto text-xs badge-enhanced ${isActive ? 'bg-primary/20 text-primary border-primary/30' : 'badge-secondary group-hover:bg-primary/15 group-hover:text-primary dark:group-hover:bg-primary-foreground/20 dark:group-hover:text-primary-foreground'}`}>
                         {item.badge}
                       </Badge>
                     )}
