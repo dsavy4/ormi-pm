@@ -547,6 +547,51 @@ export function Properties() {
   const properties = propertiesData?.properties || [];
   const pagination = propertiesData?.pagination;
 
+  // Client-side filtering as fallback for search functionality
+  const filteredProperties = useMemo(() => {
+    if (!advancedFilters.search) {
+      return properties;
+    }
+
+    const searchTerm = advancedFilters.search.toLowerCase();
+    return properties.filter(property => {
+      // Search in property name
+      if (property.name.toLowerCase().includes(searchTerm)) {
+        return true;
+      }
+      
+      // Search in address
+      if (property.address.toLowerCase().includes(searchTerm)) {
+        return true;
+      }
+      
+      // Search in city
+      if (property.city?.toLowerCase().includes(searchTerm)) {
+        return true;
+      }
+      
+      // Search in state
+      if (property.state?.toLowerCase().includes(searchTerm)) {
+        return true;
+      }
+      
+      // Search in property type
+      if (property.propertyType?.toLowerCase().includes(searchTerm)) {
+        return true;
+      }
+      
+      // Search in manager name (handle both string and object)
+      if (typeof property.manager === 'string' && property.manager.toLowerCase().includes(searchTerm)) {
+        return true;
+      }
+      if (typeof property.manager === 'object' && property.manager && 'name' in property.manager && (property.manager as any).name?.toLowerCase().includes(searchTerm)) {
+        return true;
+      }
+      
+      return false;
+    });
+  }, [properties, advancedFilters.search]);
+
   // Helper Functions
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -1298,7 +1343,7 @@ export function Properties() {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div className="flex items-center gap-4">
                 <div className="text-sm text-muted-foreground">
-                  {properties.length} properties {pagination && `(${pagination.total} total)`}
+                                          {filteredProperties.length} properties {pagination && `(${pagination.total} total)`}
                 </div>
                 
                 {/* Bulk Actions */}
@@ -1407,7 +1452,7 @@ export function Properties() {
                   {/* Grid View */}
                   {viewMode === 'grid' && (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {properties.map((property) => (
+                      {filteredProperties.map((property) => (
                         <PropertyCard
                           key={property.id}
                           property={property}
@@ -1448,7 +1493,7 @@ export function Properties() {
                       </div>
 
                       {/* List Items */}
-                      {properties.map((property) => (
+                      {filteredProperties.map((property) => (
                         <PropertyListItem
                           key={property.id}
                           property={property}
@@ -1478,7 +1523,7 @@ export function Properties() {
                           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                         />
-                        {properties.filter(p => p.coordinates).map((property) => (
+                        {filteredProperties.filter(p => p.coordinates).map((property) => (
                           <Marker
                             key={property.id}
                             position={[property.coordinates!.lat, property.coordinates!.lng]}
@@ -1522,7 +1567,7 @@ export function Properties() {
                   )}
 
                   {/* Empty State */}
-                  {properties.length === 0 && !propertiesLoading && (
+                  {filteredProperties.length === 0 && !propertiesLoading && (
                     <div className="text-center py-12">
                       <div className="mx-auto w-24 h-24 bg-muted rounded-full flex items-center justify-center mb-4">
                         <Building2 className="h-12 w-12 text-muted-foreground" />
