@@ -595,7 +595,7 @@ function SidebarContent({
               {isActive && (
                 <motion.div
                   layoutId="activeIndicator"
-                  className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary-foreground rounded-r-full shadow-lg"
+                  className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-10 bg-emerald-400 dark:bg-emerald-300 rounded-r-full shadow-lg shadow-emerald-400/50 dark:shadow-emerald-300/50"
                   initial={false}
                   transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                 />

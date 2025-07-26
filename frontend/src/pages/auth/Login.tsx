@@ -1,12 +1,20 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Eye, EyeOff, Mail, Lock, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, ArrowRight, Loader2, AlertCircle, Shield, CheckCircle, Info } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useTheme } from '@/contexts/ThemeContext';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 
 export function Login() {
   const [email, setEmail] = useState('');
@@ -92,12 +100,10 @@ export function Login() {
                   whileHover={{ scale: 1.05 }}
                   transition={{ type: "spring", stiffness: 400, damping: 25 }}
                 >
-                  <motion.img
+                  <img
                     src={theme === 'dark' ? '/ormi_logo_dark.png' : '/ormi-logo.png'}
                     alt="ORMI"
                     className="h-32 w-auto object-contain max-w-full"
-                    animate={{ rotate: [0, 360] }}
-                    transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
                     onError={(e) => {
                       // Fallback to simple text logo if image fails
                       e.currentTarget.style.display = 'none';
@@ -199,7 +205,7 @@ export function Login() {
                 <Button
                   type="submit"
                   disabled={isLoading || !email || !password}
-                  className="w-full h-12 bg-ormi-gradient hover:shadow-lg hover:shadow-ormi-primary/25 text-white font-medium rounded-lg transition-all-smooth group active-press"
+                  className="w-full h-12 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 hover:shadow-lg hover:shadow-emerald-500/25 text-white font-medium rounded-lg transition-all-smooth group active-press"
                 >
                   {isLoading ? (
                     <div className="flex items-center gap-2">
@@ -251,15 +257,101 @@ export function Login() {
           transition={{ delay: 0.8, duration: 0.6 }}
         >
           <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
-            <div className="flex items-center gap-1">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span>Secure & Encrypted</span>
-            </div>
+            <Dialog>
+              <DialogTrigger asChild>
+                <button className="flex items-center gap-1 hover:text-green-400 transition-colors cursor-pointer">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  <span>Secure & Encrypted</span>
+                  <Info className="w-3 h-3" />
+                </button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <Shield className="w-5 h-5 text-green-500" />
+                    Security & Encryption
+                  </DialogTitle>
+                  <DialogDescription>
+                    Your data is protected with enterprise-grade security measures.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-3 text-sm">
+                  <div className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <strong>End-to-End Encryption:</strong> All data is encrypted in transit and at rest using AES-256 encryption.
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <strong>Secure Authentication:</strong> Multi-factor authentication and secure token-based sessions.
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <strong>GDPR Compliant:</strong> Full compliance with data protection regulations and privacy standards.
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <strong>Regular Security Audits:</strong> Continuous monitoring and third-party security assessments.
+                    </div>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+            
             <div className="w-px h-3 bg-border"></div>
-            <div className="flex items-center gap-1">
-              <div className="w-2 h-2 bg-ormi-primary rounded-full animate-pulse"></div>
-              <span>Trusted Platform</span>
-            </div>
+            
+            <Dialog>
+              <DialogTrigger asChild>
+                <button className="flex items-center gap-1 hover:text-ormi-primary transition-colors cursor-pointer">
+                  <div className="w-2 h-2 bg-ormi-primary rounded-full animate-pulse"></div>
+                  <span>Trusted Platform</span>
+                  <Info className="w-3 h-3" />
+                </button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5 text-ormi-primary" />
+                    Trusted Platform
+                  </DialogTitle>
+                  <DialogDescription>
+                    Built with reliability and trust at the core of our platform.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-3 text-sm">
+                  <div className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-ormi-primary mt-0.5 flex-shrink-0" />
+                    <div>
+                      <strong>99.9% Uptime:</strong> Enterprise-grade infrastructure with redundant systems and automatic failover.
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-ormi-primary mt-0.5 flex-shrink-0" />
+                    <div>
+                      <strong>24/7 Monitoring:</strong> Real-time monitoring and automated alerting for optimal performance.
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-ormi-primary mt-0.5 flex-shrink-0" />
+                    <div>
+                      <strong>Data Backup:</strong> Automated daily backups with point-in-time recovery capabilities.
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-ormi-primary mt-0.5 flex-shrink-0" />
+                    <div>
+                      <strong>Expert Support:</strong> Dedicated support team available to help you succeed.
+                    </div>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
         </motion.div>
       </motion.div>
