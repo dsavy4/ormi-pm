@@ -4025,27 +4025,31 @@ const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
         
         <div className="space-y-6 mt-6">
           {/* Property Images */}
-          {property.images && property.images.length > 0 && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Property Images</h3>
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Property Images</h3>
+            {property.images && property.images.length > 0 ? (
               <div className="grid grid-cols-3 gap-4">
                 {property.images.slice(0, 6).map((image, index) => (
-                  <div key={index} className="relative aspect-video rounded-lg overflow-hidden">
-                    <img 
-                      src={image} 
-                      alt={`${property.name} - Image ${index + 1}`}
-                      className="w-full h-full object-cover"
-                    />
-                    {index === 0 && (
-                      <div className="absolute top-2 left-2 bg-blue-600 text-white px-2 py-1 rounded text-xs font-medium">
-                        Primary
-                      </div>
-                    )}
+                  <PropertyImage 
+                    key={index}
+                    property={{ ...property, images: [image] }}
+                    className="aspect-video rounded-lg overflow-hidden"
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 gap-4">
+                {[1, 2, 3].map((index) => (
+                  <div key={index} className="aspect-video bg-muted rounded-lg flex items-center justify-center">
+                    <div className="text-center">
+                      <ImageIcon className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                      <p className="text-xs text-muted-foreground">No image</p>
+                    </div>
                   </div>
                 ))}
               </div>
-            </div>
-          )}
+            )}
+          </div>
           
           {/* Key Metrics */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
