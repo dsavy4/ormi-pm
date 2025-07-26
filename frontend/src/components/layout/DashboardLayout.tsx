@@ -750,7 +750,7 @@ function SidebarContent({
                       </Badge>
                       <Badge variant="secondary" className="bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">
                         <Server className="h-3 w-3 mr-1" />
-                        HIPAA Ready
+                        PCI DSS Level 1
                       </Badge>
                     </div>
                   </div>

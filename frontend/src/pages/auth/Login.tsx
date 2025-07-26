@@ -279,25 +279,31 @@ export function Login() {
                   <div className="flex items-start gap-2">
                     <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
                     <div>
+                      <strong>Multi-Factor Authentication:</strong> Secure login with 2FA for all users.
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    <div>
                       <strong>End-to-End Encryption:</strong> All data is encrypted in transit and at rest using AES-256 encryption.
                     </div>
                   </div>
                   <div className="flex items-start gap-2">
                     <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
                     <div>
-                      <strong>Secure Authentication:</strong> Multi-factor authentication and secure token-based sessions.
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <strong>GDPR Compliant:</strong> Full compliance with data protection regulations and privacy standards.
+                      <strong>Role-Based Access Control:</strong> Fine-grained permissions and access management.
                     </div>
                   </div>
                   <div className="flex items-start gap-2">
                     <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
                     <div>
                       <strong>Regular Security Audits:</strong> Continuous monitoring and third-party security assessments.
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <strong>Advanced Threat Detection:</strong> Real-time monitoring and machine learning for anomaly detection.
                     </div>
                   </div>
                 </div>
@@ -340,7 +346,13 @@ export function Login() {
                   <div className="flex items-start gap-2">
                     <CheckCircle className="w-4 h-4 text-ormi-primary mt-0.5 flex-shrink-0" />
                     <div>
-                      <strong>Data Backup:</strong> Automated daily backups with point-in-time recovery capabilities.
+                      <strong>Secure Database:</strong> Geographically distributed, encrypted storage with point-in-time recovery.
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-ormi-primary mt-0.5 flex-shrink-0" />
+                    <div>
+                      <strong>Global Infrastructure:</strong> Data centers worldwide for low latency and high availability.
                     </div>
                   </div>
                   <div className="flex items-start gap-2">
