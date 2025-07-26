@@ -29,6 +29,15 @@ import {
   Palette,
   PanelLeftClose,
   PanelLeftOpen,
+  Lock,
+  Eye,
+  CheckCircle,
+  AlertTriangle,
+  Server,
+  Database,
+  Globe,
+  Key,
+  Fingerprint,
 } from 'lucide-react';
 
 // UI Components
@@ -45,6 +54,14 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 
 // Hooks
 import { useAuth } from '@/hooks/useAuth';
@@ -613,12 +630,133 @@ function SidebarContent({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="space-y-2"
+              className="space-y-3"
             >
-              <div className="flex items-center gap-2 text-xs footer-text">
-                <Shield className="h-3 w-3" />
-                <span>Enterprise Security</span>
-              </div>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <motion.div 
+                    className="flex items-center gap-2 text-xs footer-text cursor-pointer group p-2 rounded-lg hover:bg-primary/10 hover:text-primary transition-all duration-200"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <motion.div
+                      whileHover={{ rotate: 360 }}
+                      transition={{ duration: 0.6 }}
+                    >
+                      <Shield className="h-3 w-3" />
+                    </motion.div>
+                    <span className="font-medium">Enterprise Security</span>
+                    <motion.div
+                      className="opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                      initial={{ x: -5 }}
+                      whileHover={{ x: 0 }}
+                    >
+                      <ChevronDown className="h-3 w-3" />
+                    </motion.div>
+                  </motion.div>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2 text-xl">
+                      <div className="p-2 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-lg">
+                        <Shield className="h-6 w-6 text-white" />
+                      </div>
+                      Enterprise Security & Compliance
+                    </DialogTitle>
+                    <DialogDescription className="text-base">
+                      ORMI employs enterprise-grade security measures to protect your data and ensure the integrity of our platform.
+                    </DialogDescription>
+                  </DialogHeader>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                    {/* Security Features */}
+                    <div className="space-y-4">
+                      <h3 className="font-semibold text-lg flex items-center gap-2">
+                        <Lock className="h-5 w-5 text-emerald-600" />
+                        Security Features
+                      </h3>
+                      <div className="space-y-3">
+                        <div className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg">
+                          <CheckCircle className="h-4 w-4 text-emerald-600 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <div className="font-medium text-sm">Multi-Factor Authentication</div>
+                            <div className="text-xs text-muted-foreground">Secure login with 2FA for all users</div>
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg">
+                          <Eye className="h-4 w-4 text-emerald-600 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <div className="font-medium text-sm">End-to-End Encryption</div>
+                            <div className="text-xs text-muted-foreground">AES-256 encryption in transit and at rest</div>
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg">
+                          <Key className="h-4 w-4 text-emerald-600 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <div className="font-medium text-sm">Role-Based Access Control</div>
+                            <div className="text-xs text-muted-foreground">Fine-grained permissions and access management</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Compliance & Infrastructure */}
+                    <div className="space-y-4">
+                      <h3 className="font-semibold text-lg flex items-center gap-2">
+                        <Server className="h-5 w-5 text-blue-600" />
+                        Infrastructure & Compliance
+                      </h3>
+                      <div className="space-y-3">
+                        <div className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg">
+                          <Database className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <div className="font-medium text-sm">Secure Database</div>
+                            <div className="text-xs text-muted-foreground">Geographically distributed, encrypted storage</div>
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg">
+                          <Globe className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <div className="font-medium text-sm">Global Infrastructure</div>
+                            <div className="text-xs text-muted-foreground">99.9% uptime with worldwide data centers</div>
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg">
+                          <Fingerprint className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <div className="font-medium text-sm">Advanced Monitoring</div>
+                            <div className="text-xs text-muted-foreground">Real-time threat detection and response</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Security Badges */}
+                  <div className="mt-6 pt-4 border-t border-border">
+                    <h4 className="font-semibold mb-3">Security Certifications</h4>
+                    <div className="flex flex-wrap gap-2">
+                      <Badge variant="secondary" className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200">
+                        <CheckCircle className="h-3 w-3 mr-1" />
+                        SOC 2 Type II
+                      </Badge>
+                      <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                        <Shield className="h-3 w-3 mr-1" />
+                        GDPR Compliant
+                      </Badge>
+                      <Badge variant="secondary" className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+                        <Lock className="h-3 w-3 mr-1" />
+                        ISO 27001
+                      </Badge>
+                      <Badge variant="secondary" className="bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">
+                        <Server className="h-3 w-3 mr-1" />
+                        HIPAA Ready
+                      </Badge>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+              
               <div className="flex items-center gap-2 text-xs footer-text">
                 <Award className="h-3 w-3" />
                 <span>© 2024 ORMI™</span>
