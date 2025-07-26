@@ -147,6 +147,20 @@ html {
   color: hsl(var(--primary-foreground)) !important;
 }
 
+/* Force bright text in dark mode for better contrast */
+.dark .nav-item-active span,
+.dark .nav-item-active div {
+  color: hsl(var(--primary-foreground)) !important;
+}
+
+.dark .nav-item-active .text-primary {
+  color: hsl(var(--primary-foreground)) !important;
+}
+
+.dark .nav-item-active .text-primary\/90 {
+  color: hsl(var(--primary-foreground) / 0.9) !important;
+}
+
 /* Dark mode fixes for all components */
 .dark {
   color-scheme: dark;
