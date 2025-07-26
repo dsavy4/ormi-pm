@@ -1740,7 +1740,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
       id={`property-${property.id}`}
-      className={`group relative bg-white rounded-xl shadow-sm border transition-all duration-300 hover:shadow-lg hover:shadow-black/5 ${
+      className={`group relative bg-card rounded-xl shadow-sm border transition-all duration-300 hover:shadow-lg hover:shadow-black/5 ${
         isSelected ? 'ring-2 ring-blue-500' : ''
       }`}
       style={{
@@ -1768,7 +1768,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
 
       {/* Selection Checkbox */}
       <div className="absolute top-3 left-3 z-10">
-        <div className="flex items-center justify-center w-6 h-6 rounded-full bg-white/90 backdrop-blur-sm border">
+        <div className="flex items-center justify-center w-6 h-6 rounded-full bg-card/90 backdrop-blur-sm border">
           <input
             type="checkbox"
             checked={isSelected}
@@ -1782,7 +1782,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
       <div className="absolute top-3 right-3 z-10">
         <Tooltip>
           <TooltipTrigger asChild>
-            <div className="flex items-center gap-1 bg-white/90 backdrop-blur-sm rounded-full px-2 py-1 text-xs font-medium">
+            <div className="flex items-center gap-1 bg-card/90 backdrop-blur-sm rounded-full px-2 py-1 text-xs font-medium">
               <Star className="h-3 w-3 text-yellow-500 fill-current" />
               <span>{property.rating || 4.5}</span>
             </div>
@@ -2364,7 +2364,7 @@ const AddPropertySheet: React.FC<AddPropertySheetProps> = ({ isOpen, onClose, on
     <Sheet open={isOpen} onOpenChange={handleClose}>
       <SheetContent side="right" className="w-full sm:w-[45%] md:w-[40%] flex flex-col h-full p-0 gap-0">
         {/* Header with Progress */}
-        <div className="border-b bg-white">
+        <div className="border-b bg-card">
           {/* Header */}
           <SheetHeader className="px-6 py-4">
             <SheetTitle className="text-xl font-semibold flex items-center gap-2">
@@ -2390,7 +2390,7 @@ const AddPropertySheet: React.FC<AddPropertySheetProps> = ({ isOpen, onClose, on
                           ? 'bg-primary border-primary text-white cursor-pointer hover:bg-primary/90 shadow-lg shadow-primary/25' :
                         step.id === currentStep 
                           ? 'bg-primary border-primary text-white shadow-lg shadow-primary/25' :
-                        'bg-white border-gray-300 text-gray-400 cursor-not-allowed hover:scale-100'
+                        'bg-card border-gray-300 text-gray-400 cursor-not-allowed hover:scale-100'
                       }`}
                     >
                       {step.id < currentStep ? (
@@ -2406,7 +2406,7 @@ const AddPropertySheet: React.FC<AddPropertySheetProps> = ({ isOpen, onClose, on
                     {/* Step label */}
                     <div className="absolute top-16 left-1/2 transform -translate-x-1/2 w-24 text-center">
                       <div className={`text-xs font-medium transition-colors duration-200 ${
-                        step.id <= currentStep ? 'text-gray-900' : 'text-gray-500'
+                        step.id <= currentStep ? 'text-foreground' : 'text-muted-foreground'
                       }`}>
                         {step.title}
                       </div>
@@ -2515,7 +2515,7 @@ const AddPropertySheet: React.FC<AddPropertySheetProps> = ({ isOpen, onClose, on
         </div>
 
         {/* Sticky Footer */}
-        <div className="border-t bg-white p-6 flex-shrink-0 shadow-lg">
+        <div className="border-t bg-card p-6 flex-shrink-0 shadow-lg">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               {!isCurrentStepValid && !isLastStep && (
@@ -2713,7 +2713,7 @@ const IncomeAnalyticsModal: React.FC<IncomeAnalyticsModalProps> = ({ isOpen, onC
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden"
+        className="bg-card rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden"
       >
         {/* Header */}
         <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
@@ -2723,7 +2723,7 @@ const IncomeAnalyticsModal: React.FC<IncomeAnalyticsModalProps> = ({ isOpen, onC
                 <BarChart3 className="h-6 w-6 text-blue-600" />
               </div>
               <div>
-                <h2 className="text-xl font-semibold text-gray-900">Monthly Income Analytics</h2>
+                <h2 className="text-xl font-semibold text-foreground">Monthly Income Analytics</h2>
                 <p className="text-sm text-gray-600">Financial performance and trending insights</p>
               </div>
             </div>
@@ -2943,7 +2943,7 @@ const IncomeAnalyticsModal: React.FC<IncomeAnalyticsModalProps> = ({ isOpen, onC
                             {index === 0 ? '🏆' : index + 1}
                           </div>
                           <div>
-                            <h4 className="font-semibold text-gray-900">{item.property.name}</h4>
+                            <h4 className="font-semibold text-foreground">{item.property.name}</h4>
                             <p className="text-sm text-gray-600">
                               {item.property.city}, {item.property.state} • {item.property.totalUnits} units
                             </p>
@@ -3053,13 +3053,13 @@ const Step1BasicInfo: React.FC<Step1Props> = ({ form, formErrors, formValues }) 
             <span className="text-white text-xs font-bold">1</span>
           </div>
         </div>
-        <h2 className="text-2xl font-bold text-gray-900 mt-4 mb-2">Basic Information</h2>
+        <h2 className="text-2xl font-bold text-foreground mt-4 mb-2">Basic Information</h2>
         <p className="text-gray-600 max-w-md mx-auto">Let's start with the essential details about your property. This information helps us understand your property type and categorization.</p>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-6">
+      <div className="bg-card rounded-xl shadow-sm border border-gray-100 p-6 space-y-6">
         <div>
-          <label className="block text-sm font-semibold text-gray-900 mb-3">Property Name *</label>
+          <label className="block text-sm font-semibold text-foreground mb-3">Property Name *</label>
           <Input
             {...form.register('name')}
             placeholder="e.g., Sunset Apartments, Oak Street Complex"
@@ -3081,7 +3081,7 @@ const Step1BasicInfo: React.FC<Step1Props> = ({ form, formErrors, formValues }) 
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-3">Property Type *</label>
+            <label className="block text-sm font-semibold text-foreground mb-3">Property Type *</label>
             <Select 
               value={form.watch('propertyType')} 
               onValueChange={(value) => form.setValue('propertyType', value as any)}
@@ -3114,7 +3114,7 @@ const Step1BasicInfo: React.FC<Step1Props> = ({ form, formErrors, formValues }) 
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-3">Ownership Type *</label>
+            <label className="block text-sm font-semibold text-foreground mb-3">Ownership Type *</label>
             <Select 
               value={form.watch('ownershipType')} 
               onValueChange={(value) => form.setValue('ownershipType', value as any)}
@@ -3150,7 +3150,7 @@ const Step1BasicInfo: React.FC<Step1Props> = ({ form, formErrors, formValues }) 
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-gray-900 mb-3">Tags (Optional)</label>
+          <label className="block text-sm font-semibold text-foreground mb-3">Tags (Optional)</label>
           <div className="flex flex-wrap gap-2 mb-4">
             {form.watch('tags').map((tag: string, index: number) => (
               <Badge 
@@ -3218,13 +3218,13 @@ const Step2Location: React.FC<Step1Props> = ({ form, formErrors, formValues }) =
             <span className="text-white text-xs font-bold">2</span>
           </div>
         </div>
-        <h2 className="text-2xl font-bold text-gray-900 mt-4 mb-2">Location Details</h2>
+        <h2 className="text-2xl font-bold text-foreground mt-4 mb-2">Location Details</h2>
         <p className="text-gray-600 max-w-md mx-auto">Specify the exact location of your property. Accurate address information is essential for legal documents and tenant communications.</p>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-6">
+      <div className="bg-card rounded-xl shadow-sm border border-gray-100 p-6 space-y-6">
         <div>
-          <label className="block text-sm font-semibold text-gray-900 mb-3">Street Address *</label>
+          <label className="block text-sm font-semibold text-foreground mb-3">Street Address *</label>
           <Input
             {...form.register('address')}
             placeholder="e.g., 123 Main Street"
@@ -3245,7 +3245,7 @@ const Step2Location: React.FC<Step1Props> = ({ form, formErrors, formValues }) =
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-gray-900 mb-3">Unit/Suite Number (Optional)</label>
+          <label className="block text-sm font-semibold text-foreground mb-3">Unit/Suite Number (Optional)</label>
           <Input
             {...form.register('unitSuite')}
             placeholder="e.g., Suite 100, Building A"
@@ -3256,7 +3256,7 @@ const Step2Location: React.FC<Step1Props> = ({ form, formErrors, formValues }) =
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
           <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-3">City *</label>
+            <label className="block text-sm font-semibold text-foreground mb-3">City *</label>
             <Input
               {...form.register('city')}
               placeholder="e.g., San Francisco"
@@ -3277,7 +3277,7 @@ const Step2Location: React.FC<Step1Props> = ({ form, formErrors, formValues }) =
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-3">State *</label>
+            <label className="block text-sm font-semibold text-foreground mb-3">State *</label>
             <Select 
               value={form.watch('state')} 
               onValueChange={(value) => form.setValue('state', value)}
@@ -3305,7 +3305,7 @@ const Step2Location: React.FC<Step1Props> = ({ form, formErrors, formValues }) =
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-3">ZIP Code *</label>
+            <label className="block text-sm font-semibold text-foreground mb-3">ZIP Code *</label>
             <Input
               {...form.register('zipCode')}
               placeholder="e.g., 94105"
@@ -3327,7 +3327,7 @@ const Step2Location: React.FC<Step1Props> = ({ form, formErrors, formValues }) =
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-gray-900 mb-3">Country</label>
+          <label className="block text-sm font-semibold text-foreground mb-3">Country</label>
           <Input
             {...form.register('country')}
             placeholder="Country"
@@ -3346,7 +3346,7 @@ const Step3PropertyDetails: React.FC<Step1Props> = ({ form, formErrors, formValu
     <div className="space-y-6">
       <div className="text-center">
         <Settings className="h-12 w-12 text-blue-600 mx-auto mb-4" />
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">Property Details</h2>
+        <h2 className="text-xl font-semibold text-foreground mb-2">Property Details</h2>
         <p className="text-sm text-gray-600">Tell us more about the physical characteristics of your property.</p>
       </div>
 
@@ -3467,7 +3467,7 @@ const Step4Media: React.FC<Step4Props> = ({
     <div className="space-y-6">
       <div className="text-center">
         <Camera className="h-12 w-12 text-blue-600 mx-auto mb-4" />
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">Property Images</h2>
+        <h2 className="text-xl font-semibold text-foreground mb-2">Property Images</h2>
         <p className="text-sm text-gray-600">Upload high-quality photos to showcase your property.</p>
       </div>
 
@@ -3596,7 +3596,7 @@ const Step5Review: React.FC<Step5Props> = ({ form, formErrors, formValues, image
     <div className="space-y-6">
       <div className="text-center">
         <CheckCircle2 className="h-12 w-12 text-green-600 mx-auto mb-4" />
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">Review & Create</h2>
+        <h2 className="text-xl font-semibold text-foreground mb-2">Review & Create</h2>
         <p className="text-sm text-gray-600">Please review all details before creating your property.</p>
       </div>
 
@@ -3604,7 +3604,7 @@ const Step5Review: React.FC<Step5Props> = ({ form, formErrors, formValues, image
         {/* Basic Info */}
         <div className="bg-gray-50 rounded-lg p-4">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-medium text-gray-900 flex items-center gap-2">
+            <h3 className="text-sm font-medium text-foreground flex items-center gap-2">
               <Building className="h-4 w-4" />
               Basic Information
             </h3>
@@ -3644,7 +3644,7 @@ const Step5Review: React.FC<Step5Props> = ({ form, formErrors, formValues, image
         {/* Location */}
         <div className="bg-gray-50 rounded-lg p-4">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-medium text-gray-900 flex items-center gap-2">
+            <h3 className="text-sm font-medium text-foreground flex items-center gap-2">
               <MapPin className="h-4 w-4" />
               Location
             </h3>
@@ -3668,7 +3668,7 @@ const Step5Review: React.FC<Step5Props> = ({ form, formErrors, formValues, image
         {/* Property Details */}
         <div className="bg-gray-50 rounded-lg p-4">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-medium text-gray-900 flex items-center gap-2">
+            <h3 className="text-sm font-medium text-foreground flex items-center gap-2">
               <Settings className="h-4 w-4" />
               Property Details
             </h3>
@@ -3706,7 +3706,7 @@ const Step5Review: React.FC<Step5Props> = ({ form, formErrors, formValues, image
         {/* Images */}
         <div className="bg-gray-50 rounded-lg p-4">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-medium text-gray-900 flex items-center gap-2">
+            <h3 className="text-sm font-medium text-foreground flex items-center gap-2">
               <Camera className="h-4 w-4" />
               Property Images ({imagePreviews.length})
             </h3>
@@ -3744,7 +3744,7 @@ const Step5Review: React.FC<Step5Props> = ({ form, formErrors, formValues, image
 
         {/* Management Settings */}
         <div className="bg-gray-50 rounded-lg p-4">
-          <h3 className="text-sm font-medium text-gray-900 flex items-center gap-2 mb-3">
+          <h3 className="text-sm font-medium text-foreground flex items-center gap-2 mb-3">
             <Users className="h-4 w-4" />
             Management Settings
           </h3>
@@ -3916,7 +3916,7 @@ const ManagerAssignmentSheet: React.FC<ManagerAssignmentSheetProps> = ({
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 text-left">
-                    <h4 className="font-semibold text-gray-900">{manager.name}</h4>
+                    <h4 className="font-semibold text-foreground">{manager.name}</h4>
                     <p className="text-sm text-gray-500">{manager.email}</p>
                     <p className="text-xs text-gray-400 mt-1">
                       Managing {manager.properties.length} properties

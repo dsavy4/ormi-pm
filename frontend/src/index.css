@@ -250,6 +250,242 @@ html {
   --ormi-accent: 160 60% 45%; /* Accent for dark */
 }
 
+/* Global dark mode fixes */
+.dark {
+  color-scheme: dark;
+}
+
+.dark * {
+  border-color: hsl(var(--border));
+}
+
+/* Fix modal and sheet backgrounds in dark mode */
+.dark [data-radix-popper-content-wrapper] {
+  background-color: hsl(var(--card));
+  border-color: hsl(var(--border));
+}
+
+.dark [role="dialog"] {
+  background-color: hsl(var(--card));
+  color: hsl(var(--card-foreground));
+}
+
+.dark [data-radix-dialog-content] {
+  background-color: hsl(var(--card));
+  color: hsl(var(--card-foreground));
+}
+
+.dark [data-radix-sheet-content] {
+  background-color: hsl(var(--card));
+  color: hsl(var(--card-foreground));
+}
+
+/* Fix all text colors in dark mode */
+.dark .text-gray-900,
+.dark .text-gray-800,
+.dark .text-gray-700,
+.dark .text-gray-600,
+.dark .text-gray-500,
+.dark .text-gray-400,
+.dark .text-gray-300,
+.dark .text-gray-200,
+.dark .text-gray-100 {
+  color: hsl(var(--foreground));
+}
+
+/* Fix background colors in dark mode */
+.dark .bg-white,
+.dark .bg-gray-50,
+.dark .bg-gray-100,
+.dark .bg-gray-200 {
+  background-color: hsl(var(--card));
+}
+
+/* Fix card backgrounds and borders */
+.dark .card,
+.dark [class*="card"] {
+  background-color: hsl(var(--card));
+  color: hsl(var(--card-foreground));
+  border-color: hsl(var(--border));
+}
+
+/* Fix input and form elements */
+.dark input,
+.dark select,
+.dark textarea {
+  background-color: hsl(var(--input));
+  color: hsl(var(--foreground));
+  border-color: hsl(var(--border));
+}
+
+.dark input::placeholder,
+.dark select::placeholder,
+.dark textarea::placeholder {
+  color: hsl(var(--muted-foreground));
+}
+
+/* Fix button backgrounds */
+.dark button {
+  background-color: hsl(var(--secondary));
+  color: hsl(var(--secondary-foreground));
+  border-color: hsl(var(--border));
+}
+
+.dark button:hover {
+  background-color: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
+}
+
+/* Fix specific component issues */
+.dark .bg-green-50,
+.dark .bg-blue-50,
+.dark .bg-yellow-50,
+.dark .bg-red-50 {
+  background-color: hsl(var(--muted));
+}
+
+.dark .text-green-700,
+.dark .text-blue-700,
+.dark .text-yellow-700,
+.dark .text-red-700 {
+  color: hsl(var(--foreground));
+}
+
+/* Fix chart and analytics components */
+.dark .recharts-cartesian-axis-tick-value,
+.dark .recharts-cartesian-axis-label {
+  fill: hsl(var(--foreground));
+}
+
+.dark .recharts-cartesian-grid-horizontal line,
+.dark .recharts-cartesian-grid-vertical line {
+  stroke: hsl(var(--border));
+}
+
+/* Fix property cards specifically */
+.dark .property-card {
+  background-color: hsl(var(--card));
+  color: hsl(var(--card-foreground));
+  border-color: hsl(var(--border));
+}
+
+.dark .property-card * {
+  color: hsl(var(--card-foreground));
+}
+
+/* Fix metrics and values */
+.dark .metric-value,
+.dark .metric-label,
+.dark .property-value,
+.dark .property-name,
+.dark .property-location {
+  color: hsl(var(--foreground));
+}
+
+/* Fix badges and status indicators */
+.dark .badge {
+  background-color: hsl(var(--secondary));
+  color: hsl(var(--secondary-foreground));
+  border-color: hsl(var(--border));
+}
+
+/* Fix search and filter components */
+.dark .search-input,
+.dark .filter-input {
+  background-color: hsl(var(--input));
+  color: hsl(var(--foreground));
+  border-color: hsl(var(--border));
+}
+
+/* Fix dropdown and menu components */
+.dark [data-radix-dropdown-menu-content],
+.dark [data-radix-select-content] {
+  background-color: hsl(var(--popover));
+  color: hsl(var(--popover-foreground));
+  border-color: hsl(var(--border));
+}
+
+/* Fix tooltip components */
+.dark [data-radix-tooltip-content] {
+  background-color: hsl(var(--popover));
+  color: hsl(var(--popover-foreground));
+  border-color: hsl(var(--border));
+}
+
+/* Fix progress bars and indicators */
+.dark .progress-bar {
+  background-color: hsl(var(--muted));
+}
+
+.dark .progress-indicator {
+  background-color: hsl(var(--primary));
+}
+
+/* Fix table components */
+.dark table {
+  background-color: hsl(var(--card));
+  color: hsl(var(--card-foreground));
+}
+
+.dark table th,
+.dark table td {
+  border-color: hsl(var(--border));
+  color: hsl(var(--foreground));
+}
+
+/* Fix navigation and sidebar */
+.dark .sidebar,
+.dark .nav-sidebar {
+  background-color: hsl(var(--card));
+  color: hsl(var(--card-foreground));
+  border-color: hsl(var(--border));
+}
+
+/* Fix header and top navigation */
+.dark .header,
+.dark .top-nav {
+  background-color: hsl(var(--card));
+  color: hsl(var(--card-foreground));
+  border-color: hsl(var(--border));
+}
+
+/* Fix any remaining white backgrounds */
+.dark [class*="bg-white"],
+.dark [class*="bg-gray-50"],
+.dark [class*="bg-gray-100"] {
+  background-color: hsl(var(--card)) !important;
+}
+
+/* Fix any remaining dark text on dark backgrounds */
+.dark [class*="text-gray-900"],
+.dark [class*="text-gray-800"],
+.dark [class*="text-gray-700"],
+.dark [class*="text-gray-600"] {
+  color: hsl(var(--foreground)) !important;
+}
+
+/* Ensure proper contrast for all text elements */
+.dark h1, .dark h2, .dark h3, .dark h4, .dark h5, .dark h6 {
+  color: hsl(var(--foreground));
+}
+
+.dark p, .dark span, .dark div {
+  color: hsl(var(--foreground));
+}
+
+/* Fix any inline styles that might override */
+.dark [style*="background-color: white"],
+.dark [style*="background-color: #fff"],
+.dark [style*="background-color: rgb(255, 255, 255)"] {
+  background-color: hsl(var(--card)) !important;
+}
+
+.dark [style*="color: rgb(17, 24, 39)"],
+.dark [style*="color: rgb(31, 41, 55)"],
+.dark [style*="color: rgb(55, 65, 81)"] {
+  color: hsl(var(--foreground)) !important;
+}
+
 /* Base Styles */
 * {
   border-color: hsl(var(--border));
