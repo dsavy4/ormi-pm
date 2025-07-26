@@ -47,6 +47,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const token = localStorage.getItem('auth_token');
+    console.log('AuthContext: Checking for token on mount:', token ? 'Token found' : 'No token');
     if (token) {
       checkAuthStatus();
     } else {
@@ -57,25 +58,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const checkAuthStatus = async () => {
     try {
       const token = localStorage.getItem('auth_token');
+      console.log('AuthContext: checkAuthStatus called, token exists:', !!token);
       if (!token) {
         setIsLoading(false);
         return;
       }
 
       // Use the authApi.getProfile() function for better error handling
+      console.log('AuthContext: Calling authApi.getProfile()');
       const userData = await authApi.getProfile();
+      console.log('AuthContext: Profile retrieved successfully:', userData);
       setUser(userData);
     } catch (error: any) {
-      console.error('Auth check failed:', error);
+      console.error('AuthContext: Auth check failed:', error);
+      console.error('AuthContext: Error message:', error.message);
       
-      // Check if it's a 401 error (unauthorized)
-      if (error.message?.includes('401') || error.message?.includes('Unauthorized')) {
-        console.log('Token expired or invalid, logging out');
+      // Check if it's a 401 error (unauthorized) - handle both error message formats
+      if (error.message?.includes('401') || 
+          error.message?.includes('Unauthorized') ||
+          error.message?.includes('Invalid or expired token') ||
+          error.message?.includes('Access token required')) {
+        console.log('AuthContext: Token expired or invalid, logging out');
         localStorage.removeItem('auth_token');
         setUser(null);
       } else {
         // For network errors or other issues, keep user logged in
-        console.warn('Auth check failed but keeping user logged in:', error.message);
+        console.warn('AuthContext: Auth check failed but keeping user logged in:', error.message);
         // Don't logout on network errors - keep user logged in
         // This prevents logout on temporary network issues
       }
