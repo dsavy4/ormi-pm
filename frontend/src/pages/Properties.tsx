@@ -3974,12 +3974,12 @@ const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
   
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent className="w-[800px] sm:w-[800px] max-w-[90vw] overflow-y-auto">
+      <SheetContent className="w-[900px] sm:w-[900px] max-w-[95vw] overflow-y-auto">
         <SheetHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-gradient-to-r from-blue-100 to-blue-50 rounded-lg">
-                <Building2 className="h-6 w-6 text-blue-600" />
+              <div className="p-2 bg-gradient-to-r from-blue-600/20 to-blue-500/20 rounded-lg border border-blue-500/30">
+                <Building2 className="h-6 w-6 text-blue-400" />
               </div>
               <div>
                 <SheetTitle className="text-2xl font-bold">{property.name}</SheetTitle>
@@ -4000,11 +4000,12 @@ const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm">
+                  <Button variant="ghost" size="sm" className="relative">
                     <MoreHorizontal className="h-4 w-4" />
+                    <span className="sr-only">More options</span>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
+                <DropdownMenuContent align="end" className="w-48">
                   <DropdownMenuItem onClick={() => onArchive(property.id)}>
                     <Archive className="h-4 w-4 mr-2" />
                     Archive Property
@@ -4024,23 +4025,40 @@ const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
         </SheetHeader>
         
         <div className="space-y-6 mt-6">
-          {/* Property Images */}
+          {/* Property Images - Enhanced UX */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Property Images</h3>
             {property.images && property.images.length > 0 ? (
-              <div className="grid grid-cols-3 gap-4">
-                {property.images.slice(0, 6).map((image, index) => (
+              <div className="grid grid-cols-2 gap-4">
+                {/* Primary image - larger */}
+                <div className="col-span-2">
                   <PropertyImage 
-                    key={index}
+                    property={{ ...property, images: [property.images[0]] }}
+                    className="aspect-[16/9] rounded-lg overflow-hidden shadow-lg"
+                  />
+                </div>
+                {/* Secondary images - smaller grid */}
+                {property.images.slice(1, 5).map((image, index) => (
+                  <PropertyImage 
+                    key={index + 1}
                     property={{ ...property, images: [image] }}
-                    className="aspect-video rounded-lg overflow-hidden"
+                    className="aspect-square rounded-lg overflow-hidden shadow-md"
                   />
                 ))}
               </div>
             ) : (
-              <div className="grid grid-cols-3 gap-4">
-                {[1, 2, 3].map((index) => (
-                  <div key={index} className="aspect-video bg-muted rounded-lg flex items-center justify-center">
+              <div className="grid grid-cols-2 gap-4">
+                {/* Primary placeholder - larger */}
+                <div className="col-span-2 aspect-[16/9] bg-muted rounded-lg flex items-center justify-center shadow-lg">
+                  <div className="text-center">
+                    <ImageIcon className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-lg font-medium text-muted-foreground">No property images</p>
+                    <p className="text-sm text-muted-foreground">Add images to showcase this property</p>
+                  </div>
+                </div>
+                {/* Secondary placeholders */}
+                {[1, 2, 3, 4].map((index) => (
+                  <div key={index} className="aspect-square bg-muted rounded-lg flex items-center justify-center shadow-md">
                     <div className="text-center">
                       <ImageIcon className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
                       <p className="text-xs text-muted-foreground">No image</p>
