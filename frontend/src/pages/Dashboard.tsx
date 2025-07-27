@@ -268,16 +268,42 @@ export function Dashboard() {
   const metrics = useMemo(() => {
     if (!dashboardData) return null;
 
-    const data = dashboardData.data || dashboardData;
-    const occupancyRate = data.totalUnits > 0 ? (data.occupiedUnits / data.totalUnits) * 100 : 0;
-    const collectionRate = data.monthlyRevenue > 0 ? (data.collectedThisMonth / data.monthlyRevenue) * 100 : 0;
-    const urgentRate = data.maintenanceRequests > 0 ? (data.urgentRequests / data.maintenanceRequests) * 100 : 0;
+    const data = (dashboardData as any).data || dashboardData;
+    
+    // Ensure all values are numbers and handle undefined/null values
+    const totalUnits = Number(data?.totalUnits) || 0;
+    const occupiedUnits = Number(data?.occupiedUnits) || 0;
+    const vacantUnits = Number(data?.vacantUnits) || 0;
+    const totalProperties = Number(data?.totalProperties) || 0;
+    const activeTenants = Number(data?.activeTenants) || 0;
+    const monthlyRevenue = Number(data?.monthlyRevenue) || 0;
+    const collectedThisMonth = Number(data?.collectedThisMonth) || 0;
+    const pendingPayments = Number(data?.pendingPayments) || 0;
+    const overduePayments = Number(data?.overduePayments) || 0;
+    const maintenanceRequests = Number(data?.maintenanceRequests) || 0;
+    const urgentRequests = Number(data?.urgentRequests) || 0;
+
+    const occupancyRate = totalUnits > 0 ? (occupiedUnits / totalUnits) * 100 : 0;
+    const collectionRate = monthlyRevenue > 0 ? (collectedThisMonth / monthlyRevenue) * 100 : 0;
+    const urgentRate = maintenanceRequests > 0 ? (urgentRequests / maintenanceRequests) * 100 : 0;
 
     return {
-      ...data,
+      totalProperties,
+      totalUnits,
+      occupiedUnits,
+      vacantUnits,
+      activeTenants,
+      monthlyRevenue,
+      collectedThisMonth,
+      pendingPayments,
+      overduePayments,
+      maintenanceRequests,
+      urgentRequests,
       occupancyRate,
       collectionRate,
-      urgentRate
+      urgentRate,
+      // Include other data from the API response
+      ...data
     };
   }, [dashboardData]);
 
@@ -286,9 +312,9 @@ export function Dashboard() {
     if (!metrics) return [];
     
     return [
-      { name: 'Collected', value: metrics.collectedThisMonth, color: '#10B981' },
-      { name: 'Pending', value: metrics.pendingPayments, color: '#F59E0B' },
-      { name: 'Overdue', value: metrics.overduePayments, color: '#EF4444' }
+      { name: 'Collected', value: metrics.collectedThisMonth || 0, color: '#10B981' },
+      { name: 'Pending', value: metrics.pendingPayments || 0, color: '#F59E0B' },
+      { name: 'Overdue', value: metrics.overduePayments || 0, color: '#EF4444' }
     ];
   }, [metrics]);
 
@@ -296,8 +322,8 @@ export function Dashboard() {
     if (!metrics) return [];
     
     return [
-      { name: 'Occupied', value: metrics.occupiedUnits, color: '#1D4ED8' },
-      { name: 'Vacant', value: metrics.vacantUnits, color: '#E5E7EB' }
+      { name: 'Occupied', value: metrics.occupiedUnits || 0, color: '#1D4ED8' },
+      { name: 'Vacant', value: metrics.vacantUnits || 0, color: '#E5E7EB' }
     ];
   }, [metrics]);
 
@@ -326,74 +352,12 @@ export function Dashboard() {
       animate="visible"
       className="space-y-6"
     >
-      {/* Header */}
-      <motion.div variants={itemVariants} className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Dashboard</h1>
-            <Badge variant="outline" className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 dark:text-blue-400 dark:border-blue-800/30">
-              <Crown className="h-3 w-3 mr-1" />
-              Premium
-            </Badge>
-          </div>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Welcome back, {user?.firstName}! Here's your property portfolio overview.
-          </p>
-        </div>
-        <div className="mt-4 sm:mt-0 flex items-center space-x-3">
-          <Select value={dateRange} onValueChange={setDateRange}>
-            <SelectTrigger className="w-36">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="thisMonth">This Month</SelectItem>
-              <SelectItem value="lastMonth">Last Month</SelectItem>
-              <SelectItem value="thisYear">This Year</SelectItem>
-              <SelectItem value="lastYear">Last Year</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleRefresh}
-            disabled={refreshing}
-          >
-            <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button size="sm" className="btn-ormi">
-                <Plus className="h-4 w-4 mr-2" />
-                Quick Add
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuLabel>Quick Actions</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => window.location.href = '/properties?action=add'}>
-                <Building2 className="h-4 w-4 mr-2" />
-                Add Property
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => window.location.href = '/units?action=add'}>
-                <Home className="h-4 w-4 mr-2" />
-                Add Unit
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => window.location.href = '/tenants?action=add'}>
-                <Users className="h-4 w-4 mr-2" />
-                Add Tenant
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => window.location.href = '/payments?action=add'}>
-                <CreditCard className="h-4 w-4 mr-2" />
-                Record Payment
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => window.location.href = '/maintenance?action=add'}>
-                <Wrench className="h-4 w-4 mr-2" />
-                Maintenance Request
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+      {/* Welcome Message */}
+      <motion.div variants={itemVariants} className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Dashboard</h1>
+        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          Welcome back, {user?.firstName}! Here's your property portfolio overview.
+        </p>
       </motion.div>
 
       {/* Key Metrics Cards */}

@@ -231,7 +231,7 @@ export function Login() {
               transition={{ delay: 0.6, duration: 0.6 }}
             >
               <Link
-                to="/forgot-password"
+                to="/auth/forgot-password"
                 className="text-ormi-primary hover:text-ormi-primary-dark text-sm font-medium transition-colors hover-lift inline-block"
               >
                 Forgot your password?
@@ -240,7 +240,7 @@ export function Login() {
               <div className="text-sm text-muted-foreground">
                 Don't have an account?{' '}
                 <Link
-                  to="/register"
+                  to="/auth/register"
                   className="text-ormi-primary hover:text-ormi-primary-dark font-medium transition-colors hover-lift inline-block"
                 >
                   Sign up here

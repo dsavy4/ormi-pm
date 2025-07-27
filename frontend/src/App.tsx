@@ -4,6 +4,9 @@ import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 
+// Layout
+import { DashboardLayout } from './components/layout/DashboardLayout';
+
 // Auth Pages
 import { Login } from './pages/auth/Login';
 import { Register } from './pages/auth/Register';
@@ -48,19 +51,22 @@ function App() {
             <Route path="/auth/forgot-password" element={<ForgotPassword />} />
             <Route path="/auth/reset-password" element={<ResetPassword />} />
             
+            {/* Redirect /login to /auth/login for convenience */}
+            <Route path="/login" element={<Navigate to="/auth/login" replace />} />
+            
             {/* Tenant Portal Routes (temporarily commented out) */}
             {/* <Route path="/tenant/login" element={<TenantLogin />} /> */}
             {/* <Route path="/tenant/dashboard" element={<TenantDashboard />} /> */}
             
             {/* Protected Routes */}
-            <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-            <Route path="/properties" element={<ProtectedRoute><Properties /></ProtectedRoute>} />
-            <Route path="/units" element={<ProtectedRoute><Units /></ProtectedRoute>} />
-            <Route path="/tenants" element={<ProtectedRoute><Tenants /></ProtectedRoute>} />
-            <Route path="/maintenance" element={<ProtectedRoute><Maintenance /></ProtectedRoute>} />
-            <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
-            <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+            <Route path="/" element={<ProtectedRoute><DashboardLayout><Dashboard /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout><Dashboard /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/properties" element={<ProtectedRoute><DashboardLayout><Properties /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/units" element={<ProtectedRoute><DashboardLayout><Units /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/tenants" element={<ProtectedRoute><DashboardLayout><Tenants /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/maintenance" element={<ProtectedRoute><DashboardLayout><Maintenance /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/reports" element={<ProtectedRoute><DashboardLayout><Reports /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/settings" element={<ProtectedRoute><DashboardLayout><Settings /></DashboardLayout></ProtectedRoute>} />
             
             {/* Advanced Features (commented out for now) */}
             {/* <Route path="/managers" element={<ProtectedRoute><Managers /></ProtectedRoute>} /> */}
@@ -76,7 +82,7 @@ function App() {
             {/* <Route path="/tenant/maintenance-request" element={<ProtectedRoute><TenantMaintenanceRequest /></ProtectedRoute>} /> */}
             
             {/* Default redirect */}
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            <Route path="*" element={<Navigate to="/auth/login" replace />} />
           </Routes>
         </Router>
       </AuthProvider>
