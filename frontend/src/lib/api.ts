@@ -224,18 +224,23 @@ export interface TopPerformingPropertyIncome {
 // Helper function to get auth headers
 function getAuthHeaders(): HeadersInit {
   const token = getAuthToken();
-  return {
+  const headers = {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
     'Accept-Encoding': 'identity',
     ...(token && { Authorization: `Bearer ${token}` }),
   };
+  console.log('[DEBUG] getAuthHeaders called, headers:', headers);
+  return headers;
 }
 
 // Helper function to get auth token from localStorage
 function getAuthToken(): string | null {
   if (typeof window !== 'undefined') {
-    return localStorage.getItem('authToken');
+    const token = localStorage.getItem('authToken');
+    console.log('[DEBUG] getAuthToken called, token found:', !!token);
+    console.log('[DEBUG] Token value:', token ? token.substring(0, 20) + '...' : 'null');
+    return token;
   }
   return null;
 }

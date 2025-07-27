@@ -46,7 +46,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem('authToken');
     console.log('AuthContext: Checking for token on mount:', token ? 'Token found' : 'No token');
     if (token) {
       checkAuthStatus();
