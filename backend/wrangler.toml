@@ -10,7 +10,6 @@ compatibility_flags = ["nodejs_compat"]
 [vars]
 NODE_ENV = "production"
 ENVIRONMENT = "production"
-JWT_SECRET = "7c8f9e4d6a2b5c3e8f7d9c4b6a3e5f8d9c7b4a6e3f8d5c9b7a4e6f3d8c5b9a7e4f6d3c8b5a9e7f4d6c3b8a5e9f7d4c6b3a8e5f9d7c4a6b3e8f5d9c7b4a6e3f8d5c9b7a4e6f3d8c5b9a7e4f6d3c8b5a9e7f4d6c3b8a5e9f7d4c6b3a8e5f"
 
 # Workers Logs configuration
 [observability]
@@ -38,7 +37,6 @@ workers_dev = false
 [env.production.vars]
 NODE_ENV = "production"
 ENVIRONMENT = "production"
-JWT_SECRET = "7c8f9e4d6a2b5c3e8f7d9c4b6a3e5f8d9c7b4a6e3f8d5c9b7a4e6f3d8c5b9a7e4f6d3c8b5a9e7f4d6c3b8a5e9f7d4c6b3a8e5f9d7c4a6b3e8f5d9c7b4a6e3f8d5c9b7a4e6f3d8c5b9a7e4f6d3c8b5a9e7f4d6c3b8a5e9f7d4c6b3a8e5f"
 
 [env.staging]
 name = "ormi-api-staging"
