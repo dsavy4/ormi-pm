@@ -282,6 +282,27 @@ async function handleResponse<T>(response: Response): Promise<T> {
   }
 }
 
+// Helper function to create a fetch request with timeout
+async function fetchWithTimeout(url: string, options: RequestInit, timeout = 10000): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+  
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('Request timeout');
+    }
+    throw error;
+  }
+}
+
 // Auth API
 export const authApi = {
   login: async (email: string, password: string) => {
@@ -347,16 +368,16 @@ export const authApi = {
 // Dashboard API
 export const dashboardApi = {
   getMetrics: async () => {
-    const response = await fetch(`${API_BASE_URL}/api/dashboard`, {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/api/dashboard`, {
       headers: getAuthHeaders(),
-    });
+    }, 15000); // 15 second timeout for dashboard
     return handleResponse(response);
   },
 
   getAnalytics: async () => {
-    const response = await fetch(`${API_BASE_URL}/api/analytics/overview`, {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/api/analytics/overview`, {
       headers: getAuthHeaders(),
-    });
+    }, 10000); // 10 second timeout for analytics
     return handleResponse(response);
   },
 };
