@@ -13,6 +13,7 @@ import * as bcrypt from 'bcryptjs';
 import { SignJWT, jwtVerify } from 'jose';
 import { z } from 'zod';
 import { getSupabaseClient } from './utils/supabase';
+import Stripe from 'stripe';
 
 // Initialize Hono app
 const app = new Hono<{ Bindings: Env; Variables: Variables }>();
@@ -32,6 +33,8 @@ type Env = {
   R2_SECRET_ACCESS_KEY?: string;
   R2_ENDPOINT?: string;
   R2_PUBLIC_URL?: string;
+  STRIPE_SECRET_KEY?: string;
+  STRIPE_WEBHOOK_SECRET?: string;
 };
 
 type Variables = {
@@ -1366,4 +1369,770 @@ app.get('/api/ping', async (c) => {
     message: `pong-ormi-${Date.now()}`,
     timestamp: new Date().toISOString()
   });
+}); 
+
+// Tenant Portal endpoints
+app.post('/api/auth/tenant-login', async (c) => {
+  console.log('[DEBUG] ===== TENANT LOGIN ENDPOINT CALLED =====');
+  try {
+    const body = await c.req.json();
+    const { email, password } = body;
+    console.log('[DEBUG] Tenant login attempt for email:', email);
+
+    if (!email || !password) {
+      return c.json({ error: 'Email and password are required' }, 400);
+    }
+
+    const supabase = getSupabaseClient(c.env);
+    
+    // Find tenant user
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', email)
+      .eq('role', 'TENANT')
+      .single();
+
+    if (error || !user) {
+      return c.json({ error: 'Invalid credentials' }, 401);
+    }
+
+    // Check password
+    const isValidPassword = password === user.password;
+    if (!isValidPassword) {
+      return c.json({ error: 'Invalid credentials' }, 401);
+    }
+
+    // Generate JWT
+    const jwtSecret = c.env.JWT_SECRET;
+    if (!jwtSecret) {
+      return c.json({ error: 'JWT secret not configured' }, 500);
+    }
+
+    const token = await createJWT(
+      { userId: user.id, email: user.email, role: user.role },
+      jwtSecret
+    );
+
+    return c.json({
+      success: true,
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role
+      },
+      token
+    });
+
+  } catch (error) {
+    console.error('[DEBUG] Tenant login error:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+app.get('/api/tenants/profile', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== TENANT PROFILE ENDPOINT CALLED =====');
+  try {
+    const user = c.get('user');
+    const supabase = getSupabaseClient(c.env);
+    
+    const { data: dbUser, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', user.email)
+      .single();
+    
+    if (error || !dbUser) {
+      return c.json({ error: 'User not found' }, 404);
+    }
+    
+    return c.json({
+      success: true,
+      user: {
+        id: dbUser.id,
+        email: dbUser.email,
+        firstName: dbUser.firstName,
+        lastName: dbUser.lastName,
+        role: dbUser.role,
+        phoneNumber: dbUser.phoneNumber,
+        avatar: dbUser.avatar
+      }
+    });
+  } catch (error) {
+    console.error('[DEBUG] Tenant profile error:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+app.get('/api/tenants/dashboard', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== TENANT DASHBOARD ENDPOINT CALLED =====');
+  try {
+    const user = c.get('user');
+    const supabase = getSupabaseClient(c.env);
+    
+    // Get tenant's units
+    const { data: units, error: unitsError } = await supabase
+      .from('units')
+      .select(`
+        *,
+        property:properties(*)
+      `)
+      .eq('tenantId', user.userId);
+    
+    // Get tenant's payments
+    const { data: payments, error: paymentsError } = await supabase
+      .from('payments')
+      .select('*')
+      .eq('tenantId', user.userId)
+      .order('dueDate', { ascending: false })
+      .limit(5);
+    
+    // Get tenant's maintenance requests
+    const { data: maintenance, error: maintenanceError } = await supabase
+      .from('maintenance_requests')
+      .select('*')
+      .eq('tenantId', user.userId)
+      .order('createdAt', { ascending: false })
+      .limit(5);
+    
+    const dashboardData = {
+      units: units || [],
+      recentPayments: payments || [],
+      recentMaintenance: maintenance || [],
+      totalUnits: units?.length || 0,
+      totalPayments: payments?.length || 0,
+      totalMaintenance: maintenance?.length || 0,
+      upcomingPayments: payments?.filter(p => p.status === 'PENDING') || [],
+      urgentMaintenance: maintenance?.filter(m => m.priority === 'URGENT') || []
+    };
+    
+    return c.json({
+      success: true,
+      data: dashboardData
+    });
+  } catch (error) {
+    console.error('[DEBUG] Tenant dashboard error:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+app.get('/api/tenants/documents', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== TENANT DOCUMENTS ENDPOINT CALLED =====');
+  try {
+    const user = c.get('user');
+    const supabase = getSupabaseClient(c.env);
+    
+    // Get tenant's documents (leases, receipts, etc.)
+    const { data: documents, error } = await supabase
+      .from('documents')
+      .select('*')
+      .eq('tenantId', user.userId)
+      .order('createdAt', { ascending: false });
+    
+    if (error) {
+      console.error('[DEBUG] Documents query error:', error);
+      return c.json({ error: 'Failed to fetch documents' }, 500);
+    }
+    
+    return c.json({
+      success: true,
+      data: documents || []
+    });
+  } catch (error) {
+    console.error('[DEBUG] Tenant documents error:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+app.post('/api/tenants/documents/upload', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== TENANT DOCUMENT UPLOAD ENDPOINT CALLED =====');
+  try {
+    const user = c.get('user');
+    const formData = await c.req.formData();
+    const file = formData.get('document') as File;
+    const type = formData.get('type') as string || 'document';
+    
+    if (!file) {
+      return c.json({ error: 'No file provided' }, 400);
+    }
+    
+    // Upload to Cloudflare R2 (mock for now, will implement real R2)
+    const fileName = `${Date.now()}-${file.name}`;
+    const fileUrl = `https://r2.ormi.com/documents/${fileName}`;
+    
+    const supabase = getSupabaseClient(c.env);
+    
+    // Save document record
+    const { data: document, error } = await supabase
+      .from('documents')
+      .insert({
+        tenantId: user.userId,
+        fileName: file.name,
+        fileUrl: fileUrl,
+        fileType: type,
+        fileSize: file.size,
+        uploadedAt: new Date().toISOString()
+      })
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('[DEBUG] Document save error:', error);
+      return c.json({ error: 'Failed to save document' }, 500);
+    }
+    
+    return c.json({
+      success: true,
+      data: document
+    });
+  } catch (error) {
+    console.error('[DEBUG] Document upload error:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+app.get('/api/tenants/maintenance', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== TENANT MAINTENANCE ENDPOINT CALLED =====');
+  try {
+    const user = c.get('user');
+    const supabase = getSupabaseClient(c.env);
+    
+    const { data: maintenance, error } = await supabase
+      .from('maintenance_requests')
+      .select(`
+        *,
+        unit:units(*)
+      `)
+      .eq('tenantId', user.userId)
+      .order('createdAt', { ascending: false });
+    
+    if (error) {
+      console.error('[DEBUG] Maintenance query error:', error);
+      return c.json({ error: 'Failed to fetch maintenance requests' }, 500);
+    }
+    
+    return c.json({
+      success: true,
+      data: maintenance || []
+    });
+  } catch (error) {
+    console.error('[DEBUG] Tenant maintenance error:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+app.post('/api/tenants/maintenance', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== TENANT MAINTENANCE SUBMIT ENDPOINT CALLED =====');
+  try {
+    const user = c.get('user');
+    const body = await c.req.json();
+    const { title, description, priority, unitId, images } = body;
+    
+    if (!title || !description || !unitId) {
+      return c.json({ error: 'Title, description, and unit are required' }, 400);
+    }
+    
+    const supabase = getSupabaseClient(c.env);
+    
+    const { data: maintenance, error } = await supabase
+      .from('maintenance_requests')
+      .insert({
+        title,
+        description,
+        priority: priority || 'MEDIUM',
+        status: 'SUBMITTED',
+        tenantId: user.userId,
+        unitId,
+        images: images || [],
+        createdAt: new Date().toISOString()
+      })
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('[DEBUG] Maintenance submit error:', error);
+      return c.json({ error: 'Failed to submit maintenance request' }, 500);
+    }
+    
+    return c.json({
+      success: true,
+      data: maintenance
+    });
+  } catch (error) {
+    console.error('[DEBUG] Maintenance submit error:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+app.get('/api/tenants/checklists', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== TENANT CHECKLISTS ENDPOINT CALLED =====');
+  try {
+    const user = c.get('user');
+    const supabase = getSupabaseClient(c.env);
+    
+    // Get tenant's move-in/move-out checklists
+    const { data: checklists, error } = await supabase
+      .from('checklists')
+      .select('*')
+      .eq('tenantId', user.userId)
+      .order('createdAt', { ascending: false });
+    
+    if (error) {
+      console.error('[DEBUG] Checklists query error:', error);
+      return c.json({ error: 'Failed to fetch checklists' }, 500);
+    }
+    
+    return c.json({
+      success: true,
+      data: checklists || []
+    });
+  } catch (error) {
+    console.error('[DEBUG] Tenant checklists error:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+app.post('/api/tenants/surveys', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== TENANT SURVEY SUBMIT ENDPOINT CALLED =====');
+  try {
+    const user = c.get('user');
+    const body = await c.req.json();
+    const { propertyId, rating, feedback, category } = body;
+    
+    if (!propertyId || !rating) {
+      return c.json({ error: 'Property ID and rating are required' }, 400);
+    }
+    
+    const supabase = getSupabaseClient(c.env);
+    
+    const { data: survey, error } = await supabase
+      .from('tenant_surveys')
+      .insert({
+        tenantId: user.userId,
+        propertyId,
+        rating,
+        feedback,
+        category: category || 'GENERAL',
+        submittedAt: new Date().toISOString()
+      })
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('[DEBUG] Survey submit error:', error);
+      return c.json({ error: 'Failed to submit survey' }, 500);
+    }
+    
+    return c.json({
+      success: true,
+      data: survey
+    });
+  } catch (error) {
+    console.error('[DEBUG] Survey submit error:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+app.get('/api/tenants/community', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== TENANT COMMUNITY ENDPOINT CALLED =====');
+  try {
+    const user = c.get('user');
+    const supabase = getSupabaseClient(c.env);
+    
+    // Get community announcements and events
+    const { data: announcements, error } = await supabase
+      .from('community_announcements')
+      .select('*')
+      .order('createdAt', { ascending: false })
+      .limit(10);
+    
+    if (error) {
+      console.error('[DEBUG] Community query error:', error);
+      return c.json({ error: 'Failed to fetch community data' }, 500);
+    }
+    
+    return c.json({
+      success: true,
+      data: {
+        announcements: announcements || [],
+        events: [], // Will implement events later
+        discussions: [] // Will implement discussions later
+      }
+    });
+  } catch (error) {
+    console.error('[DEBUG] Tenant community error:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+}); 
+
+// Payment Processing endpoints with real Stripe integration
+app.post('/api/payments/create-payment-intent', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== CREATE PAYMENT INTENT ENDPOINT CALLED =====');
+  try {
+    const user = c.get('user');
+    const body = await c.req.json();
+    const { amount, currency = 'usd', paymentMethod, unitId, description } = body;
+    
+    if (!amount || !unitId) {
+      return c.json({ error: 'Amount and unit ID are required' }, 400);
+    }
+    
+    // Create payment intent with Stripe
+    if (!c.env.STRIPE_SECRET_KEY) {
+      return c.json({ error: 'Stripe secret key not configured' }, 500);
+    }
+    
+    const stripe = new Stripe(c.env.STRIPE_SECRET_KEY, {
+      apiVersion: '2023-10-16',
+    });
+    
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: Math.round(amount * 100), // Convert to cents
+      currency,
+      payment_method_types: paymentMethod === 'ach' ? ['us_bank_account'] : ['card'],
+      metadata: {
+        userId: user.userId,
+        unitId,
+        description: description || 'Rent payment'
+      }
+    });
+    
+    const supabase = getSupabaseClient(c.env);
+    
+    // Save payment record
+    const { data: payment, error } = await supabase
+      .from('payments')
+      .insert({
+        amount,
+        currency,
+        status: 'PENDING',
+        method: paymentMethod === 'ach' ? 'STRIPE_ACH' : 'STRIPE_CARD',
+        stripePaymentIntentId: paymentIntent.id,
+        unitId,
+        tenantId: user.userId,
+        description,
+        dueDate: new Date().toISOString(),
+        createdAt: new Date().toISOString()
+      })
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('[DEBUG] Payment save error:', error);
+      return c.json({ error: 'Failed to save payment record' }, 500);
+    }
+    
+    return c.json({
+      success: true,
+      data: {
+        paymentIntent: paymentIntent,
+        payment: payment
+      }
+    });
+  } catch (error) {
+    console.error('[DEBUG] Payment intent error:', error);
+    return c.json({ error: 'Failed to create payment intent' }, 500);
+  }
+});
+
+app.post('/api/payments/process-payment', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== PROCESS PAYMENT ENDPOINT CALLED =====');
+  try {
+    const user = c.get('user');
+    const body = await c.req.json();
+    const { paymentIntentId, paymentMethodId } = body;
+    
+    if (!paymentIntentId) {
+      return c.json({ error: 'Payment intent ID is required' }, 400);
+    }
+    
+    if (!c.env.STRIPE_SECRET_KEY) {
+      return c.json({ error: 'Stripe secret key not configured' }, 500);
+    }
+    
+    const stripe = new Stripe(c.env.STRIPE_SECRET_KEY, {
+      apiVersion: '2023-10-16',
+    });
+    
+    // Confirm the payment intent
+    const paymentIntent = await stripe.paymentIntents.confirm(paymentIntentId, {
+      payment_method: paymentMethodId,
+    });
+    
+    if (paymentIntent.status === 'succeeded') {
+      const supabase = getSupabaseClient(c.env);
+      
+      // Update payment record
+      const { data: payment, error } = await supabase
+        .from('payments')
+        .update({
+          status: 'PAID',
+          paymentDate: new Date().toISOString(),
+          stripePaymentId: paymentIntent.latest_charge
+        })
+        .eq('stripePaymentIntentId', paymentIntentId)
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('[DEBUG] Payment update error:', error);
+        return c.json({ error: 'Failed to update payment record' }, 500);
+      }
+      
+      return c.json({
+        success: true,
+        data: payment
+      });
+    } else {
+      return c.json({ error: 'Payment failed' }, 400);
+    }
+  } catch (error) {
+    console.error('[DEBUG] Process payment error:', error);
+    return c.json({ error: 'Failed to process payment' }, 500);
+  }
+});
+
+app.get('/api/payments/history', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== PAYMENT HISTORY ENDPOINT CALLED =====');
+  try {
+    const user = c.get('user');
+    const { searchParams } = new URL(c.req.url);
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '10');
+    const status = searchParams.get('status');
+    const unitId = searchParams.get('unitId');
+    
+    const supabase = getSupabaseClient(c.env);
+    
+    let query = supabase
+      .from('payments')
+      .select(`
+        *,
+        unit:units(*),
+        tenant:users(*)
+      `)
+      .eq('tenantId', user.userId);
+    
+    if (status) {
+      query = query.eq('status', status);
+    }
+    
+    if (unitId) {
+      query = query.eq('unitId', unitId);
+    }
+    
+    const { data: payments, error, count } = await query
+      .order('createdAt', { ascending: false })
+      .range((page - 1) * limit, page * limit - 1);
+    
+    if (error) {
+      console.error('[DEBUG] Payment history error:', error);
+      return c.json({ error: 'Failed to fetch payment history' }, 500);
+    }
+    
+    return c.json({
+      success: true,
+      data: {
+        payments: payments || [],
+        pagination: {
+          page,
+          limit,
+          total: count || 0,
+          pages: Math.ceil((count || 0) / limit)
+        }
+      }
+    });
+  } catch (error) {
+    console.error('[DEBUG] Payment history error:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+app.get('/api/payments/analytics', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== PAYMENT ANALYTICS ENDPOINT CALLED =====');
+  try {
+    const user = c.get('user');
+    const supabase = getSupabaseClient(c.env);
+    
+    // Get payment analytics
+    const { data: payments, error } = await supabase
+      .from('payments')
+      .select('*')
+      .eq('tenantId', user.userId);
+    
+    if (error) {
+      console.error('[DEBUG] Payment analytics error:', error);
+      return c.json({ error: 'Failed to fetch payment analytics' }, 500);
+    }
+    
+    const totalPayments = payments?.length || 0;
+    const paidPayments = payments?.filter(p => p.status === 'PAID').length || 0;
+    const pendingPayments = payments?.filter(p => p.status === 'PENDING').length || 0;
+    const totalAmount = payments?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0;
+    const paidAmount = payments?.filter(p => p.status === 'PAID').reduce((sum, p) => sum + (p.amount || 0), 0) || 0;
+    
+    const analytics = {
+      totalPayments,
+      paidPayments,
+      pendingPayments,
+      totalAmount,
+      paidAmount,
+      collectionRate: totalPayments > 0 ? (paidPayments / totalPayments) * 100 : 0,
+      averagePayment: totalPayments > 0 ? totalAmount / totalPayments : 0
+    };
+    
+    return c.json({
+      success: true,
+      data: analytics
+    });
+  } catch (error) {
+    console.error('[DEBUG] Payment analytics error:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+app.post('/api/payments/schedule', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== SCHEDULE PAYMENT ENDPOINT CALLED =====');
+  try {
+    const user = c.get('user');
+    const body = await c.req.json();
+    const { amount, unitId, frequency, startDate, description } = body;
+    
+    if (!amount || !unitId || !frequency || !startDate) {
+      return c.json({ error: 'Amount, unit ID, frequency, and start date are required' }, 400);
+    }
+    
+    const supabase = getSupabaseClient(c.env);
+    
+    // Create recurring payment schedule
+    const { data: schedule, error } = await supabase
+      .from('payment_schedules')
+      .insert({
+        tenantId: user.userId,
+        unitId,
+        amount,
+        frequency, // monthly, weekly, etc.
+        startDate,
+        description,
+        isActive: true,
+        createdAt: new Date().toISOString()
+      })
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('[DEBUG] Schedule payment error:', error);
+      return c.json({ error: 'Failed to create payment schedule' }, 500);
+    }
+    
+    return c.json({
+      success: true,
+      data: schedule
+    });
+  } catch (error) {
+    console.error('[DEBUG] Schedule payment error:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+app.get('/api/payments/receipts/:paymentId', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== GENERATE RECEIPT ENDPOINT CALLED =====');
+  try {
+    const user = c.get('user');
+    const paymentId = c.req.param('paymentId');
+    
+    const supabase = getSupabaseClient(c.env);
+    
+    const { data: payment, error } = await supabase
+      .from('payments')
+      .select(`
+        *,
+        unit:units(*),
+        tenant:users(*)
+      `)
+      .eq('id', paymentId)
+      .eq('tenantId', user.userId)
+      .single();
+    
+    if (error || !payment) {
+      return c.json({ error: 'Payment not found' }, 404);
+    }
+    
+    // Generate receipt data
+    const receipt = {
+      id: payment.id,
+      amount: payment.amount,
+      currency: payment.currency,
+      paymentDate: payment.paymentDate,
+      method: payment.method,
+      description: payment.description,
+      unit: payment.unit,
+      tenant: payment.tenant,
+      receiptNumber: `RCP-${payment.id.substring(0, 8).toUpperCase()}`,
+      generatedAt: new Date().toISOString()
+    };
+    
+    return c.json({
+      success: true,
+      data: receipt
+    });
+  } catch (error) {
+    console.error('[DEBUG] Generate receipt error:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+app.post('/api/payments/webhook', async (c) => {
+  console.log('[DEBUG] ===== STRIPE WEBHOOK ENDPOINT CALLED =====');
+  try {
+    const body = await c.req.text();
+    const signature = c.req.header('stripe-signature');
+    
+    if (!signature || !c.env.STRIPE_WEBHOOK_SECRET) {
+      return c.json({ error: 'Missing signature or webhook secret' }, 400);
+    }
+    
+    const stripe = new Stripe(c.env.STRIPE_SECRET_KEY, {
+      apiVersion: '2023-10-16',
+    });
+    
+    const event = stripe.webhooks.constructEvent(
+      body,
+      signature,
+      c.env.STRIPE_WEBHOOK_SECRET
+    );
+    
+    const supabase = getSupabaseClient(c.env);
+    
+    switch (event.type) {
+      case 'payment_intent.succeeded':
+        const paymentIntent = event.data.object;
+        await supabase
+          .from('payments')
+          .update({
+            status: 'PAID',
+            paymentDate: new Date().toISOString(),
+            stripePaymentId: paymentIntent.latest_charge
+          })
+          .eq('stripePaymentIntentId', paymentIntent.id);
+        break;
+        
+      case 'payment_intent.payment_failed':
+        const failedPayment = event.data.object;
+        await supabase
+          .from('payments')
+          .update({
+            status: 'FAILED'
+          })
+          .eq('stripePaymentIntentId', failedPayment.id);
+        break;
+    }
+    
+    return c.json({ received: true });
+  } catch (error) {
+    console.error('[DEBUG] Webhook error:', error);
+    return c.json({ error: 'Webhook signature verification failed' }, 400);
+  }
 }); 
