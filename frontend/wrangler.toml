@@ -1,0 +1,25 @@
+name = "ormi-app"
+compatibility_date = "2023-09-04"
+
+# Pages configuration
+pages_build_output_dir = "dist"
+
+# Environment variables
+[vars]
+NODE_ENV = "production"
+VITE_API_BASE_URL = "https://api.ormi.com"
+
+# Environment-specific settings
+[env.production]
+name = "ormi-app"
+
+[env.production.vars]
+NODE_ENV = "production"
+VITE_API_BASE_URL = "https://api.ormi.com"
+
+[env.preview]
+name = "ormi-app-preview"
+
+[env.preview.vars]
+NODE_ENV = "preview"
+VITE_API_BASE_URL = "https://api.ormi.com" 

@@ -1,7 +1,7 @@
-// Base API URL
+// API Configuration
 const API_BASE_URL = 'https://api.ormi.com';
 
-// User interface
+// TypeScript Interfaces
 export interface User {
   id: string;
   email: string;
@@ -13,65 +13,6 @@ export interface User {
   isActive: boolean;
 }
 
-// Unit interface
-export interface Unit {
-  id: string;
-  unitNumber: string;
-  monthlyRent: number;
-  securityDeposit: number;
-  leaseStatus: 'VACANT' | 'LEASED' | 'PENDING' | 'MAINTENANCE';
-  leaseStart?: string;
-  leaseEnd?: string;
-  notes?: string;
-  imageUrl?: string;
-  bedrooms?: number;
-  bathrooms?: number;
-  sqft?: number;
-  propertyId: string;
-  tenantId?: string;
-  createdAt: string;
-  updatedAt: string;
-  property?: Property;
-  tenant?: User;
-  payments?: Payment[];
-  maintenanceRequests?: MaintenanceRequest[];
-}
-
-// Payment interface
-export interface Payment {
-  id: string;
-  amount: number;
-  dueDate: string;
-  paymentDate?: string;
-  status: 'PENDING' | 'PAID' | 'LATE' | 'FAILED' | 'REFUNDED';
-  method: 'MANUAL' | 'STRIPE_CARD' | 'STRIPE_ACH' | 'CASH' | 'CHECK';
-  stripePaymentId?: string;
-  notes?: string;
-  unitId: string;
-  tenantId: string;
-  unit?: Unit;
-  tenant?: User;
-}
-
-// Maintenance request interface
-export interface MaintenanceRequest {
-  id: string;
-  title: string;
-  description: string;
-  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
-  status: 'SUBMITTED' | 'IN_PROGRESS' | 'COMPLETED' | 'REJECTED' | 'CANCELLED';
-  images: string[];
-  notes?: string;
-  unitId: string;
-  tenantId: string;
-  assignedTo?: string;
-  createdAt: string;
-  updatedAt: string;
-  unit?: Unit;
-  tenant?: User;
-}
-
-// Property interface - simplified for compatibility
 export interface Property {
   id: string;
   name: string;
@@ -144,6 +85,61 @@ export interface Property {
   recentPayments?: Payment[];
 }
 
+export interface Unit {
+  id: string;
+  unitNumber: string;
+  monthlyRent: number;
+  securityDeposit: number;
+  leaseStatus: 'VACANT' | 'LEASED' | 'PENDING' | 'MAINTENANCE';
+  leaseStart?: string;
+  leaseEnd?: string;
+  notes?: string;
+  imageUrl?: string;
+  bedrooms?: number;
+  bathrooms?: number;
+  sqft?: number;
+  propertyId: string;
+  tenantId?: string;
+  createdAt: string;
+  updatedAt: string;
+  property?: Property;
+  tenant?: User;
+  payments?: Payment[];
+  maintenanceRequests?: MaintenanceRequest[];
+}
+
+export interface Payment {
+  id: string;
+  amount: number;
+  dueDate: string;
+  paymentDate?: string;
+  status: 'PENDING' | 'PAID' | 'LATE' | 'FAILED' | 'REFUNDED';
+  method: 'MANUAL' | 'STRIPE_CARD' | 'STRIPE_ACH' | 'CASH' | 'CHECK';
+  stripePaymentId?: string;
+  notes?: string;
+  unitId: string;
+  tenantId: string;
+  unit?: Unit;
+  tenant?: User;
+}
+
+export interface MaintenanceRequest {
+  id: string;
+  title: string;
+  description: string;
+  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+  status: 'SUBMITTED' | 'IN_PROGRESS' | 'COMPLETED' | 'REJECTED' | 'CANCELLED';
+  images: string[];
+  notes?: string;
+  unitId: string;
+  tenantId: string;
+  assignedTo?: string;
+  createdAt: string;
+  updatedAt: string;
+  unit?: Unit;
+  tenant?: User;
+}
+
 // API response interfaces
 export interface PropertiesResponse {
   properties: Property[];
@@ -167,7 +163,35 @@ export interface PropertyInsights {
   recentActivity: any[];
 }
 
-// Income analytics interfaces
+export interface PropertyFilters {
+  search?: string;
+  status?: string;
+  propertyType?: string;
+  tags?: string[];
+  location?: string;
+  occupancyMin?: number;
+  occupancyMax?: number;
+  incomeMin?: number;
+  incomeMax?: number;
+  urgentMaintenanceOnly?: boolean;
+  leasesExpiringOnly?: boolean;
+  page?: number;
+  limit?: number;
+  sortBy?: string;
+  sortDirection?: 'asc' | 'desc';
+}
+
+export interface IncomeAnalytics {
+  monthlyTrends: MonthlyIncomeData[];
+  growthMetrics: IncomeGrowthMetrics;
+  topPerformingProperties: TopPerformingPropertyIncome[];
+  yearOverYearGrowth: number;
+  averageMonthlyIncome: number;
+  projectedNextMonth: number;
+  collectionEfficiency: number;
+  totalYearToDate: number;
+}
+
 export interface MonthlyIncomeData {
   month: string;
   year: number;
@@ -197,40 +221,7 @@ export interface TopPerformingPropertyIncome {
   averageRentPerUnit: number;
 }
 
-export interface IncomeAnalytics {
-  monthlyTrends: MonthlyIncomeData[];
-  growthMetrics: IncomeGrowthMetrics;
-  topPerformingProperties: TopPerformingPropertyIncome[];
-  yearOverYearGrowth: number;
-  averageMonthlyIncome: number;
-  projectedNextMonth: number;
-  collectionEfficiency: number;
-  totalYearToDate: number;
-}
-
-export interface PropertyFilters {
-  search?: string;
-  status?: string;
-  propertyType?: string;
-  tags?: string[];
-  location?: string;
-  occupancyMin?: number;
-  occupancyMax?: number;
-  incomeMin?: number;
-  incomeMax?: number;
-  urgentMaintenanceOnly?: boolean;
-  leasesExpiringOnly?: boolean;
-  page?: number;
-  limit?: number;
-  sortBy?: string;
-  sortDirection?: 'asc' | 'desc';
-}
-
-// API Helper Functions
-function getAuthToken(): string | null {
-  return localStorage.getItem('auth_token');
-}
-
+// Helper function to get auth headers
 function getAuthHeaders(): HeadersInit {
   const token = getAuthToken();
   return {
@@ -241,18 +232,19 @@ function getAuthHeaders(): HeadersInit {
   };
 }
 
-function getTenantAuthHeaders(): HeadersInit {
-  const token = getAuthToken();
-  return {
-    'Content-Type': 'application/json',
-    ...(token && { Authorization: `Bearer ${token}` }),
-  };
+// Helper function to get auth token from localStorage
+function getAuthToken(): string | null {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('authToken');
+  }
+  return null;
 }
 
+// Enhanced response handler with better error handling
 async function handleResponse<T>(response: Response): Promise<T> {
   console.log('[DEBUG] handleResponse called with status:', response.status);
   console.log('[DEBUG] Response headers:', Object.fromEntries(response.headers.entries()));
-  
+
   if (!response.ok) {
     console.log('[DEBUG] Response not ok, trying to parse error');
     try {
@@ -264,17 +256,17 @@ async function handleResponse<T>(response: Response): Promise<T> {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
   }
-  
+
   console.log('[DEBUG] Response ok, trying to parse JSON');
   try {
     const text = await response.text();
     console.log('[DEBUG] Response text (first 200 chars):', text.substring(0, 200));
-    
+
     if (!text.trim()) {
       console.log('[DEBUG] Empty response text');
       throw new Error('Empty response from server');
     }
-    
+
     const data = JSON.parse(text);
     console.log('[DEBUG] Successfully parsed JSON:', data);
     return data;
@@ -285,712 +277,903 @@ async function handleResponse<T>(response: Response): Promise<T> {
   }
 }
 
-// Authentication API
+// Auth API
 export const authApi = {
-  async register(data: {
-    email: string;
-    password: string;
-    firstName: string;
-    lastName: string;
-  }) {
-    const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(data),
-    });
-    return handleResponse<{ user: User; token: string }>(response);
-  },
-
-  async login(email: string, password: string) {
+  login: async (email: string, password: string) => {
     const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify({ email, password }),
-    });
-    return handleResponse<{ user: User; token: string }>(response);
-  },
-
-  async forgotPassword(email: string) {
-    const response = await fetch(`${API_BASE_URL}/api/auth/forgot-password`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify({ email }),
-    });
-    return handleResponse<{ message: string }>(response);
-  },
-
-  async resetPassword(token: string, password: string) {
-    const response = await fetch(`${API_BASE_URL}/api/auth/reset-password`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify({ token, password }),
-    });
-    return handleResponse<{ message: string }>(response);
-  },
-
-  async getProfile() {
-    const response = await fetch(`${API_BASE_URL}/api/users/profile`, {
-      headers: getAuthHeaders(),
-    });
-    const data = await handleResponse<{ user: User }>(response);
-    return data.user;
-  },
-
-  async refreshToken() {
-    const response = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-    });
-    return handleResponse<{ token: string; user: User }>(response);
-  },
-};
-
-// Properties API
-export const propertiesApi = {
-  async getAll(filters?: PropertyFilters) {
-    const params = new URLSearchParams();
-    
-    // Only include supported parameters that exist in backend
-    if (filters?.search) params.append('search', filters.search);
-    if (filters?.page) params.append('page', filters.page.toString());
-    if (filters?.limit) params.append('limit', filters.limit.toString());
-    
-    const response = await fetch(`${API_BASE_URL}/api/properties?${params.toString()}`, {
-      headers: getAuthHeaders(),
-    });
-    
-    const result = await handleResponse<any>(response);
-    
-    // Transform backend data to frontend format
-    if (result.success && result.data) {
-      const transformedProperties = result.data.map((property: any) => ({
-        id: property.id,
-        name: property.name,
-        address: property.address,
-        city: property.city,
-        state: property.state,
-        zipCode: property.zipCode,
-        propertyType: property.type || 'Apartment',
-        yearBuilt: property.yearBuilt || 2020,
-        description: property.description || '',
-        notes: property.notes || '',
-        ownerId: property.ownerId || 'user-1',
-        createdAt: property.createdAt || new Date().toISOString(),
-        updatedAt: property.updatedAt || new Date().toISOString(),
-        units: [],
-        totalUnits: property.units || 0,
-        occupiedUnits: property.occupiedUnits || 0,
-        vacantUnits: property.vacantUnits || 0,
-        occupancyRate: property.occupancyRate || 0,
-        monthlyRent: property.monthlyRevenue || 0,
-        netIncome: property.monthlyRevenue || 0,
-        avgRentPerUnit: property.monthlyRevenue ? (property.monthlyRevenue / (property.units || 1)) : 0,
-        marketValue: property.monthlyRevenue ? property.monthlyRevenue * 12 * 10 : 0,
-        propertyHealth: 85,
-        maintenanceRequests: 0,
-        urgentMaintenanceRequests: 0,
-        leasesExpiringThisMonth: 0,
-        leasesExpiringNext30Days: 0,
-        amenities: property.amenities || [],
-        tags: ['Active'],
-        images: ['/api/placeholder/400/300'],
-        manager: property.manager || '',
-        coordinates: { lat: 37.7749, lng: -122.4194 },
-        rating: 4.5,
-        tenantSatisfaction: 4.2,
-      }));
-
-      return {
-        properties: transformedProperties,
-        pagination: {
-          page: 1,
-          limit: 20,
-          total: transformedProperties.length,
-          pages: 1,
-        },
-      };
-    }
-    
-    return { properties: [], pagination: { page: 1, limit: 20, total: 0, pages: 0 } };
-  },
-
-  async getInsights() {
-    // Use dashboard endpoint for insights  
-    const response = await fetch(`${API_BASE_URL}/api/dashboard`, {
-      headers: getAuthHeaders(),
-    });
-    
-    const result = await handleResponse<any>(response);
-    const dashboardData = result.data || result;
-    
-    // Create a simple property object for top performer
-    const topPerformingProperty: Property = {
-      id: '1',
-      name: 'Sunset Apartments',
-      address: '123 Main Street',
-      city: 'San Francisco',
-      state: 'CA',
-      zipCode: '94105',
-      ownerId: 'user-1',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      units: [],
-      totalUnits: 24,
-      occupiedUnits: 22,
-      vacantUnits: 2,
-      occupancyRate: 91.7,
-      monthlyRent: 72000,
-      netIncome: 72000,
-      avgRentPerUnit: 3000,
-      propertyHealth: 85,
-      maintenanceRequests: 0,
-      urgentMaintenanceRequests: 0,
-      leasesExpiringThisMonth: 0,
-      leasesExpiringNext30Days: 0,
-      amenities: ['Pool', 'Gym'],
-      tags: ['Premium'],
-      images: ['/api/placeholder/400/300'],
-    };
-    
-    // Transform dashboard data to insights format
-    return {
-      totalProperties: dashboardData.totalProperties || 3,
-      totalUnits: dashboardData.totalUnits || 54,
-      totalMonthlyIncome: dashboardData.monthlyRevenue || 156000,
-      avgOccupancyRate: dashboardData.occupiedUnits && dashboardData.totalUnits ? 
-        (dashboardData.occupiedUnits / dashboardData.totalUnits) * 100 : 90,
-      leasesExpiringThisMonth: dashboardData.leasesExpiringThisMonth || 8,
-      urgentMaintenanceCount: dashboardData.urgentRequests || dashboardData.openMaintenanceRequests || 3,
-      topPerformingProperty,
-      lowPerformingProperties: [],
-      recentActivity: dashboardData.recentActivity || [],
-    };
-  },
-
-  async getIncomeAnalytics(months: number = 6): Promise<IncomeAnalytics> {
-    // Mock income analytics data since backend doesn't have this endpoint yet
-    const monthlyTrends: MonthlyIncomeData[] = [
-      {
-        month: '01',
-        year: 2025,
-        monthName: 'Jan 2025',
-        totalIncome: 156000,
-        collectedIncome: 148200,
-        pendingIncome: 7800,
-        occupancyRate: 92.5,
-        totalUnits: 54,
-        occupiedUnits: 50,
-      },
-    ];
-    
-    const topProperty: Property = {
-      id: '1',
-      name: 'Sunset Apartments',
-      address: '123 Main Street',
-      city: 'San Francisco',
-      state: 'CA',
-      zipCode: '94105',
-      ownerId: 'user-1',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      units: [],
-      totalUnits: 24,
-      occupiedUnits: 22,
-      vacantUnits: 2,
-      occupancyRate: 91.7,
-      monthlyRent: 72000,
-      netIncome: 72000,
-      avgRentPerUnit: 3000,
-      propertyHealth: 85,
-      maintenanceRequests: 0,
-      urgentMaintenanceRequests: 0,
-      leasesExpiringThisMonth: 0,
-      leasesExpiringNext30Days: 0,
-      amenities: ['Pool', 'Gym'],
-      tags: ['Premium'],
-      images: ['/api/placeholder/400/300'],
-    };
-    
-    return {
-      monthlyTrends,
-      growthMetrics: {
-        currentMonth: 156000,
-        previousMonth: 150000,
-        growthRate: 4.0,
-        isPositive: true,
-        absoluteChange: 6000,
-      },
-      topPerformingProperties: [
-        {
-          property: topProperty,
-          monthlyIncome: 72000,
-          percentageOfTotal: 46.2,
-          rank: 1,
-          occupancyRate: 91.7,
-          averageRentPerUnit: 3000,
-        },
-      ],
-      yearOverYearGrowth: 12.5,
-      averageMonthlyIncome: 156000,
-      projectedNextMonth: 162240,
-      collectionEfficiency: 95.2,
-      totalYearToDate: 1560000,
-    };
-  },
-
-  async exportIncomeData(format: 'csv' | 'pdf' = 'csv', months: number = 6) {
-    // Mock export functionality
-    return {
-      downloadUrl: `/api/mock-export/${format}`,
-      filename: `income-analytics-${new Date().toISOString().split('T')[0]}.${format}`,
-    };
-  },
-
-  async create(propertyData: any) {
-    const response = await fetch(`${API_BASE_URL}/api/properties`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(propertyData),
-    });
-    return handleResponse<Property>(response);
-  },
-
-  async bulkArchive(propertyIds: string[]) {
-    // Mock bulk archive functionality
-    console.log('Mock bulk archive:', propertyIds);
-    return Promise.resolve();
-  },
-
-  async bulkExport(propertyIds: string[], format: string) {
-    // Mock bulk export functionality
-    return {
-      downloadUrl: `/api/mock-export/${format}`,
-      filename: `properties-export-${new Date().toISOString().split('T')[0]}.${format}`,
-    };
-  },
-
-  async uploadImage(propertyId: string, imageFile: File) {
-    const formData = new FormData();
-    formData.append('image', imageFile);
-
-    const response = await fetch(`${API_BASE_URL}/api/properties/${propertyId}/images`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${getAuthToken()}`,
-      },
-      body: formData,
-    });
-    return handleResponse<{ imageUrl: string; key: string; property: any }>(response);
-  },
-
-  async generateUploadUrl(propertyId: string, fileName: string, contentType: string) {
-    const response = await fetch(`${API_BASE_URL}/api/properties/${propertyId}/upload-url`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${getAuthToken()}`,
+        'Accept': 'application/json',
+        'Accept-Encoding': 'identity',
       },
-      body: JSON.stringify({ fileName, contentType }),
+      body: JSON.stringify({ email, password }),
     });
-    return handleResponse<{ uploadUrl: string; key: string; publicUrl: string; expiresIn: number }>(response);
+    return handleResponse(response);
   },
 
-  async uploadImageDirect(uploadUrl: string, file: File) {
-    const response = await fetch(uploadUrl, {
-      method: 'PUT',
-      body: file,
+  register: async (userData: any) => {
+    const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
+      method: 'POST',
       headers: {
-        'Content-Type': file.type,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Accept-Encoding': 'identity',
       },
+      body: JSON.stringify(userData),
     });
-    
-    if (!response.ok) {
-      throw new Error('Failed to upload image directly');
-    }
-    
-    return { success: true };
+    return handleResponse(response);
   },
-};
 
-// Units API
-export const unitsApi = {
-  async getAll() {
-    const response = await fetch(`${API_BASE_URL}/api/units`, {
+  getProfile: async () => {
+    const response = await fetch(`${API_BASE_URL}/api/users/profile`, {
       headers: getAuthHeaders(),
     });
-    const result = await handleResponse<{ success: boolean; data: Unit[] } | Unit[]>(response);
-    
-    // Handle both wrapped and direct array responses
-    if (result && typeof result === 'object' && 'data' in result) {
-      return result.data;
-    }
-    return result as Unit[];
+    return handleResponse(response);
   },
 
-  async getByPropertyId(propertyId: string) {
-    const response = await fetch(`${API_BASE_URL}/api/units/property/${propertyId}`, {
-      headers: getAuthHeaders(),
-    });
-    return handleResponse<Unit[]>(response);
-  },
-
-  async getById(id: string) {
-    const response = await fetch(`${API_BASE_URL}/api/units/${id}`, {
-      headers: getAuthHeaders(),
-    });
-    return handleResponse<Unit>(response);
-  },
-
-  async create(data: Partial<Unit>) {
-    const response = await fetch(`${API_BASE_URL}/api/units`, {
+  forgotPassword: async (email: string) => {
+    const response = await fetch(`${API_BASE_URL}/api/auth/forgot-password`, {
       method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(data),
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Accept-Encoding': 'identity',
+      },
+      body: JSON.stringify({ email }),
     });
-    return handleResponse<Unit>(response);
+    return handleResponse(response);
   },
 
-  async update(id: string, data: Partial<Unit>) {
-    const response = await fetch(`${API_BASE_URL}/api/units/${id}`, {
-      method: 'PUT',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(data),
-    });
-    return handleResponse<Unit>(response);
-  },
-
-  async delete(id: string) {
-    const response = await fetch(`${API_BASE_URL}/api/units/${id}`, {
-      method: 'DELETE',
-      headers: getAuthHeaders(),
-    });
-    return handleResponse<{ message: string }>(response);
-  },
-
-  async assignTenant(id: string, data: { tenantId: string; leaseStart: string; leaseEnd: string }) {
-    const response = await fetch(`${API_BASE_URL}/api/units/${id}/assign-tenant`, {
+  resetPassword: async (token: string, password: string) => {
+    const response = await fetch(`${API_BASE_URL}/api/auth/reset-password`, {
       method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(data),
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Accept-Encoding': 'identity',
+      },
+      body: JSON.stringify({ token, password }),
     });
-    return handleResponse<Unit>(response);
-  },
-
-  async removeTenant(id: string) {
-    const response = await fetch(`${API_BASE_URL}/api/units/${id}/remove-tenant`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-    });
-    return handleResponse<Unit>(response);
+    return handleResponse(response);
   },
 };
 
 // Dashboard API
 export const dashboardApi = {
-  async getMetrics() {
+  getMetrics: async () => {
     const response = await fetch(`${API_BASE_URL}/api/dashboard`, {
       headers: getAuthHeaders(),
     });
-    const result = await handleResponse<any>(response);
-    return result.data || result;
+    return handleResponse(response);
   },
 
-  async getAnalytics(params?: { propertyId?: string; startDate?: string; endDate?: string }) {
-    const searchParams = new URLSearchParams();
-    if (params?.propertyId) searchParams.append('propertyId', params.propertyId);
-    if (params?.startDate) searchParams.append('startDate', params.startDate);
-    if (params?.endDate) searchParams.append('endDate', params.endDate);
-
-    const response = await fetch(`${API_BASE_URL}/api/dashboard/analytics?${searchParams.toString()}`, {
+  getAnalytics: async () => {
+    const response = await fetch(`${API_BASE_URL}/api/analytics/overview`, {
       headers: getAuthHeaders(),
     });
-    return handleResponse<any>(response);
+    return handleResponse(response);
   },
+};
 
-  async getRecentActivity() {
-    const response = await fetch(`${API_BASE_URL}/api/dashboard/recent-activity`, {
-      headers: getAuthHeaders(),
-    });
-    return handleResponse<any[]>(response);
-  },
-
-  async getUpcomingPayments(days = 7) {
-    const response = await fetch(`${API_BASE_URL}/api/dashboard/upcoming-payments?days=${days}`, {
-      headers: getAuthHeaders(),
-    });
-    return handleResponse<Payment[]>(response);
-  },
-
-  async getMaintenanceSummary() {
-    const response = await fetch(`${API_BASE_URL}/api/dashboard/maintenance-summary`, {
-      headers: getAuthHeaders(),
-    });
-    return handleResponse<any>(response);
-  },
-}; 
-
-// Tenant Portal API
-export const tenantApi = {
-  // Tenant login
-  login: async (credentials: { email: string; password: string }): Promise<any> => {
-    const response = await fetch(`${API_BASE_URL}/api/tenant/login`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(credentials),
-    });
-    return handleResponse<any>(response);
-  },
-
-  // Get tenant dashboard
-  getDashboard: async (): Promise<any> => {
-    const response = await fetch(`${API_BASE_URL}/api/tenant/dashboard`, {
-      headers: getTenantAuthHeaders(),
-    });
-    return handleResponse<any>(response);
-  },
-
-  // Get tenant profile
-  getProfile: async (): Promise<any> => {
-    const response = await fetch(`${API_BASE_URL}/api/tenant/profile`, {
-      headers: getAuthHeaders(), // Use getAuthHeaders for tenant profile
-    });
-    return handleResponse<any>(response);
-  },
-
-  // Update tenant profile
-  updateProfile: async (data: any): Promise<any> => {
-    const response = await fetch(`${API_BASE_URL}/api/tenant/profile`, {
-      method: 'PUT',
-      headers: getAuthHeaders(), // Use getAuthHeaders for tenant profile
-      body: JSON.stringify(data),
-    });
-    return handleResponse<any>(response);
-  },
-
-  // Get tenant payments
-  getPayments: async (): Promise<any> => {
-    const response = await fetch(`${API_BASE_URL}/api/tenant/payments`, {
-      headers: getAuthHeaders(), // Use getAuthHeaders for tenant payments
-    });
-    return handleResponse<any>(response);
-  },
-
-  // Make a payment
-  makePayment: async (data: any): Promise<any> => {
-    const response = await fetch(`${API_BASE_URL}/api/tenant/payments`, {
-      method: 'POST',
-      headers: getAuthHeaders(), // Use getAuthHeaders for tenant payments
-      body: JSON.stringify(data),
-    });
-    return handleResponse<any>(response);
-  },
-
-  // Get tenant maintenance requests
-  getMaintenanceRequests: async (): Promise<any> => {
-    const response = await fetch(`${API_BASE_URL}/api/tenant/maintenance`, {
-      headers: getAuthHeaders(), // Use getAuthHeaders for tenant maintenance
-    });
-    return handleResponse<any>(response);
-  },
-
-  // Submit maintenance request
-  submitMaintenanceRequest: async (data: any): Promise<any> => {
-    const response = await fetch(`${API_BASE_URL}/api/tenant/maintenance`, {
-      method: 'POST',
-      headers: getAuthHeaders(), // Use getAuthHeaders for tenant maintenance
-      body: JSON.stringify(data),
-    });
-    return handleResponse<any>(response);
-  },
-
-  // Document management
-  getDocuments: async (): Promise<any> => {
-    const response = await fetch(`${API_BASE_URL}/api/tenant/documents`, {
-      headers: getTenantAuthHeaders(),
-    });
-    return handleResponse<any>(response);
-  },
-
-  uploadDocuments: async (files: File[]): Promise<any> => {
-    const formData = new FormData();
-    files.forEach((file) => {
-      formData.append('files', file);
-    });
+// Property Management API
+export const propertiesApi = {
+  getAll: async (filters?: any) => {
+    const params = new URLSearchParams();
+    if (filters?.search) params.append('search', filters.search);
+    if (filters?.page) params.append('page', filters.page.toString());
+    if (filters?.limit) params.append('limit', filters.limit.toString());
     
-    const response = await fetch(`${API_BASE_URL}/api/tenant/documents/upload`, {
-      method: 'POST',
-      headers: getTenantAuthHeaders(),
-      body: formData,
-    });
-    return handleResponse<any>(response);
-  },
-
-  // Get tenant notifications
-  getNotifications: async (): Promise<any> => {
-    const response = await fetch(`${API_BASE_URL}/api/tenant/notifications`, {
-      headers: getAuthHeaders(), // Use getAuthHeaders for tenant notifications
-    });
-    return handleResponse<any>(response);
-  },
-
-  // Mark notification as read
-  markNotificationRead: async (notificationId: string): Promise<any> => {
-    const response = await fetch(`${API_BASE_URL}/api/tenant/notifications/${notificationId}/read`, {
-      method: 'PUT',
-      headers: getAuthHeaders(), // Use getAuthHeaders for tenant notifications
-    });
-    return handleResponse<any>(response);
-  },
-
-  // Contact property manager
-  contactManager: async (data: any): Promise<any> => {
-    const response = await fetch(`${API_BASE_URL}/api/tenant/contact-manager`, {
-      method: 'POST',
-      headers: getAuthHeaders(), // Use getAuthHeaders for tenant contact manager
-      body: JSON.stringify(data),
-    });
-    return handleResponse<any>(response);
-  },
-}; 
-
-// Managers API
-export const managersApi = {
-  // Get all managers
-  getAll: async (): Promise<any> => {
-    const response = await fetch(`${API_BASE_URL}/api/managers`, {
+    const response = await fetch(`${API_BASE_URL}/api/properties?${params}`, {
       headers: getAuthHeaders(),
     });
-    return handleResponse<any>(response);
+    return handleResponse(response);
   },
 
-  // Get manager by ID
-  getById: async (id: string): Promise<any> => {
-    const response = await fetch(`${API_BASE_URL}/api/managers/${id}`, {
+  getById: async (id: string) => {
+    const response = await fetch(`${API_BASE_URL}/api/properties/${id}`, {
       headers: getAuthHeaders(),
     });
-    return handleResponse<any>(response);
+    return handleResponse(response);
   },
 
-  // Create new manager
-  create: async (data: any): Promise<any> => {
-    const response = await fetch(`${API_BASE_URL}/api/managers`, {
+  create: async (data: any) => {
+    const response = await fetch(`${API_BASE_URL}/api/properties`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
     });
-    return handleResponse<any>(response);
+    return handleResponse(response);
   },
 
-  // Update manager
-  update: async (id: string, data: any): Promise<any> => {
-    const response = await fetch(`${API_BASE_URL}/api/managers/${id}`, {
+  update: async (id: string, data: any) => {
+    const response = await fetch(`${API_BASE_URL}/api/properties/${id}`, {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
     });
-    return handleResponse<any>(response);
+    return handleResponse(response);
   },
 
-  // Delete manager
-  delete: async (id: string): Promise<any> => {
-    const response = await fetch(`${API_BASE_URL}/api/managers/${id}`, {
+  delete: async (id: string) => {
+    const response = await fetch(`${API_BASE_URL}/api/properties/${id}`, {
       method: 'DELETE',
       headers: getAuthHeaders(),
     });
-    return handleResponse<any>(response);
+    return handleResponse(response);
   },
 
-  // Assign properties to manager
-  assignProperties: async (id: string, propertyIds: string[]): Promise<any> => {
-    const response = await fetch(`${API_BASE_URL}/api/managers/${id}/assign-properties`, {
+  uploadImage: async (propertyId: string, file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const response = await fetch(`${API_BASE_URL}/api/upload/image`, {
+      method: 'POST',
+      headers: {
+        ...getAuthHeaders(),
+        // Remove Content-Type to let browser set it for FormData
+      },
+      body: formData,
+    });
+    return handleResponse(response);
+  },
+
+  export: async () => {
+    const response = await fetch(`${API_BASE_URL}/api/export/properties`, {
+      headers: getAuthHeaders(),
+    });
+    return response.blob();
+  },
+
+  bulkDelete: async (ids: string[]) => {
+    const response = await fetch(`${API_BASE_URL}/api/bulk/delete-properties`, {
       method: 'POST',
       headers: getAuthHeaders(),
-      body: JSON.stringify({ propertyIds }),
+      body: JSON.stringify({ ids }),
     });
-    return handleResponse<any>(response);
+    return handleResponse(response);
   },
 
-  // Get manager performance
-  getPerformance: async (id: string): Promise<any> => {
-    const response = await fetch(`${API_BASE_URL}/api/managers/${id}/performance`, {
+  // Additional methods referenced in components
+  getInsights: async () => {
+    const response = await fetch(`${API_BASE_URL}/api/properties/insights`, {
       headers: getAuthHeaders(),
     });
-    return handleResponse<any>(response);
+    return handleResponse(response);
   },
-}; 
 
-// Payments API
+  bulkArchive: async (ids: string[]) => {
+    const response = await fetch(`${API_BASE_URL}/api/properties/bulk-archive`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ ids }),
+    });
+    return handleResponse(response);
+  },
+
+  bulkExport: async (ids: string[], format: string) => {
+    const response = await fetch(`${API_BASE_URL}/api/properties/bulk-export`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ ids, format }),
+    });
+    return handleResponse(response);
+  },
+
+  getIncomeAnalytics: async (months: number) => {
+    const response = await fetch(`${API_BASE_URL}/api/properties/income-analytics?months=${months}`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  exportIncomeData: async (format: string, months: number) => {
+    const response = await fetch(`${API_BASE_URL}/api/properties/export-income?format=${format}&months=${months}`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+};
+
+// Unit Management API
+export const unitsApi = {
+  getAll: async (filters?: any) => {
+    const params = new URLSearchParams();
+    if (filters?.propertyId) params.append('propertyId', filters.propertyId);
+    if (filters?.search) params.append('search', filters.search);
+    
+    const response = await fetch(`${API_BASE_URL}/api/units?${params}`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  getById: async (id: string) => {
+    const response = await fetch(`${API_BASE_URL}/api/units/${id}`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  create: async (data: any) => {
+    const response = await fetch(`${API_BASE_URL}/api/units`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+  },
+
+  update: async (id: string, data: any) => {
+    const response = await fetch(`${API_BASE_URL}/api/units/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+  },
+
+  delete: async (id: string) => {
+    const response = await fetch(`${API_BASE_URL}/api/units/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  assignTenant: async (unitId: string, tenantId: string) => {
+    const response = await fetch(`${API_BASE_URL}/api/units/${unitId}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ tenantId }),
+    });
+    return handleResponse(response);
+  },
+
+  removeTenant: async (unitId: string) => {
+    const response = await fetch(`${API_BASE_URL}/api/units/${unitId}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ tenantId: null }),
+    });
+    return handleResponse(response);
+  },
+};
+
+// Tenant Management API
+export const tenantsApi = {
+  getAll: async (filters?: any) => {
+    const params = new URLSearchParams();
+    if (filters?.search) params.append('search', filters.search);
+    if (filters?.status) params.append('status', filters.status);
+    
+    const response = await fetch(`${API_BASE_URL}/api/tenants?${params}`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  getById: async (id: string) => {
+    const response = await fetch(`${API_BASE_URL}/api/tenants/${id}`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  create: async (data: any) => {
+    const response = await fetch(`${API_BASE_URL}/api/tenants`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+  },
+
+  update: async (id: string, data: any) => {
+    const response = await fetch(`${API_BASE_URL}/api/tenants/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+  },
+
+  delete: async (id: string) => {
+    const response = await fetch(`${API_BASE_URL}/api/tenants/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  getPayments: async (tenantId: string) => {
+    const response = await fetch(`${API_BASE_URL}/api/tenants/${tenantId}/payments`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  getMaintenance: async (tenantId: string) => {
+    const response = await fetch(`${API_BASE_URL}/api/tenants/${tenantId}/maintenance`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+};
+
+// Payment Management API
 export const paymentsApi = {
-  // Create payment intent
-  createPaymentIntent: async (data: any): Promise<any> => {
+  getAll: async (filters?: any) => {
+    const params = new URLSearchParams();
+    if (filters?.status) params.append('status', filters.status);
+    if (filters?.unitId) params.append('unitId', filters.unitId);
+    if (filters?.tenantId) params.append('tenantId', filters.tenantId);
+    if (filters?.dateFrom) params.append('dateFrom', filters.dateFrom);
+    if (filters?.dateTo) params.append('dateTo', filters.dateTo);
+    
+    const response = await fetch(`${API_BASE_URL}/api/payments?${params}`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  getById: async (id: string) => {
+    const response = await fetch(`${API_BASE_URL}/api/payments/${id}`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  create: async (data: any) => {
+    const response = await fetch(`${API_BASE_URL}/api/payments`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+  },
+
+  update: async (id: string, data: any) => {
+    const response = await fetch(`${API_BASE_URL}/api/payments/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+  },
+
+  delete: async (id: string) => {
+    const response = await fetch(`${API_BASE_URL}/api/payments/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  markPaid: async (id: string) => {
+    const response = await fetch(`${API_BASE_URL}/api/payments/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ status: 'PAID', paymentDate: new Date().toISOString() }),
+    });
+    return handleResponse(response);
+  },
+
+  generateRecurring: async (data: any) => {
+    const response = await fetch(`${API_BASE_URL}/api/payments/generate-recurring`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+  },
+
+  getSummary: async () => {
+    const response = await fetch(`${API_BASE_URL}/api/payments/summary`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  // Additional methods referenced in components
+  createPaymentIntent: async (data: any) => {
     const response = await fetch(`${API_BASE_URL}/api/payments/create-payment-intent`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
     });
-    return handleResponse<any>(response);
+    return handleResponse(response);
   },
 
-  // Process payment
-  processPayment: async (data: any): Promise<any> => {
+  processPayment: async (data: any) => {
     const response = await fetch(`${API_BASE_URL}/api/payments/process-payment`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
     });
-    return handleResponse<any>(response);
+    return handleResponse(response);
   },
+};
 
-  // Get payment history
-  getPaymentHistory: async (): Promise<any> => {
-    const response = await fetch(`${API_BASE_URL}/api/payments/history`, {
+// Tenant API (alias for tenantsApi for backward compatibility)
+export const tenantApi = {
+  getAll: async (filters?: any) => {
+    const params = new URLSearchParams();
+    if (filters?.search) params.append('search', filters.search);
+    if (filters?.status) params.append('status', filters.status);
+    
+    const response = await fetch(`${API_BASE_URL}/api/tenants?${params}`, {
       headers: getAuthHeaders(),
     });
-    return handleResponse<any>(response);
+    return handleResponse(response);
   },
 
-  // Get payment analytics
-  getPaymentAnalytics: async (): Promise<any> => {
-    const response = await fetch(`${API_BASE_URL}/api/payments/analytics`, {
+  getById: async (id: string) => {
+    const response = await fetch(`${API_BASE_URL}/api/tenants/${id}`, {
       headers: getAuthHeaders(),
     });
-    return handleResponse<any>(response);
+    return handleResponse(response);
   },
 
-  // Get payment methods
-  getPaymentMethods: async (): Promise<any> => {
-    const response = await fetch(`${API_BASE_URL}/api/payments/payment-methods`, {
-      headers: getAuthHeaders(),
-    });
-    return handleResponse<any>(response);
-  },
-
-  // Save payment method
-  savePaymentMethod: async (data: any): Promise<any> => {
-    const response = await fetch(`${API_BASE_URL}/api/payments/payment-methods`, {
+  create: async (data: any) => {
+    const response = await fetch(`${API_BASE_URL}/api/tenants`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
     });
-    return handleResponse<any>(response);
+    return handleResponse(response);
   },
 
-  // Delete payment method
-  deletePaymentMethod: async (id: string): Promise<any> => {
-    const response = await fetch(`${API_BASE_URL}/api/payments/payment-methods/${id}`, {
+  update: async (id: string, data: any) => {
+    const response = await fetch(`${API_BASE_URL}/api/tenants/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+  },
+
+  delete: async (id: string) => {
+    const response = await fetch(`${API_BASE_URL}/api/tenants/${id}`, {
       method: 'DELETE',
       headers: getAuthHeaders(),
     });
-    return handleResponse<any>(response);
+    return handleResponse(response);
   },
 
-  // Generate receipt
-  generateReceipt: async (paymentId: string): Promise<any> => {
-    const response = await fetch(`${API_BASE_URL}/api/payments/receipts/${paymentId}`, {
+  getPayments: async (tenantId?: string) => {
+    const response = await fetch(`${API_BASE_URL}/api/tenants/${tenantId || 'me'}/payments`, {
       headers: getAuthHeaders(),
     });
-    return handleResponse<any>(response);
+    return handleResponse(response);
+  },
+
+  getMaintenance: async (tenantId: string) => {
+    const response = await fetch(`${API_BASE_URL}/api/tenants/${tenantId}/maintenance`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  // Tenant-specific login
+  login: async (email: string, password: string) => {
+    const response = await fetch(`${API_BASE_URL}/api/auth/tenant-login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Accept-Encoding': 'identity',
+      },
+      body: JSON.stringify({ email, password }),
+    });
+    return handleResponse(response);
+  },
+
+  getProfile: async () => {
+    const response = await fetch(`${API_BASE_URL}/api/tenants/profile`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  // Additional methods referenced in components
+  makePayment: async (paymentData: any) => {
+    const response = await fetch(`${API_BASE_URL}/api/tenants/payments`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(paymentData),
+    });
+    return handleResponse(response);
+  },
+
+  getDocuments: async () => {
+    const response = await fetch(`${API_BASE_URL}/api/tenants/documents`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  uploadDocuments: async (files: File[]) => {
+    const formData = new FormData();
+    files.forEach(file => formData.append('files', file));
+    
+    const response = await fetch(`${API_BASE_URL}/api/tenants/documents/upload`, {
+      method: 'POST',
+      headers: {
+        ...getAuthHeaders(),
+        // Remove Content-Type to let browser set it for FormData
+      },
+      body: formData,
+    });
+    return handleResponse(response);
+  },
+
+  submitMaintenanceRequest: async (data: FormData) => {
+    const response = await fetch(`${API_BASE_URL}/api/tenants/maintenance`, {
+      method: 'POST',
+      headers: {
+        ...getAuthHeaders(),
+        // Remove Content-Type to let browser set it for FormData
+      },
+      body: data,
+    });
+    return handleResponse(response);
+  },
+
+  getDashboard: async () => {
+    const response = await fetch(`${API_BASE_URL}/api/tenants/dashboard`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+};
+
+// Maintenance Management API
+export const maintenanceApi = {
+  getAll: async (filters?: any) => {
+    const params = new URLSearchParams();
+    if (filters?.status) params.append('status', filters.status);
+    if (filters?.priority) params.append('priority', filters.priority);
+    if (filters?.unitId) params.append('unitId', filters.unitId);
+    if (filters?.tenantId) params.append('tenantId', filters.tenantId);
+    
+    const response = await fetch(`${API_BASE_URL}/api/maintenance?${params}`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  getById: async (id: string) => {
+    const response = await fetch(`${API_BASE_URL}/api/maintenance/${id}`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  create: async (data: any) => {
+    const response = await fetch(`${API_BASE_URL}/api/maintenance`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+  },
+
+  update: async (id: string, data: any) => {
+    const response = await fetch(`${API_BASE_URL}/api/maintenance/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+  },
+
+  delete: async (id: string) => {
+    const response = await fetch(`${API_BASE_URL}/api/maintenance/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  updateStatus: async (id: string, status: string) => {
+    const response = await fetch(`${API_BASE_URL}/api/maintenance/${id}/status`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ status }),
+    });
+    return handleResponse(response);
+  },
+
+  addComment: async (id: string, comment: string) => {
+    const response = await fetch(`${API_BASE_URL}/api/maintenance/${id}/comments`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ content: comment }),
+    });
+    return handleResponse(response);
+  },
+
+  getComments: async (id: string) => {
+    const response = await fetch(`${API_BASE_URL}/api/maintenance/${id}/comments`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  getSummary: async () => {
+    const response = await fetch(`${API_BASE_URL}/api/maintenance/summary`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+};
+
+// Manager Management API
+export const managersApi = {
+  getAll: async () => {
+    const response = await fetch(`${API_BASE_URL}/api/managers`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  getById: async (id: string) => {
+    const response = await fetch(`${API_BASE_URL}/api/managers/${id}`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  create: async (data: any) => {
+    const response = await fetch(`${API_BASE_URL}/api/managers`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+  },
+
+  update: async (id: string, data: any) => {
+    const response = await fetch(`${API_BASE_URL}/api/managers/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+  },
+
+  delete: async (id: string) => {
+    const response = await fetch(`${API_BASE_URL}/api/managers/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  assignProperty: async (managerId: string, propertyId: string) => {
+    const response = await fetch(`${API_BASE_URL}/api/managers/${managerId}/properties`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ propertyId }),
+    });
+    return handleResponse(response);
+  },
+
+  unassignProperty: async (managerId: string, propertyId: string) => {
+    const response = await fetch(`${API_BASE_URL}/api/managers/${managerId}/properties/${propertyId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  getPerformance: async (managerId: string) => {
+    const response = await fetch(`${API_BASE_URL}/api/managers/${managerId}/performance`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+};
+
+// Analytics API
+export const analyticsApi = {
+  getOverview: async () => {
+    const response = await fetch(`${API_BASE_URL}/api/analytics/overview`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  getMetrics: async () => {
+    const response = await fetch(`${API_BASE_URL}/api/dashboard`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  getRevenue: async (filters?: any) => {
+    const params = new URLSearchParams();
+    if (filters?.dateFrom) params.append('dateFrom', filters.dateFrom);
+    if (filters?.dateTo) params.append('dateTo', filters.dateTo);
+    
+    const response = await fetch(`${API_BASE_URL}/api/analytics/revenue?${params}`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  getOccupancy: async () => {
+    const response = await fetch(`${API_BASE_URL}/api/analytics/occupancy`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  getMaintenance: async () => {
+    const response = await fetch(`${API_BASE_URL}/api/analytics/maintenance`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+};
+
+// File Upload API
+export const uploadApi = {
+  uploadImage: async (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const response = await fetch(`${API_BASE_URL}/api/upload/image`, {
+      method: 'POST',
+      headers: {
+        ...getAuthHeaders(),
+        // Remove Content-Type to let browser set it for FormData
+      },
+      body: formData,
+    });
+    return handleResponse(response);
+  },
+
+  uploadDocument: async (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const response = await fetch(`${API_BASE_URL}/api/upload/document`, {
+      method: 'POST',
+      headers: {
+        ...getAuthHeaders(),
+        // Remove Content-Type to let browser set it for FormData
+      },
+      body: formData,
+    });
+    return handleResponse(response);
+  },
+};
+
+// Search API
+export const searchApi = {
+  search: async (query: string, type: string = 'all') => {
+    const params = new URLSearchParams();
+    params.append('q', query);
+    params.append('type', type);
+    
+    const response = await fetch(`${API_BASE_URL}/api/search?${params}`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+};
+
+// Notifications API
+export const notificationsApi = {
+  getAll: async () => {
+    const response = await fetch(`${API_BASE_URL}/api/notifications`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  markRead: async (id: string) => {
+    const response = await fetch(`${API_BASE_URL}/api/notifications/${id}/read`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  markAllRead: async () => {
+    const response = await fetch(`${API_BASE_URL}/api/notifications/mark-all-read`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+};
+
+// Settings API
+export const settingsApi = {
+  get: async () => {
+    const response = await fetch(`${API_BASE_URL}/api/settings`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  update: async (data: any) => {
+    const response = await fetch(`${API_BASE_URL}/api/settings`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+  },
+};
+
+// Reports API
+export const reportsApi = {
+  getRentRoll: async (filters?: any) => {
+    const params = new URLSearchParams();
+    if (filters?.propertyId) params.append('propertyId', filters.propertyId);
+    if (filters?.dateFrom) params.append('dateFrom', filters.dateFrom);
+    if (filters?.dateTo) params.append('dateTo', filters.dateTo);
+    
+    const response = await fetch(`${API_BASE_URL}/api/reports/rent-roll?${params}`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  getPaymentHistory: async (filters?: any) => {
+    const params = new URLSearchParams();
+    if (filters?.tenantId) params.append('tenantId', filters.tenantId);
+    if (filters?.dateFrom) params.append('dateFrom', filters.dateFrom);
+    if (filters?.dateTo) params.append('dateTo', filters.dateTo);
+    
+    const response = await fetch(`${API_BASE_URL}/api/reports/payment-history?${params}`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  getMaintenanceLog: async (filters?: any) => {
+    const params = new URLSearchParams();
+    if (filters?.propertyId) params.append('propertyId', filters.propertyId);
+    if (filters?.status) params.append('status', filters.status);
+    if (filters?.dateFrom) params.append('dateFrom', filters.dateFrom);
+    if (filters?.dateTo) params.append('dateTo', filters.dateTo);
+    
+    const response = await fetch(`${API_BASE_URL}/api/reports/maintenance-log?${params}`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  getFinancialSummary: async (filters?: any) => {
+    const params = new URLSearchParams();
+    if (filters?.dateFrom) params.append('dateFrom', filters.dateFrom);
+    if (filters?.dateTo) params.append('dateTo', filters.dateTo);
+    
+    const response = await fetch(`${API_BASE_URL}/api/reports/financial-summary?${params}`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  getVacancy: async () => {
+    const response = await fetch(`${API_BASE_URL}/api/reports/vacancy`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  getLeaseExpiration: async (filters?: any) => {
+    const params = new URLSearchParams();
+    if (filters?.months) params.append('months', filters.months.toString());
+    
+    const response = await fetch(`${API_BASE_URL}/api/reports/lease-expiration?${params}`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
   },
 }; 

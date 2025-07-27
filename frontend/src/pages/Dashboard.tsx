@@ -57,6 +57,14 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 // Charts
 import { 
@@ -258,9 +266,9 @@ export function Dashboard() {
 
   // Memoized calculations
   const metrics = useMemo(() => {
-    if (!dashboardData?.data) return null;
+    if (!dashboardData) return null;
 
-    const data = dashboardData.data;
+    const data = dashboardData.data || dashboardData;
     const occupancyRate = data.totalUnits > 0 ? (data.occupiedUnits / data.totalUnits) * 100 : 0;
     const collectionRate = data.monthlyRevenue > 0 ? (data.collectedThisMonth / data.monthlyRevenue) * 100 : 0;
     const urgentRate = data.maintenanceRequests > 0 ? (data.urgentRequests / data.maintenanceRequests) * 100 : 0;
@@ -353,10 +361,38 @@ export function Dashboard() {
             <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
-          <Button size="sm" className="btn-ormi">
-            <Plus className="h-4 w-4 mr-2" />
-            Quick Add
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="sm" className="btn-ormi">
+                <Plus className="h-4 w-4 mr-2" />
+                Quick Add
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuLabel>Quick Actions</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => window.location.href = '/properties?action=add'}>
+                <Building2 className="h-4 w-4 mr-2" />
+                Add Property
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => window.location.href = '/units?action=add'}>
+                <Home className="h-4 w-4 mr-2" />
+                Add Unit
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => window.location.href = '/tenants?action=add'}>
+                <Users className="h-4 w-4 mr-2" />
+                Add Tenant
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => window.location.href = '/payments?action=add'}>
+                <CreditCard className="h-4 w-4 mr-2" />
+                Record Payment
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => window.location.href = '/maintenance?action=add'}>
+                <Wrench className="h-4 w-4 mr-2" />
+                Maintenance Request
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </motion.div>
 
@@ -697,19 +733,35 @@ export function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <Button variant="outline" className="h-20 flex-col gap-2">
+              <Button 
+                variant="outline" 
+                className="h-20 flex-col gap-2"
+                onClick={() => window.location.href = '/properties?action=add'}
+              >
                 <Building2 className="h-6 w-6" />
                 <span className="text-sm">Add Property</span>
               </Button>
-              <Button variant="outline" className="h-20 flex-col gap-2">
+              <Button 
+                variant="outline" 
+                className="h-20 flex-col gap-2"
+                onClick={() => window.location.href = '/tenants?action=add'}
+              >
                 <Users className="h-6 w-6" />
                 <span className="text-sm">Add Tenant</span>
               </Button>
-              <Button variant="outline" className="h-20 flex-col gap-2">
+              <Button 
+                variant="outline" 
+                className="h-20 flex-col gap-2"
+                onClick={() => window.location.href = '/payments?action=add'}
+              >
                 <CreditCard className="h-6 w-6" />
                 <span className="text-sm">Record Payment</span>
               </Button>
-              <Button variant="outline" className="h-20 flex-col gap-2">
+              <Button 
+                variant="outline" 
+                className="h-20 flex-col gap-2"
+                onClick={() => window.location.href = '/maintenance?action=add'}
+              >
                 <Wrench className="h-6 w-6" />
                 <span className="text-sm">Maintenance</span>
               </Button>

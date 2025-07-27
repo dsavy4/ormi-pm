@@ -1,0 +1,763 @@
+import React, { useState } from 'react';
+import { motion } from 'framer-motion';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  CreditCard,
+  DollarSign,
+  Calendar,
+  TrendingUp,
+  TrendingDown,
+  CheckCircle,
+  XCircle,
+  Clock,
+  AlertTriangle,
+  Filter,
+  Search,
+  Download,
+  Upload,
+  Plus,
+  Edit,
+  Trash2,
+  Eye,
+  MoreHorizontal,
+  ChevronDown,
+  ChevronUp,
+  ArrowRight,
+  ArrowLeft,
+  RefreshCw,
+  BarChart3,
+  PieChart,
+  Activity,
+  Target,
+  Flag,
+  Shield,
+  Lock,
+  Unlock,
+  Key,
+  Home,
+  Building2,
+  Warehouse,
+  Factory,
+  Store,
+  Building,
+  School,
+  Church,
+  Car,
+  Truck,
+  Bike,
+  Plane,
+  Ship,
+  Train,
+  Bus,
+  Rocket,
+  Satellite,
+  Wifi,
+  Bluetooth,
+  Radio,
+  Tv,
+  Monitor,
+  Smartphone,
+  Tablet,
+  Laptop,
+  Server,
+  Database,
+  Cloud,
+  HardDrive,
+  Usb,
+  Cable,
+  Power,
+  Battery,
+  Wind,
+  Sun,
+  Moon,
+  Star as StarIcon,
+  Heart,
+  ThumbsUp,
+  ThumbsDown,
+  Smile,
+  Frown,
+  Meh,
+  X,
+  Building as Bank
+} from 'lucide-react';
+
+// UI Components
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { Separator } from '@/components/ui/separator';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Skeleton } from '@/components/ui/skeleton';
+
+// Payment Components
+import PaymentProcessor from '@/components/payments/PaymentProcessor';
+
+// API
+import { paymentsApi } from '@/lib/api';
+
+interface Payment {
+  id: string;
+  amount: number;
+  currency: string;
+  status: 'PENDING' | 'PAID' | 'FAILED' | 'CANCELLED';
+  createdAt: string;
+  paidAt?: string;
+  isScheduled: boolean;
+  scheduledDate?: string;
+  isRecurring: boolean;
+  recurringInterval?: string;
+  paymentMethodType: 'card' | 'ach';
+  property: {
+    id: string;
+    name: string;
+    address: string;
+  };
+  unit: {
+    id: string;
+    unitNumber: string;
+  };
+  stripeDetails?: any;
+}
+
+interface PaymentAnalytics {
+  totalPayments: number;
+  totalAmount: number;
+  paidPayments: number;
+  pendingPayments: number;
+  failedPayments: number;
+  successRate: number;
+  averagePayment: number;
+  monthlyData: Array<{
+    month: string;
+    amount: number;
+    count: number;
+  }>;
+}
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1
+    }
+  }
+};
+
+const itemVariants = {
+  hidden: { y: 20, opacity: 0 },
+  visible: {
+    y: 0,
+    opacity: 1,
+    transition: {
+      duration: 0.5
+    }
+  }
+};
+
+export function Payments() {
+  const queryClient = useQueryClient();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [filterProperty, setFilterProperty] = useState('all');
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
+  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [showReceiptDialog, setShowReceiptDialog] = useState(false);
+  const [receiptData, setReceiptData] = useState<any>(null);
+
+  // Fetch payment history
+  const { 
+    data: paymentsData, 
+    isLoading: paymentsLoading, 
+    error: paymentsError,
+    refetch: refetchPayments
+  } = useQuery({
+    queryKey: ['payments'],
+    queryFn: () => paymentsApi.getPaymentHistory(),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Fetch payment analytics
+  const { 
+    data: analyticsData, 
+    isLoading: analyticsLoading 
+  } = useQuery({
+    queryKey: ['payment-analytics'],
+    queryFn: () => paymentsApi.getPaymentAnalytics(),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const payments = paymentsData?.data || [];
+  const analytics: PaymentAnalytics = analyticsData?.data || {
+    totalPayments: 0,
+    totalAmount: 0,
+    paidPayments: 0,
+    pendingPayments: 0,
+    failedPayments: 0,
+    successRate: 0,
+    averagePayment: 0,
+    monthlyData: [],
+  };
+
+  // Filter payments
+  const filteredPayments = payments.filter((payment: Payment) => {
+    const matchesSearch = 
+      payment.property.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      payment.unit.unitNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      payment.id.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesStatus = filterStatus === 'all' || payment.status.toLowerCase() === filterStatus.toLowerCase();
+    const matchesProperty = filterProperty === 'all' || payment.property.id === filterProperty;
+    
+    return matchesSearch && matchesStatus && matchesProperty;
+  });
+
+  // Generate receipt
+  const generateReceiptMutation = useMutation({
+    mutationFn: (paymentId: string) => paymentsApi.generateReceipt(paymentId),
+    onSuccess: (data) => {
+      setReceiptData(data.data);
+      setShowReceiptDialog(true);
+    },
+  });
+
+  const handleGenerateReceipt = (payment: Payment) => {
+    generateReceiptMutation.mutate(payment.id);
+  };
+
+  const handlePaymentSuccess = (payment: any) => {
+    setShowPaymentDialog(false);
+    refetchPayments();
+    queryClient.invalidateQueries({ queryKey: ['payment-analytics'] });
+  };
+
+  const handlePaymentError = (error: string) => {
+    console.error('Payment error:', error);
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'PAID':
+        return <Badge variant="default" className="bg-green-100 text-green-800"><CheckCircle className="h-3 w-3 mr-1" />Paid</Badge>;
+      case 'PENDING':
+        return <Badge variant="secondary"><Clock className="h-3 w-3 mr-1" />Pending</Badge>;
+      case 'FAILED':
+        return <Badge variant="destructive"><XCircle className="h-3 w-3 mr-1" />Failed</Badge>;
+      case 'CANCELLED':
+        return <Badge variant="outline"><XCircle className="h-3 w-3 mr-1" />Cancelled</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
+  };
+
+  const getPaymentMethodIcon = (type: string) => {
+    switch (type) {
+      case 'card':
+        return <CreditCard className="h-4 w-4" />;
+      case 'ach':
+        return <Building2 className="h-4 w-4" />;
+      default:
+        return <CreditCard className="h-4 w-4" />;
+    }
+  };
+
+  const formatCurrency = (amount: number, currency: string = 'USD') => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currency,
+    }).format(amount);
+  };
+
+  if (paymentsLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-8 w-64" />
+          <Skeleton className="h-10 w-32" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          {[1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} className="h-32" />
+          ))}
+        </div>
+        <div className="space-y-4">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <Skeleton key={i} className="h-16 w-full" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (paymentsError) {
+    return (
+      <div className="text-center py-12">
+        <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-red-500" />
+        <h3 className="text-lg font-semibold mb-2">Error Loading Payments</h3>
+        <p className="text-gray-500 mb-4">Unable to load payment data.</p>
+        <Button onClick={() => refetchPayments()}>Try Again</Button>
+      </div>
+    );
+  }
+
+  return (
+    <motion.div
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+      className="space-y-6"
+    >
+      {/* Header */}
+      <motion.div variants={itemVariants} className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Payment Management</h1>
+            <Badge variant="outline" className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20">
+              <DollarSign className="h-3 w-3 mr-1" />
+              {analytics.totalPayments} Payments
+            </Badge>
+          </div>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            Manage rent payments, track payment history, and process new payments
+          </p>
+        </div>
+        <div className="mt-4 sm:mt-0 flex items-center space-x-3">
+          <Select value={viewMode} onValueChange={(value: 'grid' | 'table') => setViewMode(value)}>
+            <SelectTrigger className="w-32">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="table">Table View</SelectItem>
+              <SelectItem value="grid">Grid View</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button variant="outline" size="sm" onClick={() => refetchPayments()}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
+          <Button size="sm" className="btn-ormi" onClick={() => setShowPaymentDialog(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Make Payment
+          </Button>
+        </div>
+      </motion.div>
+
+      {/* Analytics Cards */}
+      <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card className="card-hover">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Payments</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{analytics.totalPayments}</div>
+            <p className="text-xs text-muted-foreground">
+              {formatCurrency(analytics.totalAmount)}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="card-hover">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Success Rate</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{analytics.successRate.toFixed(1)}%</div>
+            <p className="text-xs text-muted-foreground">
+              {analytics.paidPayments} successful payments
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="card-hover">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Average Payment</CardTitle>
+            <BarChart3 className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrency(analytics.averagePayment)}</div>
+            <p className="text-xs text-muted-foreground">
+              Per payment
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="card-hover">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pending Payments</CardTitle>
+            <Clock className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{analytics.pendingPayments}</div>
+            <p className="text-xs text-muted-foreground">
+              Awaiting processing
+            </p>
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      {/* Filters */}
+      <motion.div variants={itemVariants}>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Search</label>
+                <Input
+                  placeholder="Search payments..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Status</label>
+                <Select value={filterStatus} onValueChange={setFilterStatus}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="paid">Paid</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="failed">Failed</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Property</label>
+                <Select value={filterProperty} onValueChange={setFilterProperty}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Properties</SelectItem>
+                    {Array.from(new Set(payments.map((p: Payment) => p.property.id))).map((propertyId) => {
+                      const payment = payments.find((p: Payment) => p.property.id === propertyId);
+                      return (
+                        <SelectItem key={propertyId} value={propertyId}>
+                          {payment?.property.name}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">&nbsp;</label>
+                <div className="text-sm text-gray-500">
+                  {filteredPayments.length} of {payments.length} payments
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      {/* Payments Table */}
+      <motion.div variants={itemVariants}>
+        <Card>
+          <CardHeader>
+            <CardTitle>Payment History</CardTitle>
+            <CardDescription>
+              View and manage your payment history
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {filteredPayments.length === 0 ? (
+              <div className="text-center py-12 text-gray-500">
+                <CreditCard className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                <p>No payments found</p>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Payment</TableHead>
+                    <TableHead>Property</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Method</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredPayments.map((payment: Payment) => (
+                    <TableRow key={payment.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded flex items-center justify-center">
+                            <DollarSign className="h-4 w-4 text-blue-600" />
+                          </div>
+                          <div>
+                            <div className="font-medium">#{payment.id.slice(-8)}</div>
+                            <div className="text-sm text-gray-500">
+                              {payment.isScheduled ? 'Scheduled' : 'One-time'}
+                            </div>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div>
+                          <div className="font-medium">{payment.property.name}</div>
+                          <div className="text-sm text-gray-500">Unit {payment.unit.unitNumber}</div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="font-medium">
+                          {formatCurrency(payment.amount, payment.currency)}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {getStatusBadge(payment.status)}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          {getPaymentMethodIcon(payment.paymentMethodType)}
+                          <span className="text-sm capitalize">
+                            {payment.paymentMethodType}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm">
+                          <div>{new Date(payment.createdAt).toLocaleDateString()}</div>
+                          {payment.paidAt && (
+                            <div className="text-gray-500">
+                              Paid: {new Date(payment.paidAt).toLocaleDateString()}
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={() => setSelectedPayment(payment)}>
+                              <Eye className="mr-2 h-4 w-4" />
+                              View Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleGenerateReceipt(payment)}>
+                              <Receipt className="mr-2 h-4 w-4" />
+                              Generate Receipt
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            {payment.status === 'PENDING' && (
+                              <DropdownMenuItem>
+                                <Edit className="mr-2 h-4 w-4" />
+                                Edit Payment
+                              </DropdownMenuItem>
+                            )}
+                            {payment.status === 'PENDING' && (
+                              <DropdownMenuItem className="text-red-600">
+                                <XCircle className="mr-2 h-4 w-4" />
+                                Cancel Payment
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      {/* Payment Dialog */}
+      <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Make a Payment</DialogTitle>
+            <DialogDescription>
+              Process a new rent payment using your preferred payment method
+            </DialogDescription>
+          </DialogHeader>
+          <PaymentProcessor
+            amount={1000} // Default amount, would come from property/unit
+            propertyId="property-1"
+            unitId="unit-1"
+            onSuccess={handlePaymentSuccess}
+            onError={handlePaymentError}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Payment Details Dialog */}
+      <Dialog open={!!selectedPayment} onOpenChange={() => setSelectedPayment(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Payment Details</DialogTitle>
+          </DialogHeader>
+          {selectedPayment && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Payment ID</label>
+                  <p className="font-medium">#{selectedPayment.id.slice(-8)}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Amount</label>
+                  <p className="font-medium">{formatCurrency(selectedPayment.amount, selectedPayment.currency)}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Status</label>
+                  <div className="mt-1">{getStatusBadge(selectedPayment.status)}</div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Payment Method</label>
+                  <div className="flex items-center gap-2 mt-1">
+                    {getPaymentMethodIcon(selectedPayment.paymentMethodType)}
+                    <span className="capitalize">{selectedPayment.paymentMethodType}</span>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Property</label>
+                  <p className="font-medium">{selectedPayment.property.name}</p>
+                  <p className="text-sm text-gray-500">Unit {selectedPayment.unit.unitNumber}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Created</label>
+                  <p className="font-medium">{new Date(selectedPayment.createdAt).toLocaleDateString()}</p>
+                </div>
+              </div>
+              {selectedPayment.paidAt && (
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Paid At</label>
+                  <p className="font-medium">{new Date(selectedPayment.paidAt).toLocaleDateString()}</p>
+                </div>
+              )}
+              <Separator />
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => handleGenerateReceipt(selectedPayment)}
+                >
+                  <Receipt className="h-4 w-4 mr-2" />
+                  Generate Receipt
+                </Button>
+                <Button
+                  className="flex-1"
+                  onClick={() => setShowPaymentDialog(true)}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Make Similar Payment
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Receipt Dialog */}
+      <Dialog open={showReceiptDialog} onOpenChange={setShowReceiptDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Payment Receipt</DialogTitle>
+          </DialogHeader>
+          {receiptData && (
+            <div className="space-y-4">
+              <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+                <div className="text-center mb-4">
+                  <h3 className="text-lg font-bold">ORMI Property Management</h3>
+                  <p className="text-sm text-gray-500">Payment Receipt</p>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-500">Receipt #:</span>
+                    <span className="font-medium">{receiptData.receiptNumber}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-500">Amount:</span>
+                    <span className="font-medium">{formatCurrency(receiptData.amount, receiptData.currency)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-500">Date:</span>
+                    <span className="font-medium">{new Date(receiptData.date).toLocaleDateString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-500">Property:</span>
+                    <span className="font-medium">{receiptData.property?.name}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-500">Unit:</span>
+                    <span className="font-medium">{receiptData.unit?.unitNumber}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1">
+                  <Download className="h-4 w-4 mr-2" />
+                  Download PDF
+                </Button>
+                <Button className="flex-1">
+                  <Mail className="h-4 w-4 mr-2" />
+                  Email Receipt
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </motion.div>
+  );
+}
+
+export default Payments;
+
+export function Maintenance() {
+  return <div className="p-6"><h1 className="text-2xl font-bold">Maintenance</h1><p>Coming soon...</p></div>;
+}
+
+export function Reports() {
+  return <div className="p-6"><h1 className="text-2xl font-bold">Reports</h1><p>Coming soon...</p></div>;
+}
+
+export function Settings() {
+  return <div className="p-6"><h1 className="text-2xl font-bold">Settings</h1><p>Coming soon...</p></div>;
+} 

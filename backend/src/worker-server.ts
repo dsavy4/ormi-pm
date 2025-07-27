@@ -511,3 +511,859 @@ app.get('/api/payments', authMiddleware, async (c) => {
 
 // Export for Cloudflare Workers
 export default app; 
+
+// ===== COMPREHENSIVE API ENDPOINTS =====
+
+// 1. PROPERTY MANAGEMENT ENDPOINTS
+app.post('/api/properties', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== CREATE PROPERTY ENDPOINT CALLED =====');
+  try {
+    const user = c.get('user');
+    const body = await c.req.json();
+    
+    const supabase = getSupabaseClient(c.env);
+    
+    const { data: property, error } = await supabase
+      .from('properties')
+      .insert({
+        name: body.name,
+        address: body.address,
+        city: body.city,
+        state: body.state,
+        zipCode: body.zipCode,
+        description: body.description,
+        notes: body.notes,
+        ownerId: user.userId,
+        managerId: body.managerId || null,
+      })
+      .select()
+      .single();
+    
+    if (error) {
+      console.log('[DEBUG] Property creation error:', error);
+      return c.json({ error: 'Failed to create property', details: error.message }, 500);
+    }
+    
+    console.log('[DEBUG] ===== PROPERTY CREATED SUCCESSFULLY =====');
+    return c.json({ success: true, data: property });
+  } catch (error) {
+    console.error('[DEBUG] ===== PROPERTY CREATION ERROR =====');
+    console.error('[DEBUG] Error details:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+app.put('/api/properties/:id', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== UPDATE PROPERTY ENDPOINT CALLED =====');
+  try {
+    const propertyId = c.req.param('id');
+    const body = await c.req.json();
+    
+    const supabase = getSupabaseClient(c.env);
+    
+    const { data: property, error } = await supabase
+      .from('properties')
+      .update({
+        name: body.name,
+        address: body.address,
+        city: body.city,
+        state: body.state,
+        zipCode: body.zipCode,
+        description: body.description,
+        notes: body.notes,
+        managerId: body.managerId || null,
+        updatedAt: new Date().toISOString(),
+      })
+      .eq('id', propertyId)
+      .select()
+      .single();
+    
+    if (error) {
+      console.log('[DEBUG] Property update error:', error);
+      return c.json({ error: 'Failed to update property', details: error.message }, 500);
+    }
+    
+    console.log('[DEBUG] ===== PROPERTY UPDATED SUCCESSFULLY =====');
+    return c.json({ success: true, data: property });
+  } catch (error) {
+    console.error('[DEBUG] ===== PROPERTY UPDATE ERROR =====');
+    console.error('[DEBUG] Error details:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+app.delete('/api/properties/:id', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== DELETE PROPERTY ENDPOINT CALLED =====');
+  try {
+    const propertyId = c.req.param('id');
+    
+    const supabase = getSupabaseClient(c.env);
+    
+    const { error } = await supabase
+      .from('properties')
+      .delete()
+      .eq('id', propertyId);
+    
+    if (error) {
+      console.log('[DEBUG] Property deletion error:', error);
+      return c.json({ error: 'Failed to delete property', details: error.message }, 500);
+    }
+    
+    console.log('[DEBUG] ===== PROPERTY DELETED SUCCESSFULLY =====');
+    return c.json({ success: true, message: 'Property deleted successfully' });
+  } catch (error) {
+    console.error('[DEBUG] ===== PROPERTY DELETION ERROR =====');
+    console.error('[DEBUG] Error details:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+// 2. UNIT MANAGEMENT ENDPOINTS
+app.post('/api/units', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== CREATE UNIT ENDPOINT CALLED =====');
+  try {
+    const body = await c.req.json();
+    
+    const supabase = getSupabaseClient(c.env);
+    
+    const { data: unit, error } = await supabase
+      .from('units')
+      .insert({
+        unitNumber: body.unitNumber,
+        monthlyRent: body.monthlyRent,
+        securityDeposit: body.securityDeposit,
+        leaseStatus: body.leaseStatus || 'VACANT',
+        leaseStart: body.leaseStart || null,
+        leaseEnd: body.leaseEnd || null,
+        notes: body.notes,
+        propertyId: body.propertyId,
+        tenantId: body.tenantId || null,
+      })
+      .select()
+      .single();
+    
+    if (error) {
+      console.log('[DEBUG] Unit creation error:', error);
+      return c.json({ error: 'Failed to create unit', details: error.message }, 500);
+    }
+    
+    console.log('[DEBUG] ===== UNIT CREATED SUCCESSFULLY =====');
+    return c.json({ success: true, data: unit });
+  } catch (error) {
+    console.error('[DEBUG] ===== UNIT CREATION ERROR =====');
+    console.error('[DEBUG] Error details:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+app.put('/api/units/:id', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== UPDATE UNIT ENDPOINT CALLED =====');
+  try {
+    const unitId = c.req.param('id');
+    const body = await c.req.json();
+    
+    const supabase = getSupabaseClient(c.env);
+    
+    const { data: unit, error } = await supabase
+      .from('units')
+      .update({
+        unitNumber: body.unitNumber,
+        monthlyRent: body.monthlyRent,
+        securityDeposit: body.securityDeposit,
+        leaseStatus: body.leaseStatus,
+        leaseStart: body.leaseStart || null,
+        leaseEnd: body.leaseEnd || null,
+        notes: body.notes,
+        tenantId: body.tenantId || null,
+        updatedAt: new Date().toISOString(),
+      })
+      .eq('id', unitId)
+      .select()
+      .single();
+    
+    if (error) {
+      console.log('[DEBUG] Unit update error:', error);
+      return c.json({ error: 'Failed to update unit', details: error.message }, 500);
+    }
+    
+    console.log('[DEBUG] ===== UNIT UPDATED SUCCESSFULLY =====');
+    return c.json({ success: true, data: unit });
+  } catch (error) {
+    console.error('[DEBUG] ===== UNIT UPDATE ERROR =====');
+    console.error('[DEBUG] Error details:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+app.delete('/api/units/:id', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== DELETE UNIT ENDPOINT CALLED =====');
+  try {
+    const unitId = c.req.param('id');
+    
+    const supabase = getSupabaseClient(c.env);
+    
+    const { error } = await supabase
+      .from('units')
+      .delete()
+      .eq('id', unitId);
+    
+    if (error) {
+      console.log('[DEBUG] Unit deletion error:', error);
+      return c.json({ error: 'Failed to delete unit', details: error.message }, 500);
+    }
+    
+    console.log('[DEBUG] ===== UNIT DELETED SUCCESSFULLY =====');
+    return c.json({ success: true, message: 'Unit deleted successfully' });
+  } catch (error) {
+    console.error('[DEBUG] ===== UNIT DELETION ERROR =====');
+    console.error('[DEBUG] Error details:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+// 3. TENANT MANAGEMENT ENDPOINTS
+app.post('/api/tenants', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== CREATE TENANT ENDPOINT CALLED =====');
+  try {
+    const body = await c.req.json();
+    
+    const supabase = getSupabaseClient(c.env);
+    
+    const { data: tenant, error } = await supabase
+      .from('users')
+      .insert({
+        email: body.email,
+        firstName: body.firstName,
+        lastName: body.lastName,
+        phoneNumber: body.phoneNumber,
+        password: body.password || 'defaultpassword123', // In production, generate secure password
+        role: 'TENANT',
+        isActive: true,
+        emailVerified: false,
+      })
+      .select()
+      .single();
+    
+    if (error) {
+      console.log('[DEBUG] Tenant creation error:', error);
+      return c.json({ error: 'Failed to create tenant', details: error.message }, 500);
+    }
+    
+    console.log('[DEBUG] ===== TENANT CREATED SUCCESSFULLY =====');
+    return c.json({ success: true, data: tenant });
+  } catch (error) {
+    console.error('[DEBUG] ===== TENANT CREATION ERROR =====');
+    console.error('[DEBUG] Error details:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+app.put('/api/tenants/:id', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== UPDATE TENANT ENDPOINT CALLED =====');
+  try {
+    const tenantId = c.req.param('id');
+    const body = await c.req.json();
+    
+    const supabase = getSupabaseClient(c.env);
+    
+    const { data: tenant, error } = await supabase
+      .from('users')
+      .update({
+        email: body.email,
+        firstName: body.firstName,
+        lastName: body.lastName,
+        phoneNumber: body.phoneNumber,
+        updatedAt: new Date().toISOString(),
+      })
+      .eq('id', tenantId)
+      .select()
+      .single();
+    
+    if (error) {
+      console.log('[DEBUG] Tenant update error:', error);
+      return c.json({ error: 'Failed to update tenant', details: error.message }, 500);
+    }
+    
+    console.log('[DEBUG] ===== TENANT UPDATED SUCCESSFULLY =====');
+    return c.json({ success: true, data: tenant });
+  } catch (error) {
+    console.error('[DEBUG] ===== TENANT UPDATE ERROR =====');
+    console.error('[DEBUG] Error details:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+app.delete('/api/tenants/:id', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== DELETE TENANT ENDPOINT CALLED =====');
+  try {
+    const tenantId = c.req.param('id');
+    
+    const supabase = getSupabaseClient(c.env);
+    
+    const { error } = await supabase
+      .from('users')
+      .delete()
+      .eq('id', tenantId)
+      .eq('role', 'TENANT');
+    
+    if (error) {
+      console.log('[DEBUG] Tenant deletion error:', error);
+      return c.json({ error: 'Failed to delete tenant', details: error.message }, 500);
+    }
+    
+    console.log('[DEBUG] ===== TENANT DELETED SUCCESSFULLY =====');
+    return c.json({ success: true, message: 'Tenant deleted successfully' });
+  } catch (error) {
+    console.error('[DEBUG] ===== TENANT DELETION ERROR =====');
+    console.error('[DEBUG] Error details:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+// 4. PAYMENT MANAGEMENT ENDPOINTS
+app.post('/api/payments', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== CREATE PAYMENT ENDPOINT CALLED =====');
+  try {
+    const body = await c.req.json();
+    
+    const supabase = getSupabaseClient(c.env);
+    
+    const { data: payment, error } = await supabase
+      .from('payments')
+      .insert({
+        amount: body.amount,
+        paymentDate: body.paymentDate || new Date().toISOString(),
+        dueDate: body.dueDate,
+        status: body.status || 'PENDING',
+        method: body.method || 'MANUAL',
+        notes: body.notes,
+        unitId: body.unitId,
+        tenantId: body.tenantId,
+      })
+      .select()
+      .single();
+    
+    if (error) {
+      console.log('[DEBUG] Payment creation error:', error);
+      return c.json({ error: 'Failed to create payment', details: error.message }, 500);
+    }
+    
+    console.log('[DEBUG] ===== PAYMENT CREATED SUCCESSFULLY =====');
+    return c.json({ success: true, data: payment });
+  } catch (error) {
+    console.error('[DEBUG] ===== PAYMENT CREATION ERROR =====');
+    console.error('[DEBUG] Error details:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+app.put('/api/payments/:id', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== UPDATE PAYMENT ENDPOINT CALLED =====');
+  try {
+    const paymentId = c.req.param('id');
+    const body = await c.req.json();
+    
+    const supabase = getSupabaseClient(c.env);
+    
+    const { data: payment, error } = await supabase
+      .from('payments')
+      .update({
+        amount: body.amount,
+        paymentDate: body.paymentDate,
+        dueDate: body.dueDate,
+        status: body.status,
+        method: body.method,
+        notes: body.notes,
+        updatedAt: new Date().toISOString(),
+      })
+      .eq('id', paymentId)
+      .select()
+      .single();
+    
+    if (error) {
+      console.log('[DEBUG] Payment update error:', error);
+      return c.json({ error: 'Failed to update payment', details: error.message }, 500);
+    }
+    
+    console.log('[DEBUG] ===== PAYMENT UPDATED SUCCESSFULLY =====');
+    return c.json({ success: true, data: payment });
+  } catch (error) {
+    console.error('[DEBUG] ===== PAYMENT UPDATE ERROR =====');
+    console.error('[DEBUG] Error details:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+app.delete('/api/payments/:id', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== DELETE PAYMENT ENDPOINT CALLED =====');
+  try {
+    const paymentId = c.req.param('id');
+    
+    const supabase = getSupabaseClient(c.env);
+    
+    const { error } = await supabase
+      .from('payments')
+      .delete()
+      .eq('id', paymentId);
+    
+    if (error) {
+      console.log('[DEBUG] Payment deletion error:', error);
+      return c.json({ error: 'Failed to delete payment', details: error.message }, 500);
+    }
+    
+    console.log('[DEBUG] ===== PAYMENT DELETED SUCCESSFULLY =====');
+    return c.json({ success: true, message: 'Payment deleted successfully' });
+  } catch (error) {
+    console.error('[DEBUG] ===== PAYMENT DELETION ERROR =====');
+    console.error('[DEBUG] Error details:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+// 5. MAINTENANCE REQUEST ENDPOINTS
+app.post('/api/maintenance', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== CREATE MAINTENANCE REQUEST ENDPOINT CALLED =====');
+  try {
+    const body = await c.req.json();
+    
+    const supabase = getSupabaseClient(c.env);
+    
+    const { data: maintenance, error } = await supabase
+      .from('maintenance_requests')
+      .insert({
+        title: body.title,
+        description: body.description,
+        priority: body.priority || 'MEDIUM',
+        status: body.status || 'SUBMITTED',
+        unitId: body.unitId,
+        tenantId: body.tenantId,
+        assignedTo: body.assignedTo || null,
+        notes: body.notes,
+      })
+      .select()
+      .single();
+    
+    if (error) {
+      console.log('[DEBUG] Maintenance creation error:', error);
+      return c.json({ error: 'Failed to create maintenance request', details: error.message }, 500);
+    }
+    
+    console.log('[DEBUG] ===== MAINTENANCE REQUEST CREATED SUCCESSFULLY =====');
+    return c.json({ success: true, data: maintenance });
+  } catch (error) {
+    console.error('[DEBUG] ===== MAINTENANCE CREATION ERROR =====');
+    console.error('[DEBUG] Error details:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+app.get('/api/maintenance', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== GET MAINTENANCE REQUESTS ENDPOINT CALLED =====');
+  try {
+    const supabase = getSupabaseClient(c.env);
+    
+    const { data: maintenance, error } = await supabase
+      .from('maintenance_requests')
+      .select('*');
+    
+    if (error) {
+      console.log('[DEBUG] Maintenance query error:', error);
+      return c.json({ error: 'Failed to fetch maintenance requests', details: error.message }, 500);
+    }
+    
+    console.log('[DEBUG] ===== MAINTENANCE REQUESTS FETCHED SUCCESSFULLY =====');
+    return c.json({ success: true, data: maintenance || [] });
+  } catch (error) {
+    console.error('[DEBUG] ===== MAINTENANCE FETCH ERROR =====');
+    console.error('[DEBUG] Error details:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+// 6. MANAGER MANAGEMENT ENDPOINTS
+app.get('/api/managers', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== GET MANAGERS ENDPOINT CALLED =====');
+  try {
+    const supabase = getSupabaseClient(c.env);
+    
+    const { data: managers, error } = await supabase
+      .from('users')
+      .select('*')
+      .in('role', ['MANAGER', 'ADMIN']);
+    
+    if (error) {
+      console.log('[DEBUG] Managers query error:', error);
+      return c.json({ error: 'Failed to fetch managers', details: error.message }, 500);
+    }
+    
+    console.log('[DEBUG] ===== MANAGERS FETCHED SUCCESSFULLY =====');
+    return c.json({ success: true, data: managers || [] });
+  } catch (error) {
+    console.error('[DEBUG] ===== MANAGERS FETCH ERROR =====');
+    console.error('[DEBUG] Error details:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+app.post('/api/managers', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== CREATE MANAGER ENDPOINT CALLED =====');
+  try {
+    const body = await c.req.json();
+    
+    const supabase = getSupabaseClient(c.env);
+    
+    const { data: manager, error } = await supabase
+      .from('users')
+      .insert({
+        email: body.email,
+        firstName: body.firstName,
+        lastName: body.lastName,
+        phoneNumber: body.phoneNumber,
+        password: body.password || 'defaultpassword123',
+        role: body.role || 'MANAGER',
+        isActive: true,
+        emailVerified: false,
+      })
+      .select()
+      .single();
+    
+    if (error) {
+      console.log('[DEBUG] Manager creation error:', error);
+      return c.json({ error: 'Failed to create manager', details: error.message }, 500);
+    }
+    
+    console.log('[DEBUG] ===== MANAGER CREATED SUCCESSFULLY =====');
+    return c.json({ success: true, data: manager });
+  } catch (error) {
+    console.error('[DEBUG] ===== MANAGER CREATION ERROR =====');
+    console.error('[DEBUG] Error details:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+// 7. ANALYTICS ENDPOINTS
+app.get('/api/analytics/overview', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== GET ANALYTICS OVERVIEW ENDPOINT CALLED =====');
+  try {
+    const supabase = getSupabaseClient(c.env);
+    
+    // Get counts
+    const { data: properties } = await supabase.from('properties').select('id');
+    const { data: units } = await supabase.from('units').select('id');
+    const { data: tenants } = await supabase.from('users').select('id').eq('role', 'TENANT');
+    const { data: payments } = await supabase.from('payments').select('id, amount, status');
+    const { data: maintenance } = await supabase.from('maintenance_requests').select('id, status, priority');
+    
+    // Calculate metrics
+    const totalProperties = properties?.length || 0;
+    const totalUnits = units?.length || 0;
+    const totalTenants = tenants?.length || 0;
+    const totalPayments = payments?.length || 0;
+    const totalRevenue = payments?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0;
+    const paidPayments = payments?.filter(p => p.status === 'PAID').length || 0;
+    const pendingPayments = payments?.filter(p => p.status === 'PENDING').length || 0;
+    const urgentMaintenance = maintenance?.filter(m => m.priority === 'HIGH' && m.status !== 'COMPLETED').length || 0;
+    
+    const analytics = {
+      totalProperties,
+      totalUnits,
+      totalTenants,
+      totalPayments,
+      totalRevenue,
+      paidPayments,
+      pendingPayments,
+      urgentMaintenance,
+      occupancyRate: totalUnits > 0 ? ((totalUnits - (units?.filter((u: any) => u.leaseStatus === 'VACANT').length || 0)) / totalUnits) * 100 : 0,
+      collectionRate: totalPayments > 0 ? (paidPayments / totalPayments) * 100 : 0,
+    };
+    
+    console.log('[DEBUG] ===== ANALYTICS OVERVIEW FETCHED SUCCESSFULLY =====');
+    return c.json({ success: true, data: analytics });
+  } catch (error) {
+    console.error('[DEBUG] ===== ANALYTICS OVERVIEW ERROR =====');
+    console.error('[DEBUG] Error details:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+// 8. FILE UPLOAD ENDPOINTS (Cloudflare R2)
+app.post('/api/upload/image', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== UPLOAD IMAGE ENDPOINT CALLED =====');
+  try {
+    const formData = await c.req.formData();
+    const file = formData.get('file') as File;
+    
+    if (!file) {
+      return c.json({ error: 'No file provided' }, 400);
+    }
+    
+    // For now, return a mock URL - in production, upload to Cloudflare R2
+    const mockUrl = `https://images.unsplash.com/photo-${Math.random().toString(36).substring(7)}?w=800`;
+    
+    console.log('[DEBUG] ===== IMAGE UPLOAD SUCCESSFUL =====');
+    return c.json({ 
+      success: true, 
+      data: { 
+        url: mockUrl,
+        filename: file.name,
+        size: file.size,
+        type: file.type
+      } 
+    });
+  } catch (error) {
+    console.error('[DEBUG] ===== IMAGE UPLOAD ERROR =====');
+    console.error('[DEBUG] Error details:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+app.post('/api/upload/document', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== UPLOAD DOCUMENT ENDPOINT CALLED =====');
+  try {
+    const formData = await c.req.formData();
+    const file = formData.get('file') as File;
+    
+    if (!file) {
+      return c.json({ error: 'No file provided' }, 400);
+    }
+    
+    // For now, return a mock URL - in production, upload to Cloudflare R2
+    const mockUrl = `https://docs.example.com/document-${Math.random().toString(36).substring(7)}.pdf`;
+    
+    console.log('[DEBUG] ===== DOCUMENT UPLOAD SUCCESSFUL =====');
+    return c.json({ 
+      success: true, 
+      data: { 
+        url: mockUrl,
+        filename: file.name,
+        size: file.size,
+        type: file.type
+      } 
+    });
+  } catch (error) {
+    console.error('[DEBUG] ===== DOCUMENT UPLOAD ERROR =====');
+    console.error('[DEBUG] Error details:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+// 9. SEARCH ENDPOINTS
+app.get('/api/search', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== SEARCH ENDPOINT CALLED =====');
+  try {
+    const query = c.req.query('q');
+    const type = c.req.query('type') || 'all';
+    
+    if (!query) {
+      return c.json({ error: 'Search query is required' }, 400);
+    }
+    
+    const supabase = getSupabaseClient(c.env);
+    const results: any = {};
+    
+    if (type === 'all' || type === 'properties') {
+      const { data: properties } = await supabase
+        .from('properties')
+        .select('*')
+        .ilike('name', `%${query}%`);
+      results.properties = properties || [];
+    }
+    
+    if (type === 'all' || type === 'tenants') {
+      const { data: tenants } = await supabase
+        .from('users')
+        .select('*')
+        .eq('role', 'TENANT')
+        .or(`firstName.ilike.%${query}%,lastName.ilike.%${query}%,email.ilike.%${query}%`);
+      results.tenants = tenants || [];
+    }
+    
+    if (type === 'all' || type === 'units') {
+      const { data: units } = await supabase
+        .from('units')
+        .select('*')
+        .ilike('unitNumber', `%${query}%`);
+      results.units = units || [];
+    }
+    
+    console.log('[DEBUG] ===== SEARCH COMPLETED SUCCESSFULLY =====');
+    return c.json({ success: true, data: results });
+  } catch (error) {
+    console.error('[DEBUG] ===== SEARCH ERROR =====');
+    console.error('[DEBUG] Error details:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+// 10. EXPORT ENDPOINTS
+app.get('/api/export/properties', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== EXPORT PROPERTIES ENDPOINT CALLED =====');
+  try {
+    const supabase = getSupabaseClient(c.env);
+    
+    const { data: properties, error } = await supabase
+      .from('properties')
+      .select('*');
+    
+    if (error) {
+      return c.json({ error: 'Failed to fetch properties for export' }, 500);
+    }
+    
+    // Convert to CSV format
+    const csv = [
+      ['ID', 'Name', 'Address', 'City', 'State', 'ZIP Code', 'Description', 'Created At'],
+      ...(properties || []).map(p => [
+        p.id,
+        p.name,
+        p.address,
+        p.city,
+        p.state,
+        p.zipCode,
+        p.description || '',
+        new Date(p.createdAt).toLocaleDateString()
+      ])
+    ].map(row => row.join(',')).join('\n');
+    
+    return new Response(csv, {
+      headers: {
+        'Content-Type': 'text/csv',
+        'Content-Disposition': 'attachment; filename="properties.csv"'
+      }
+    });
+  } catch (error) {
+    console.error('[DEBUG] ===== EXPORT ERROR =====');
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+// 11. BULK OPERATIONS
+app.post('/api/bulk/delete-properties', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== BULK DELETE PROPERTIES ENDPOINT CALLED =====');
+  try {
+    const body = await c.req.json();
+    const { ids } = body;
+    
+    if (!ids || !Array.isArray(ids)) {
+      return c.json({ error: 'Property IDs array is required' }, 400);
+    }
+    
+    const supabase = getSupabaseClient(c.env);
+    
+    const { error } = await supabase
+      .from('properties')
+      .delete()
+      .in('id', ids);
+    
+    if (error) {
+      return c.json({ error: 'Failed to delete properties', details: error.message }, 500);
+    }
+    
+    return c.json({ success: true, message: `${ids.length} properties deleted successfully` });
+  } catch (error) {
+    console.error('[DEBUG] ===== BULK DELETE ERROR =====');
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+// 12. NOTIFICATIONS ENDPOINTS
+app.get('/api/notifications', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== GET NOTIFICATIONS ENDPOINT CALLED =====');
+  try {
+    const user = c.get('user');
+    
+    // Mock notifications - in production, fetch from notifications table
+    const notifications = [
+      {
+        id: '1',
+        title: 'New maintenance request',
+        message: 'Unit 101 has submitted a maintenance request',
+        type: 'maintenance',
+        read: false,
+        createdAt: new Date().toISOString()
+      },
+      {
+        id: '2',
+        title: 'Payment received',
+        message: 'Payment received for Unit 102',
+        type: 'payment',
+        read: false,
+        createdAt: new Date().toISOString()
+      }
+    ];
+    
+    return c.json({ success: true, data: notifications });
+  } catch (error) {
+    console.error('[DEBUG] ===== NOTIFICATIONS ERROR =====');
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+app.put('/api/notifications/:id/read', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== MARK NOTIFICATION READ ENDPOINT CALLED =====');
+  try {
+    const notificationId = c.req.param('id');
+    
+    // In production, update the notification in the database
+    return c.json({ success: true, message: 'Notification marked as read' });
+  } catch (error) {
+    console.error('[DEBUG] ===== MARK READ ERROR =====');
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+// 13. SETTINGS ENDPOINTS
+app.get('/api/settings', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== GET SETTINGS ENDPOINT CALLED =====');
+  try {
+    const user = c.get('user');
+    
+    // Mock settings - in production, fetch from settings table
+    const settings = {
+      notifications: {
+        email: true,
+        push: true,
+        sms: false
+      },
+      theme: 'light',
+      language: 'en',
+      timezone: 'UTC',
+      currency: 'USD'
+    };
+    
+    return c.json({ success: true, data: settings });
+  } catch (error) {
+    console.error('[DEBUG] ===== SETTINGS ERROR =====');
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+app.put('/api/settings', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== UPDATE SETTINGS ENDPOINT CALLED =====');
+  try {
+    const body = await c.req.json();
+    
+    // In production, update settings in the database
+    return c.json({ success: true, data: body, message: 'Settings updated successfully' });
+  } catch (error) {
+    console.error('[DEBUG] ===== UPDATE SETTINGS ERROR =====');
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+// 14. HEALTH CHECK ENDPOINT
+app.get('/api/health', async (c) => {
+  return c.json({ 
+    status: 'healthy', 
+    timestamp: new Date().toISOString(),
+    version: '1.0.0',
+    environment: c.env.NODE_ENV || 'production'
+  });
+});
+
+// 15. PING ENDPOINT FOR TESTING
+app.get('/api/ping', async (c) => {
+  return c.json({ 
+    message: `pong-ormi-${Date.now()}`,
+    timestamp: new Date().toISOString()
+  });
+}); 

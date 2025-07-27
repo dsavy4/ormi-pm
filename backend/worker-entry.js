@@ -11,7 +11,7 @@ globalThis.process = {
 };
 
 // Now import the actual app
-import app from './src/worker-server.js';
+import app from './dist/worker-server.js';
 
 // Export the app for Cloudflare Workers
 export default {

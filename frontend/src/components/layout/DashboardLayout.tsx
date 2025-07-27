@@ -438,10 +438,38 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               </Button>
 
               {/* Quick Actions */}
-              <Button size="sm" className="hidden sm:flex h-9 gap-2">
-                <Plus className="h-4 w-4" />
-                Quick Add
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" className="hidden sm:flex h-9 gap-2">
+                    <Plus className="h-4 w-4" />
+                    Quick Add
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuLabel>Quick Actions</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => window.location.href = '/properties?action=add'}>
+                    <Building2 className="h-4 w-4 mr-2" />
+                    Add Property
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => window.location.href = '/units?action=add'}>
+                    <Home className="h-4 w-4 mr-2" />
+                    Add Unit
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => window.location.href = '/tenants?action=add'}>
+                    <Users className="h-4 w-4 mr-2" />
+                    Add Tenant
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => window.location.href = '/payments?action=add'}>
+                    <CreditCard className="h-4 w-4 mr-2" />
+                    Record Payment
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => window.location.href = '/maintenance?action=add'}>
+                    <Wrench className="h-4 w-4 mr-2" />
+                    Maintenance Request
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
 
               <Separator orientation="vertical" className="h-6" />
 

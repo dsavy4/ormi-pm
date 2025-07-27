@@ -57,74 +57,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const checkAuthStatus = async () => {
     try {
-      const token = localStorage.getItem('auth_token');
-      console.log('AuthContext: checkAuthStatus called, token exists:', !!token);
-      if (!token) {
-        setIsLoading(false);
-        return;
-      }
-
-      // Use the authApi.getProfile() function for better error handling
-      console.log('AuthContext: Calling authApi.getProfile()');
+      const token = localStorage.getItem('authToken');
+      console.log('[DEBUG] checkAuthStatus called, token exists:', !!token);
       const userData = await authApi.getProfile();
-      console.log('AuthContext: Profile retrieved successfully:', userData);
-      setUser(userData);
-    } catch (error: any) {
-      console.error('AuthContext: Auth check failed:', error);
-      console.error('AuthContext: Error message:', error.message);
-      
-      // Check if it's a 401 error (unauthorized) - handle both error message formats
-      if (error.message?.includes('401') || 
-          error.message?.includes('Unauthorized') ||
-          error.message?.includes('Invalid or expired token') ||
-          error.message?.includes('Access token required')) {
-        console.log('AuthContext: Token expired or invalid, logging out');
-        localStorage.removeItem('auth_token');
-        setUser(null);
+      console.log('[DEBUG] Profile retrieved successfully:', userData);
+      setUser(userData.user);
+    } catch (error) {
+      console.log('[DEBUG] Auth check failed:', error);
+      console.log('[DEBUG] Error message:', error instanceof Error ? error.message : 'Unknown error');
+      // Don't clear user immediately, keep them logged in if there's a network error
+      if (error instanceof Error && error.message.includes('Failed to fetch')) {
+        console.log('[DEBUG] Auth check failed but keeping user logged in:', error.message);
       } else {
-        // For network errors or other issues, keep user logged in
-        console.warn('AuthContext: Auth check failed but keeping user logged in:', error.message);
-        // Don't logout on network errors - keep user logged in
-        // This prevents logout on temporary network issues
+        setUser(null);
+        localStorage.removeItem('authToken');
       }
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
+      console.log('[DEBUG] Login attempt for:', email);
       const response = await authApi.login(email, password);
+      console.log('[DEBUG] Login response:', response);
       
       if (response.token) {
-        localStorage.setItem('auth_token', response.token);
+        localStorage.setItem('authToken', response.token);
         setUser(response.user);
         return true;
-      }
-      return false;
-    } catch (error: any) {
-      console.error('Login failed:', error);
-      if (error.message?.includes('401') || error.message?.includes('Invalid')) {
-        toast.error('Invalid credentials. Please check your email and password.', {
-          duration: 4000,
-          position: 'bottom-right',
-          style: {
-            background: 'hsl(var(--card))',
-            color: 'hsl(var(--foreground))',
-            border: '1px solid hsl(var(--border))',
-          },
-        });
       } else {
-        toast.error('Login failed. Please try again.', {
-          duration: 4000,
-          position: 'bottom-right',
-          style: {
-            background: 'hsl(var(--card))',
-            color: 'hsl(var(--foreground))',
-            border: '1px solid hsl(var(--border))',
-          },
-        });
+        throw new Error('Invalid response from server');
       }
+    } catch (error) {
+      console.log('[DEBUG] Login failed:', error);
+      console.log('[DEBUG] Error message:', error instanceof Error ? error.message : 'Unknown error');
       return false;
     }
   };

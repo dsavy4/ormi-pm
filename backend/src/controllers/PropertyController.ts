@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { validationResult } from 'express-validator';
 import { PrismaClient } from '@prisma/client';
 import { AuthRequest } from '../middleware/auth';
+import { storageService } from '../utils/storage';
 
 const prisma = new PrismaClient();
 
@@ -16,6 +17,9 @@ export class PropertyController {
       const page = parseInt(req.query?.page as string) || 1;
       const limit = parseInt(req.query?.limit as string) || 10;
       const search = req.query?.search as string;
+      const status = req.query?.status as string;
+      const propertyType = req.query?.propertyType as string;
+      const manager = req.query?.manager as string;
 
       let whereClause = {};
       if (userRole === 'ADMIN' || userRole === 'MANAGER') {
@@ -34,6 +38,21 @@ export class PropertyController {
         };
       }
 
+      // Add status filter
+      if (status) {
+        whereClause = { ...whereClause, status };
+      }
+
+      // Add property type filter
+      if (propertyType) {
+        whereClause = { ...whereClause, propertyType };
+      }
+
+      // Add manager filter
+      if (manager) {
+        whereClause = { ...whereClause, managerId: manager };
+      }
+
       const [properties, total] = await Promise.all([
         prisma.property.findMany({
           where: whereClause,
@@ -44,6 +63,14 @@ export class PropertyController {
                 unitNumber: true,
                 leaseStatus: true,
                 monthlyRent: true,
+              },
+            },
+            manager: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
               },
             },
             _count: {
@@ -57,8 +84,26 @@ export class PropertyController {
         prisma.property.count({ where: whereClause }),
       ]);
 
+      // Calculate additional metrics for each property
+      const propertiesWithMetrics = properties.map(property => {
+        const totalUnits = property.units.length;
+        const occupiedUnits = property.units.filter(unit => unit.leaseStatus === 'LEASED').length;
+        const occupancyRate = totalUnits > 0 ? (occupiedUnits / totalUnits) * 100 : 0;
+        const monthlyRent = property.units.reduce((sum, unit) => sum + Number(unit.monthlyRent), 0);
+
+        return {
+          ...property,
+          totalUnits,
+          occupiedUnits,
+          vacantUnits: totalUnits - occupiedUnits,
+          occupancyRate,
+          monthlyRent,
+          avgRentPerUnit: totalUnits > 0 ? monthlyRent / totalUnits : 0,
+        };
+      });
+
       res.json({
-        properties,
+        properties: propertiesWithMetrics,
         pagination: {
           page,
           limit,
@@ -104,22 +149,29 @@ export class PropertyController {
                   firstName: true,
                   lastName: true,
                   email: true,
-                  phoneNumber: true,
                 },
               },
               payments: {
-                where: { status: 'PENDING' },
+                where: {
+                  status: 'PENDING',
+                },
                 orderBy: { dueDate: 'asc' },
-                take: 3,
+              },
+              maintenanceRequests: {
+                where: {
+                  status: { in: ['SUBMITTED', 'IN_PROGRESS'] },
+                },
+                orderBy: { createdAt: 'desc' },
               },
             },
           },
-          owner: {
+          manager: {
             select: {
               id: true,
               firstName: true,
               lastName: true,
               email: true,
+              phoneNumber: true,
             },
           },
         },
@@ -130,7 +182,35 @@ export class PropertyController {
         return;
       }
 
-      res.json(property);
+      // Calculate metrics
+      const totalUnits = property.units.length;
+      const occupiedUnits = property.units.filter(unit => unit.leaseStatus === 'LEASED').length;
+      const occupancyRate = totalUnits > 0 ? (occupiedUnits / totalUnits) * 100 : 0;
+      const monthlyRent = property.units.reduce((sum, unit) => sum + Number(unit.monthlyRent), 0);
+      const urgentMaintenanceRequests = property.units.reduce((sum, unit) => 
+        sum + unit.maintenanceRequests.filter(req => req.priority === 'URGENT').length, 0
+      );
+      const leasesExpiringThisMonth = property.units.filter(unit => {
+        if (!unit.leaseEnd) return false;
+        const endDate = new Date(unit.leaseEnd);
+        const now = new Date();
+        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        return endDate <= endOfMonth;
+      }).length;
+
+      const enhancedProperty = {
+        ...property,
+        totalUnits,
+        occupiedUnits,
+        vacantUnits: totalUnits - occupiedUnits,
+        occupancyRate,
+        monthlyRent,
+        avgRentPerUnit: totalUnits > 0 ? monthlyRent / totalUnits : 0,
+        urgentMaintenanceRequests,
+        leasesExpiringThisMonth,
+      };
+
+      res.json(enhancedProperty);
     } catch (error) {
       console.error('Get property error:', error);
       res.status(500).json({ error: 'Failed to fetch property' });
@@ -156,13 +236,18 @@ export class PropertyController {
         state,
         zipCode,
         propertyType,
-        totalUnits,
         yearBuilt,
-        squareFootage,
-        lotSize,
-        parkingSpaces,
-        amenities,
+        description,
         notes,
+        totalUnits,
+        sqft,
+        lotSize,
+        amenities,
+        tags,
+        managerId,
+        rentDueDay,
+        allowOnlinePayments,
+        enableMaintenanceRequests,
       } = req.body;
 
       const property = await prisma.property.create({
@@ -172,14 +257,30 @@ export class PropertyController {
           city,
           state,
           zipCode,
-          description: notes,
+          propertyType,
+          yearBuilt: yearBuilt ? parseInt(yearBuilt) : null,
+          description,
           notes,
+          totalUnits: totalUnits ? parseInt(totalUnits) : 0,
+          sqft: sqft ? parseInt(sqft) : null,
+          lotSize: lotSize ? parseFloat(lotSize) : null,
+          amenities: amenities || [],
+          tags: tags || [],
+          managerId,
+          rentDueDay: rentDueDay ? parseInt(rentDueDay) : 1,
+          allowOnlinePayments: allowOnlinePayments || false,
+          enableMaintenanceRequests: enableMaintenanceRequests || true,
           ownerId: userId,
+          status: 'ACTIVE',
         },
         include: {
-          units: true,
-          _count: {
-            select: { units: true },
+          manager: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+            },
           },
         },
       });
@@ -203,17 +304,15 @@ export class PropertyController {
 
     try {
       const userId = req.user!.id;
-      const userRole = req.user!.role;
       const propertyId = req.params.id;
+      const updateData = req.body;
 
       // Check if property exists and user has permission
-      let propertyWhere: any = { id: propertyId };
-      if (userRole === 'ADMIN' || userRole === 'MANAGER') {
-        propertyWhere.ownerId = userId;
-      }
-
-      const existingProperty = await prisma.property.findUnique({
-        where: propertyWhere,
+      const existingProperty = await prisma.property.findFirst({
+        where: {
+          id: propertyId,
+          ownerId: userId,
+        },
       });
 
       if (!existingProperty) {
@@ -221,31 +320,24 @@ export class PropertyController {
         return;
       }
 
-      const {
-        name,
-        address,
-        city,
-        state,
-        zipCode,
-        description,
-        notes,
-      } = req.body;
+      // Remove undefined values
+      Object.keys(updateData).forEach(key => {
+        if (updateData[key] === undefined) {
+          delete updateData[key];
+        }
+      });
 
       const property = await prisma.property.update({
         where: { id: propertyId },
-        data: {
-          name,
-          address,
-          city,
-          state,
-          zipCode,
-          description,
-          notes,
-        },
+        data: updateData,
         include: {
-          units: true,
-          _count: {
-            select: { units: true },
+          manager: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+            },
           },
         },
       });
@@ -269,32 +361,28 @@ export class PropertyController {
 
     try {
       const userId = req.user!.id;
-      const userRole = req.user!.role;
       const propertyId = req.params.id;
 
       // Check if property exists and user has permission
-      let propertyWhere: any = { id: propertyId };
-      if (userRole === 'ADMIN' || userRole === 'MANAGER') {
-        propertyWhere.ownerId = userId;
-      }
-
-      const existingProperty = await prisma.property.findUnique({
-        where: propertyWhere,
-        include: {
-          units: true,
+      const property = await prisma.property.findFirst({
+        where: {
+          id: propertyId,
+          ownerId: userId,
         },
       });
 
-      if (!existingProperty) {
+      if (!property) {
         res.status(404).json({ error: 'Property not found' });
         return;
       }
 
       // Check if property has units
-      if (existingProperty.units.length > 0) {
-        res.status(400).json({ 
-          error: 'Cannot delete property with existing units. Please remove all units first.' 
-        });
+      const unitCount = await prisma.unit.count({
+        where: { propertyId },
+      });
+
+      if (unitCount > 0) {
+        res.status(400).json({ error: 'Cannot delete property with existing units' });
         return;
       }
 
@@ -306,6 +394,315 @@ export class PropertyController {
     } catch (error) {
       console.error('Delete property error:', error);
       res.status(500).json({ error: 'Failed to delete property' });
+    }
+  }
+
+  /**
+   * Upload image for property
+   */
+  async uploadImage(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user!.id;
+      const propertyId = req.params.id;
+      const file = req.file;
+
+      if (!file) {
+        res.status(400).json({ error: 'No image file provided' });
+        return;
+      }
+
+      // Check if property exists and user has permission
+      const property = await prisma.property.findFirst({
+        where: {
+          id: propertyId,
+          ownerId: userId,
+        },
+      });
+
+      if (!property) {
+        res.status(404).json({ error: 'Property not found' });
+        return;
+      }
+
+      // Upload to Cloudflare R2
+      const { url, key } = await storageService.uploadFile(
+        file.buffer,
+        file.originalname,
+        file.mimetype,
+        `properties/${propertyId}`
+      );
+
+      // Update property with new image URL
+      const updatedProperty = await prisma.property.update({
+        where: { id: propertyId },
+        data: {
+          images: {
+            push: url,
+          },
+        },
+      });
+
+      res.json({ 
+        imageUrl: url,
+        key: key,
+        property: updatedProperty,
+      });
+    } catch (error) {
+      console.error('Upload image error:', error);
+      res.status(500).json({ error: 'Failed to upload image' });
+    }
+  }
+
+  /**
+   * Generate presigned URL for direct upload
+   */
+  async generateUploadUrl(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user!.id;
+      const propertyId = req.params.id;
+      const { fileName, contentType } = req.body;
+
+      if (!fileName || !contentType) {
+        res.status(400).json({ error: 'File name and content type are required' });
+        return;
+      }
+
+      // Check if property exists and user has permission
+      const property = await prisma.property.findFirst({
+        where: {
+          id: propertyId,
+          ownerId: userId,
+        },
+      });
+
+      if (!property) {
+        res.status(404).json({ error: 'Property not found' });
+        return;
+      }
+
+      // Generate presigned URL
+      const { uploadUrl, key, publicUrl } = await storageService.generatePresignedUrl(
+        fileName,
+        contentType,
+        `properties/${propertyId}`
+      );
+
+      res.json({
+        uploadUrl,
+        key,
+        publicUrl,
+        expiresIn: 3600, // 1 hour
+      });
+    } catch (error) {
+      console.error('Generate upload URL error:', error);
+      res.status(500).json({ error: 'Failed to generate upload URL' });
+    }
+  }
+
+  /**
+   * Bulk archive properties
+   */
+  async bulkArchive(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user!.id;
+      const { propertyIds } = req.body;
+
+      if (!propertyIds || !Array.isArray(propertyIds)) {
+        res.status(400).json({ error: 'Property IDs array is required' });
+        return;
+      }
+
+      // Check if all properties belong to user
+      const properties = await prisma.property.findMany({
+        where: {
+          id: { in: propertyIds },
+          ownerId: userId,
+        },
+      });
+
+      if (properties.length !== propertyIds.length) {
+        res.status(400).json({ error: 'Some properties not found or access denied' });
+        return;
+      }
+
+      // Archive properties
+      await prisma.property.updateMany({
+        where: {
+          id: { in: propertyIds },
+          ownerId: userId,
+        },
+        data: {
+          status: 'ARCHIVED',
+          archivedAt: new Date(),
+          archivedBy: userId,
+        },
+      });
+
+      res.json({ 
+        message: `${properties.length} properties archived successfully`,
+        archivedCount: properties.length,
+      });
+    } catch (error) {
+      console.error('Bulk archive error:', error);
+      res.status(500).json({ error: 'Failed to archive properties' });
+    }
+  }
+
+  /**
+   * Assign manager to properties
+   */
+  async assignManager(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user!.id;
+      const { propertyIds, managerId } = req.body;
+
+      if (!propertyIds || !Array.isArray(propertyIds) || !managerId) {
+        res.status(400).json({ error: 'Property IDs array and manager ID are required' });
+        return;
+      }
+
+      // Check if manager exists
+      const manager = await prisma.user.findUnique({
+        where: { id: managerId },
+      });
+
+      if (!manager || manager.role !== 'MANAGER') {
+        res.status(400).json({ error: 'Invalid manager ID' });
+        return;
+      }
+
+      // Check if all properties belong to user
+      const properties = await prisma.property.findMany({
+        where: {
+          id: { in: propertyIds },
+          ownerId: userId,
+        },
+      });
+
+      if (properties.length !== propertyIds.length) {
+        res.status(400).json({ error: 'Some properties not found or access denied' });
+        return;
+      }
+
+      // Assign manager to properties
+      await prisma.property.updateMany({
+        where: {
+          id: { in: propertyIds },
+          ownerId: userId,
+        },
+        data: {
+          managerId,
+        },
+      });
+
+      res.json({ 
+        message: `Manager assigned to ${properties.length} properties successfully`,
+        assignedCount: properties.length,
+      });
+    } catch (error) {
+      console.error('Assign manager error:', error);
+      res.status(500).json({ error: 'Failed to assign manager' });
+    }
+  }
+
+  /**
+   * Get property insights
+   */
+  async getInsights(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user!.id;
+
+      const [
+        totalProperties,
+        totalUnits,
+        properties,
+        recentActivity,
+      ] = await Promise.all([
+        prisma.property.count({ where: { ownerId: userId } }),
+        prisma.unit.count({
+          where: {
+            property: { ownerId: userId },
+          },
+        }),
+        prisma.property.findMany({
+          where: { ownerId: userId },
+          include: {
+            units: {
+              select: {
+                leaseStatus: true,
+                monthlyRent: true,
+              },
+            },
+            _count: {
+              select: { units: true },
+            },
+          },
+        }),
+        prisma.maintenanceRequest.findMany({
+          where: {
+            unit: {
+              property: { ownerId: userId },
+            },
+          },
+          include: {
+            unit: {
+              select: {
+                property: {
+                  select: { name: true },
+                },
+              },
+            },
+          },
+          orderBy: { createdAt: 'desc' },
+          take: 10,
+        }),
+      ]);
+
+      // Calculate insights
+      const occupiedUnits = properties.reduce((sum, property) => 
+        sum + property.units.filter(unit => unit.leaseStatus === 'LEASED').length, 0
+      );
+      const totalMonthlyIncome = properties.reduce((sum, property) => 
+        sum + property.units.reduce((unitSum, unit) => unitSum + Number(unit.monthlyRent), 0), 0
+      );
+      const avgOccupancyRate = totalUnits > 0 ? (occupiedUnits / totalUnits) * 100 : 0;
+
+      // Find top performing property
+      const propertyPerformance = properties.map(property => {
+        const propertyUnits = property.units.length;
+        const propertyOccupied = property.units.filter(unit => unit.leaseStatus === 'LEASED').length;
+        const propertyIncome = property.units.reduce((sum, unit) => sum + Number(unit.monthlyRent), 0);
+        const occupancyRate = propertyUnits > 0 ? (propertyOccupied / propertyUnits) * 100 : 0;
+
+        return {
+          ...property,
+          occupancyRate,
+          monthlyIncome: propertyIncome,
+        };
+      });
+
+      const topPerformingProperty = propertyPerformance.reduce((top, current) => 
+        current.monthlyIncome > top.monthlyIncome ? current : top
+      );
+
+      const insights = {
+        totalProperties,
+        totalUnits,
+        totalMonthlyIncome,
+        avgOccupancyRate,
+        leasesExpiringThisMonth: 0, // TODO: Calculate based on lease end dates
+        urgentMaintenanceCount: recentActivity.filter(req => req.priority === 'URGENT').length,
+        topPerformingProperty,
+        lowPerformingProperties: propertyPerformance
+          .filter(p => p.occupancyRate < 70)
+          .slice(0, 5),
+        recentActivity,
+      };
+
+      res.json(insights);
+    } catch (error) {
+      console.error('Get insights error:', error);
+      res.status(500).json({ error: 'Failed to fetch insights' });
     }
   }
 } 

@@ -95,13 +95,11 @@ function App() {
                     </DashboardLayout>
                   </ProtectedRoute>
                 } />
-                {/* <Route path="/payments" element={
-                  <ProtectedRoute>
-                    <DashboardLayout>
-                      <Payments />
-                    </DashboardLayout>
-                  </ProtectedRoute>
-                } /> */}
+                {/* Temporarily commented out due to TypeScript errors */}
+                {/* <Route path="/payments" element={<Payments />} /> */}
+                {/* <Route path="/managers" element={<Managers />} /> */}
+                {/* <Route path="/document-management" element={<DocumentManagement />} /> */}
+                {/* <Route path="/advanced-maintenance" element={<AdvancedMaintenance />} /> */}
                 <Route path="/maintenance" element={
                   <ProtectedRoute>
                     <DashboardLayout>

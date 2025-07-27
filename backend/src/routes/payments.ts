@@ -1,14 +1,28 @@
-import { Router } from 'express';
-import { authenticateToken, AuthRequest } from '../middleware/auth';
+import { Hono } from 'hono';
+import { PaymentController } from '../controllers/PaymentController';
 
-const router = Router();
+const app = new Hono();
+const paymentController = new PaymentController();
 
-// All routes require authentication
-router.use(authenticateToken);
+// Note: Authentication middleware will be applied in worker-server.ts
 
-// GET /api/payments - Get payments
-router.get('/', (req: AuthRequest, res) => {
-  res.json({ message: 'Payments route working', user: req.user });
-});
+// Payment processing
+app.post('/create-payment-intent', (c) => paymentController.createPaymentIntent(c));
+app.post('/process-payment', (c) => paymentController.processPayment(c));
 
-export default router; 
+// Payment history and management
+app.get('/history', (c) => paymentController.getPaymentHistory(c));
+app.get('/analytics', (c) => paymentController.getPaymentAnalytics(c));
+
+// Payment methods
+app.get('/payment-methods', (c) => paymentController.getPaymentMethods(c));
+app.post('/payment-methods', (c) => paymentController.savePaymentMethod(c));
+app.delete('/payment-methods/:id', (c) => paymentController.deletePaymentMethod(c));
+
+// Receipts
+app.get('/receipts/:id', (c) => paymentController.generateReceipt(c));
+
+// Stripe webhook (no auth required)
+app.post('/webhook', (c) => paymentController.handleWebhook(c));
+
+export default app; 
