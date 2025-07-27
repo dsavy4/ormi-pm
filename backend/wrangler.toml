@@ -1,6 +1,7 @@
 name = "ormi-api"
+account_id = "475a121e52d9057d0e99c52062f3b6e5"
 compatibility_date = "2023-09-04"
-main = "dist/worker-entry.js"
+main = "dist/worker-server.js"
 
 # Node.js compatibility flags
 compatibility_flags = ["nodejs_compat"]

@@ -25,12 +25,16 @@
     "docker:run": "docker run -p 3000:3000 -p 3001:3001 ormi-property-management"
   },
   "devDependencies": {
+    "@types/node": "^20.10.5",
     "concurrently": "^8.2.2",
-    "prettier": "^3.1.1",
-    "@types/node": "^20.10.5"
+    "prettier": "^3.1.1"
   },
   "engines": {
     "node": ">=18.0.0",
     "npm": ">=8.0.0"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.850.0",
+    "@aws-sdk/s3-request-presigner": "^3.850.0"
   }
-} 
+}

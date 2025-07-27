@@ -46,6 +46,34 @@ const buildInsPlugin = {
         };
       }
       
+      if (args.path === 'http') {
+        return {
+          contents: `export default {}; export const METHODS = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD'];`,
+          loader: 'js'
+        };
+      }
+      
+      if (args.path === 'events') {
+        return {
+          contents: `export default class EventEmitter { constructor() {} on() { return this; } emit() { return true; } }`,
+          loader: 'js'
+        };
+      }
+      
+      if (args.path === 'zlib') {
+        return {
+          contents: `export default {}; export const createGunzip = () => ({ pipe: () => {} }); export const createGzip = () => ({ pipe: () => {} });`,
+          loader: 'js'
+        };
+      }
+      
+      if (args.path === 'net') {
+        return {
+          contents: `export default {}; export const isIP = () => false;`,
+          loader: 'js'
+        };
+      }
+      
       // Default empty implementation
       return {
         contents: `export default {}; export const ${args.path} = {};`,
@@ -55,17 +83,49 @@ const buildInsPlugin = {
   }
 };
 
+// External dependencies plugin
+const externalPlugin = {
+  name: 'external-deps',
+  setup(build) {
+    // Mark these packages as external (they won't be bundled)
+    const externals = [
+      'express-validator',
+      'nodemailer',
+      'multer',
+      'express',
+      'body-parser'
+    ];
+
+    externals.forEach(pkg => {
+      build.onResolve({ filter: new RegExp(`^${pkg}$`) }, args => {
+        return {
+          path: args.path,
+          external: true
+        };
+      });
+    });
+  }
+};
+
 // Run the build
 esbuild.build({
-  entryPoints: ['worker-entry.js'],
+  entryPoints: ['src/worker-server.ts'],
   bundle: true,
-  outdir: 'dist',
+  outfile: 'dist/worker-server.js',
   platform: 'browser',
   format: 'esm',
   sourcemap: true,
   target: ['es2020'],
+  external: [
+    'express-validator',
+    'nodemailer', 
+    'multer',
+    'express',
+    'body-parser'
+  ],
   plugins: [
     buildInsPlugin,
+    externalPlugin,
     copy({
       assets: [
         {
@@ -79,8 +139,9 @@ esbuild.build({
     js: `
       // This file contains polyfills and enhanced compatibility functions for Workers
       // Don't import Buffer in Cloudflare Workers, use a polyfill instead
-      const Buffer = { isBuffer: () => false };
-      globalThis.Buffer = Buffer;
+      if (typeof globalThis.Buffer === 'undefined') {
+        globalThis.Buffer = { isBuffer: () => false };
+      }
       
       // Comprehensive process polyfill for Cloudflare Workers
       if (typeof globalThis.process === 'undefined') {

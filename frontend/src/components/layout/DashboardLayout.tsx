@@ -177,6 +177,13 @@ const navigation: NavItem[] = [
     description: 'Manage Properties'
   },
   { 
+    name: 'Managers', 
+    href: '/managers', 
+    icon: Users,
+    description: 'Team Management',
+    badge: 5 // Active managers count
+  },
+  { 
     name: 'Units', 
     href: '/units', 
     icon: Home,

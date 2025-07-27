@@ -2,16 +2,23 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
 import { prettyJSON } from 'hono/pretty-json';
+import { timing } from 'hono/timing';
+import { secureHeaders } from 'hono/secure-headers';
+import { compress } from 'hono/compress';
+import { etag } from 'hono/etag';
+import { cache } from 'hono/cache';
+import { PrismaClient } from '@prisma/client';
 import { createClient } from '@supabase/supabase-js';
-import bcrypt from 'bcryptjs';
+import * as bcrypt from 'bcryptjs';
 import { SignJWT, jwtVerify } from 'jose';
 import { z } from 'zod';
 import { getSupabaseClient } from './utils/supabase';
-import { unitController } from './controllers/UnitController';
-import { tenantController } from './controllers/TenantController';
-import { paymentController } from './controllers/PaymentController';
-import { maintenanceController } from './controllers/MaintenanceController';
-import { reportsController } from './controllers/ReportsController';
+
+// Initialize Hono app
+const app = new Hono<{ Bindings: Env; Variables: Variables }>();
+
+// Initialize Prisma
+const prisma = new PrismaClient();
 
 // Types
 type Env = {
@@ -20,6 +27,11 @@ type Env = {
   NODE_ENV?: string;
   SUPABASE_URL?: string;
   SUPABASE_ANON_KEY?: string;
+  R2_BUCKET_NAME?: string;
+  R2_ACCESS_KEY_ID?: string;
+  R2_SECRET_ACCESS_KEY?: string;
+  R2_ENDPOINT?: string;
+  R2_PUBLIC_URL?: string;
 };
 
 type Variables = {
@@ -30,163 +42,169 @@ type Variables = {
   };
 };
 
-// Initialize Hono app
-const app = new Hono<{ Bindings: Env; Variables: Variables }>();
-
 // JWT helper functions
 async function createJWT(payload: any, secret: string) {
+  console.log('[DEBUG] Creating JWT with payload:', payload);
   const jwt = await new SignJWT(payload)
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('24h')
     .sign(new TextEncoder().encode(secret));
+  console.log('[DEBUG] JWT created successfully');
   return jwt;
 }
 
 async function verifyJWT(token: string, secret: string) {
+  console.log('[DEBUG] Verifying JWT token');
   const { payload } = await jwtVerify(token, new TextEncoder().encode(secret));
+  console.log('[DEBUG] JWT verified, payload:', payload);
   return payload;
 }
 
 // Middleware
 app.use('*', logger());
 app.use('*', prettyJSON());
+app.use('*', timing());
+app.use('*', secureHeaders());
+// app.use('*', compress()); // Temporarily disabled to fix binary response issue
+app.use('*', etag());
+
+// CORS - Updated to include app.ormi.com with better debugging
 app.use('*', cors({
-  origin: ['https://app.ormi.com', 'http://localhost:3000'],
+  origin: [
+    'http://localhost:3000', 
+    'https://54e00dfc.ormi.pages.dev', 
+    'https://8bcc0d90.ormi.pages.dev',
+    'https://afb69844.ormi.pages.dev',
+    'https://74ad4bfd.ormi.pages.dev',
+    'https://ormi.pages.dev',
+    'https://app.ormi.com',
+    'https://ormi.com'
+  ],
+  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowHeaders: ['Content-Type', 'Authorization', 'authorization', 'X-Requested-With'],
   credentials: true,
+  maxAge: 86400,
 }));
+
+// No cache middleware - handle caching manually per endpoint
 
 // Auth middleware
 const authMiddleware = async (c: any, next: any) => {
+  console.log('[DEBUG] Auth middleware called');
   const authHeader = c.req.header('Authorization');
+  console.log('[DEBUG] Auth header:', authHeader);
   
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    console.log('[DEBUG] No valid auth header found');
     return c.json({ error: 'Authorization header is required' }, 401);
   }
 
   const token = authHeader.substring(7);
+  console.log('[DEBUG] Token extracted:', token.substring(0, 20) + '...');
   const jwtSecret = c.env.JWT_SECRET || process.env.JWT_SECRET;
+  console.log('[DEBUG] JWT secret available:', !!jwtSecret);
   
   if (!jwtSecret) {
+    console.log('[DEBUG] JWT secret not configured');
     return c.json({ error: 'JWT secret not configured' }, 500);
   }
 
   try {
     const decoded = await verifyJWT(token, jwtSecret);
+    console.log('[DEBUG] Token decoded successfully:', decoded);
     c.set('user', decoded);
     await next();
   } catch (error) {
+    console.error('[DEBUG] Token verification failed:', error);
     return c.json({ error: 'Invalid token' }, 401);
   }
 };
 
 // Health check endpoint
-app.get('/api/health', (c) => {
+app.get('/', (c) => {
+  console.log('[DEBUG] Root endpoint called');
   return c.json({ 
-    status: 'healthy', 
+    message: 'ORMI Property Management API',
+    version: '1.0.0',
+    status: 'healthy',
     timestamp: new Date().toISOString(),
     environment: c.env.NODE_ENV || 'development'
   });
 });
 
-// Health check endpoint (alternative)
-app.get('/health', (c) => {
-  return c.json({ 
-    status: 'OK', 
-    timestamp: new Date().toISOString(),
-    version: '1.0.0'
-  });
+// Ping route for deployment verification
+app.get('/api/ping', (c) => {
+  console.log('[DEBUG] Ping endpoint called');
+  return c.text('pong-ormi-database-auth-debug-' + Date.now());
 });
 
-// Test endpoint for debugging
-app.post('/api/test-auth', async (c) => {
+// Auth routes (no auth required)
+app.post('/api/auth/login', async (c) => {
+  console.log('[DEBUG] ===== LOGIN ENDPOINT CALLED =====');
   try {
     const body = await c.req.json();
-    return c.json({ 
-      message: 'Test endpoint working',
-      receivedData: body,
-      hasJWTSecret: !!c.env.JWT_SECRET,
-      hasDatabaseURL: !!c.env.DATABASE_URL
-    });
-  } catch (error) {
-    return c.json({ error: String(error) }, 500);
-  }
-});
+    const { email, password } = body;
+    console.log('[DEBUG] Login attempt for email:', email);
+    console.log('[DEBUG] Password provided:', password ? 'YES' : 'NO');
 
-// Test database connection
-app.get('/api/test-db', async (c) => {
-  try {
-    const supabase = getSupabaseClient(c.env);
-    const { data, error } = await supabase
-      .from('users')
-      .select('count')
-      .single();
-      
-    if (error) {
-      return c.json({ 
-        message: 'Database connection working but no users table found',
-        error: error.message,
-        supabaseConfigured: true 
-      });
+    if (!email || !password) {
+      console.log('[DEBUG] Missing email or password');
+      return c.json({ error: 'Email and password are required' }, 400);
     }
-    
-    return c.json({ 
-      message: 'Database connection working',
-      userCount: data?.count || 0,
-      supabaseConfigured: true
-    });
-  } catch (error) {
-    return c.json({ error: String(error) }, 500);
-  }
-});
 
-// Authentication routes
-app.post('/api/auth/register', async (c) => {
-  try {
+    console.log('[DEBUG] Getting Supabase client...');
     const supabase = getSupabaseClient(c.env);
-    const body = await c.req.json();
-    const { email, password, firstName, lastName } = body;
+    console.log('[DEBUG] Supabase client created');
     
-    // Validate input
-    if (!email || !password || !firstName || !lastName) {
-      return c.json({ error: 'Email, password, firstName, and lastName are required' }, 400);
-    }
-    
-    // TEMPORARY: Store plain text password for testing
-    const storedPassword = password;
-    
-    // Create user in database
+    console.log('[DEBUG] Querying database for user...');
+    // Find user
     const { data: user, error } = await supabase
       .from('users')
-      .insert([
-        {
-          email,
-          password: storedPassword,
-          firstName: firstName,
-          lastName: lastName,
-          role: 'ADMIN'
-        }
-      ])
-      .select()
+      .select('*')
+      .eq('email', email)
       .single();
     
-    if (error) {
-      if (error.code === '23505') { // Unique constraint violation
-        return c.json({ error: 'User already exists' }, 400);
-      }
-      return c.json({ error: 'Failed to create user' }, 500);
+    console.log('[DEBUG] Database query result:');
+    console.log('[DEBUG] - User found:', !!user);
+    console.log('[DEBUG] - Error:', error);
+    console.log('[DEBUG] - User data:', user ? { id: user.id, email: user.email, role: user.role } : 'null');
+
+    if (error || !user) {
+      console.log('[DEBUG] User not found in DB or error occurred');
+      return c.json({ error: 'Invalid credentials' }, 401);
     }
+
+    console.log('[DEBUG] Checking password...');
+    console.log('[DEBUG] - Provided password:', password);
+    console.log('[DEBUG] - Stored password:', user.password);
     
+    // Check password against database value
+    const isValidPassword = password === user.password;
+    console.log('[DEBUG] Password validation result:', isValidPassword);
+
+    if (!isValidPassword) {
+      console.log('[DEBUG] Invalid password - authentication failed');
+      return c.json({ error: 'Invalid credentials' }, 401);
+    }
+
+    console.log('[DEBUG] Password valid, generating JWT...');
     // Generate JWT
     const jwtSecret = c.env.JWT_SECRET || process.env.JWT_SECRET;
+    console.log('[DEBUG] JWT secret available:', !!jwtSecret);
+    
     if (!jwtSecret) {
+      console.log('[DEBUG] JWT secret not configured');
       return c.json({ error: 'JWT secret not configured' }, 500);
     }
-    
+
     const token = await createJWT(
       { userId: user.id, email: user.email, role: user.role },
       jwtSecret
     );
+
+    console.log('[DEBUG] JWT created successfully');
+    console.log('[DEBUG] ===== LOGIN SUCCESSFUL =====');
     
     return c.json({
       success: true,
@@ -198,906 +216,298 @@ app.post('/api/auth/register', async (c) => {
         role: user.role
       },
       token
+    }, 200, {
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
     });
-    
+
   } catch (error) {
-    console.error('Registration error:', error);
+    console.error('[DEBUG] ===== LOGIN ERROR =====');
+    console.error('[DEBUG] Error details:', error);
     return c.json({ error: 'Internal server error' }, 500);
   }
 });
-
-app.post('/api/auth/login', async (c) => {
-  try {
-    const body = await c.req.json();
-    const { email, password } = body;
-    
-    if (!email || !password) {
-      return c.json({ error: 'Email and password are required' }, 400);
-    }
-    
-    // Database lookup for ALL users - NO HARDCODED PASSWORDS
-    console.log('Login attempt:', { email, password: password.substring(0, 3) + '***' });
-    
-    try {
-      const supabase = getSupabaseClient(c.env);
-      console.log('Supabase client created successfully');
-      console.log('Environment check:', { 
-        hasSupabaseUrl: !!c.env.SUPABASE_URL, 
-        hasSupabaseKey: !!c.env.SUPABASE_ANON_KEY 
-      });
-      
-      // Find user in database
-      const { data: user, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('email', email)
-        .single();
-      
-      console.log('Database query result:', { 
-        userFound: !!user, 
-        error: error?.message,
-        errorCode: error?.code 
-      });
-      
-      if (error) {
-        console.error('Database error details:', error);
-        return c.json({ error: 'Database error occurred' }, 500);
-      }
-      
-      if (!user) {
-        console.log('User not found in database for email:', email);
-        return c.json({ error: 'Invalid credentials' }, 401);
-      }
-      
-      console.log('User found in database:', { 
-        id: user.id,
-        email: user.email, 
-        storedPassword: user.password,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        role: user.role
-      });
-      
-      // Check password against database value ONLY
-      const isValidPassword = password === user.password;
-      console.log('Password validation:', { 
-        providedPassword: password, 
-        storedPassword: user.password, 
-        passwordsMatch: isValidPassword 
-      });
-      
-      if (!isValidPassword) {
-        console.log('Password mismatch - login failed');
-        return c.json({ error: 'Invalid credentials' }, 401);
-      }
-      
-             console.log('Login successful for user:', user.email);
-       
-       // Generate JWT - user is successfully validated
-       const jwtSecret = c.env.JWT_SECRET || process.env.JWT_SECRET;
-       if (!jwtSecret) {
-         return c.json({ error: 'JWT secret not configured' }, 500);
-       }
-       
-       const token = await createJWT(
-         { userId: user.id, email: user.email, role: user.role },
-         jwtSecret
-       );
-       
-       return c.json({
-         success: true,
-         user: {
-           id: user.id,
-           email: user.email,
-           firstName: user.firstName,
-           lastName: user.lastName,
-           role: user.role
-         },
-         token
-       });
-       
-     } catch (dbError) {
-       console.error('Database connection error:', dbError);
-       return c.json({ error: 'Database connection failed' }, 500);
-     }
-    
-  } catch (error) {
-    console.error('Login error:', error);
-    return c.json({ error: 'Internal server error' }, 500);
-  }
-});
-
-// Dashboard endpoints
-app.get('/api/dashboard', authMiddleware, async (c) => {
-  try {
-    const user = c.get('user');
-    
-    // DEMO MODE: Return mock data for demo user
-    if (user.email === 'demo@ormi.com' || user.userId === 'demo-user-123') {
-      return c.json({
-        success: true,
-        data: {
-          totalProperties: 12,
-          totalUnits: 48,
-          occupiedUnits: 42,
-          vacantUnits: 6,
-          totalTenants: 42,
-          activeTenants: 40,
-          monthlyRevenue: 125000,
-          collectedThisMonth: 118750,
-          pendingPayments: 6250,
-          overduePayments: 3200,
-          maintenanceRequests: 8,
-          urgentRequests: 2,
-          recentPayments: [
-            {
-              id: 1,
-              tenant: "John Smith",
-              unit: "A-101",
-              amount: 2500,
-              dueDate: "2024-01-01",
-              status: "paid"
-            },
-            {
-              id: 2,
-              tenant: "Sarah Johnson",
-              unit: "B-205",
-              amount: 2800,
-              dueDate: "2024-01-01",
-              status: "paid"
-            }
-          ],
-          upcomingPayments: [
-            {
-              id: 3,
-              tenant: "Mike Wilson",
-              unit: "C-302",
-              amount: 3000,
-              dueDate: "2024-01-15",
-              status: "pending"
-            }
-          ],
-          maintenanceRequestsData: [
-            {
-              id: 1,
-              unit: "A-101",
-              type: "Plumbing",
-              priority: "High",
-              status: "Open",
-              createdAt: "2024-01-10"
-            },
-            {
-              id: 2,
-              unit: "B-205",
-              type: "Electrical",
-              priority: "Medium",
-              status: "In Progress",
-              createdAt: "2024-01-08"
-            }
-          ]
-        }
-      });
-    }
-    
-    // Real database logic for other users
-    const supabase = getSupabaseClient(c.env);
-    
-    // Get dashboard data
-    const [
-      { data: properties, error: propertiesError },
-      { data: units, error: unitsError },
-      { data: payments, error: paymentsError },
-      { data: maintenanceRequests, error: maintenanceError }
-    ] = await Promise.all([
-      supabase.from('properties').select('*'),
-      supabase.from('units').select('*'),
-      supabase.from('payments').select('*'),
-      supabase.from('maintenance_requests').select('*')
-    ]);
-    
-    if (propertiesError || unitsError || paymentsError || maintenanceError) {
-      return c.json({ error: 'Failed to fetch dashboard data' }, 500);
-    }
-    
-    // Calculate metrics
-    const totalProperties = properties?.length || 0;
-    const totalUnits = units?.length || 0;
-    const occupiedUnits = units?.filter(unit => unit.status === 'OCCUPIED').length || 0;
-    const vacantUnits = totalUnits - occupiedUnits;
-    
-    const monthlyRevenue = payments?.reduce((sum, payment) => sum + payment.amount, 0) || 0;
-    const collectedThisMonth = payments?.filter(p => p.status === 'PAID').reduce((sum, p) => sum + p.amount, 0) || 0;
-    const pendingPayments = payments?.filter(p => p.status === 'PENDING').reduce((sum, p) => sum + p.amount, 0) || 0;
-    const overduePayments = payments?.filter(p => p.status === 'OVERDUE').reduce((sum, p) => sum + p.amount, 0) || 0;
-    
-    const maintenanceRequestsCount = maintenanceRequests?.length || 0;
-    const urgentRequests = maintenanceRequests?.filter(r => r.priority === 'HIGH').length || 0;
-    
-    return c.json({
-      success: true,
-      data: {
-        totalProperties,
-        totalUnits,
-        occupiedUnits,
-        vacantUnits,
-        totalTenants: occupiedUnits, // Assuming 1 tenant per occupied unit
-        activeTenants: occupiedUnits,
-        monthlyRevenue,
-        collectedThisMonth,
-        pendingPayments,
-        overduePayments,
-        maintenanceRequests: maintenanceRequestsCount,
-        urgentRequests,
-        recentPayments: payments?.slice(0, 5) || [],
-        upcomingPayments: payments?.filter(p => p.status === 'PENDING').slice(0, 5) || [],
-        maintenanceRequestsData: maintenanceRequests?.slice(0, 5) || []
-      }
-    });
-    
-  } catch (error) {
-    console.error('Dashboard error:', error);
-    return c.json({ error: 'Internal server error' }, 500);
-  }
-});
-
-// Dashboard metrics endpoint (alias for dashboard)
-app.get('/api/dashboard/metrics', authMiddleware, async (c) => {
-  try {
-    const user = c.get('user');
-    
-    // DEMO MODE: Return mock data for demo user
-    if (user.email === 'demo@ormi.com' || user.userId === 'demo-user-123') {
-      return c.json({
-        totalProperties: 12,
-        totalUnits: 48,
-        activeLeases: 42,
-        totalTenants: 42,
-        upcomingRentPayments: 8,
-        overdueRents: 3,
-        openMaintenanceRequests: 5,
-        monthlyRevenue: 125000
-      });
-    }
-    
-    // Real database logic would go here
-    return c.json({
-      totalProperties: 0,
-      totalUnits: 0,
-      activeLeases: 0,
-      totalTenants: 0,
-      upcomingRentPayments: 0,
-      overdueRents: 0,
-      openMaintenanceRequests: 0,
-      monthlyRevenue: 0
-    });
-  } catch (error) {
-    console.error('Dashboard metrics error:', error);
-    return c.json({ error: 'Internal server error' }, 500);
-  }
-});
-
-// Properties endpoints
-app.get('/api/properties', authMiddleware, async (c) => {
-  try {
-    const user = c.get('user');
-    
-    // DEMO MODE: Return mock data for demo user
-    if (user.email === 'demo@ormi.com' || user.userId === 'demo-user-123') {
-      return c.json({
-        success: true,
-        data: [
-          {
-            id: '1',
-            name: 'Sunset Apartments',
-            address: '123 Main Street, Downtown',
-            city: 'San Francisco',
-            state: 'CA',
-            zipCode: '94105',
-            type: 'Apartment',
-            units: 24,
-            occupiedUnits: 22,
-            vacantUnits: 2,
-            occupancyRate: 91.7,
-            monthlyRevenue: 72000,
-            yearBuilt: 2015,
-            squareFeet: 850,
-            amenities: ['Pool', 'Gym', 'Parking', 'Laundry'],
-            manager: 'John Manager',
-            status: 'Active'
-          },
-          {
-            id: '2',
-            name: 'Oak Grove Condos',
-            address: '456 Oak Avenue, Midtown',
-            city: 'San Francisco',
-            state: 'CA',
-            zipCode: '94102',
-            type: 'Condo',
-            units: 18,
-            occupiedUnits: 16,
-            vacantUnits: 2,
-            occupancyRate: 88.9,
-            monthlyRevenue: 48000,
-            yearBuilt: 2018,
-            squareFeet: 1200,
-            amenities: ['Rooftop Deck', 'Concierge', 'Pet Friendly'],
-            manager: 'Sarah Manager',
-            status: 'Active'
-          },
-          {
-            id: '3',
-            name: 'Garden View Townhomes',
-            address: '789 Garden Lane, Suburbs',
-            city: 'San Francisco',
-            state: 'CA',
-            zipCode: '94110',
-            type: 'Townhome',
-            units: 12,
-            occupiedUnits: 10,
-            vacantUnits: 2,
-            occupancyRate: 83.3,
-            monthlyRevenue: 36000,
-            yearBuilt: 2020,
-            squareFeet: 1500,
-            amenities: ['Garden', 'Garage', 'Patio'],
-            manager: 'Mike Manager',
-            status: 'Active'
-          }
-        ]
-      });
-    }
-    
-    // Real database logic would go here
-    return c.json({ success: true, data: [] });
-  } catch (error) {
-    console.error('Properties error:', error);
-    return c.json({ error: 'Internal server error' }, 500);
-  }
-});
-
-app.post('/api/properties', authMiddleware, async (c) => {
-  try {
-    const supabase = getSupabaseClient(c.env);
-    const user = c.get('user') as any;
-    const body = await c.req.json();
-    
-    const { name, address, city, state, zipCode, units = 1 } = body;
-    
-    if (!name || !address || !city || !state || !zipCode) {
-      return c.json({ error: 'Name, address, city, state, and zipCode are required' }, 400);
-    }
-    
-    // Create property
-    const { data: property, error } = await supabase
-      .from('properties')
-      .insert([
-        {
-          name,
-          address,
-          city,
-          state,
-          zip_code: zipCode,
-          owner_id: user.userId
-        }
-      ])
-      .select()
-      .single();
-    
-    if (error) {
-      console.error('Property creation error:', error);
-      return c.json({ error: 'Failed to create property' }, 500);
-    }
-    
-    // Create units for the property
-    const unitsData = [];
-    for (let i = 1; i <= units; i++) {
-      unitsData.push({
-        unit_number: i.toString(),
-        property_id: property.id,
-        monthly_rent: 0,
-        security_deposit: 0,
-        lease_status: 'VACANT'
-      });
-    }
-    
-    const { error: unitsError } = await supabase
-      .from('units')
-      .insert(unitsData);
-    
-    if (unitsError) {
-      console.error('Units creation error:', unitsError);
-      // Property was created but units failed - you might want to handle this differently
-    }
-    
-    return c.json(property);
-    
-  } catch (error) {
-    console.error('Property creation error:', error);
-    return c.json({ error: 'Internal server error' }, 500);
-  }
-});
-
-// Units endpoints
-app.get('/api/units', authMiddleware, async (c) => {
-  try {
-    const user = c.get('user');
-    
-    // DEMO MODE: Return mock data for demo user
-    if (user.email === 'demo@ormi.com' || user.userId === 'demo-user-123') {
-      return c.json({
-        success: true,
-        data: [
-          {
-            id: '1',
-            number: 'A-101',
-            property: {
-              id: '1',
-              name: 'Sunset Apartments',
-              address: '123 Main Street'
-            },
-            type: '1 Bedroom',
-            squareFeet: 850,
-            monthlyRent: 3200,
-            status: 'Occupied',
-            tenant: {
-              id: '1',
-              name: 'John Smith',
-              email: 'john.smith@email.com',
-              phone: '+1 (555) 123-4567'
-            },
-            leaseEnd: '2024-06-01',
-            moveInDate: '2023-06-01',
-            lastRenovation: '2023-01-15',
-            amenities: ['Balcony', 'Dishwasher', 'Air Conditioning'],
-            notes: 'Recently renovated kitchen'
-          },
-          {
-            id: '2',
-            number: 'B-205',
-            property: {
-              id: '2',
-              name: 'Oak Grove Condos',
-              address: '456 Oak Avenue'
-            },
-            type: '2 Bedroom',
-            squareFeet: 1200,
-            monthlyRent: 2800,
-            status: 'Occupied',
-            tenant: {
-              id: '2',
-              name: 'Sarah Johnson',
-              email: 'sarah.johnson@email.com',
-              phone: '+1 (555) 234-5678'
-            },
-            leaseEnd: '2024-09-01',
-            moveInDate: '2023-09-01',
-            lastRenovation: '2023-05-20',
-            amenities: ['Balcony', 'Washer/Dryer', 'Fireplace'],
-            notes: 'Great city view'
-          },
-          {
-            id: '3',
-            number: 'C-302',
-            property: {
-              id: '1',
-              name: 'Sunset Apartments',
-              address: '123 Main Street'
-            },
-            type: '2 Bedroom',
-            squareFeet: 1100,
-            monthlyRent: 3000,
-            status: 'Occupied',
-            tenant: {
-              id: '3',
-              name: 'Michael Wilson',
-              email: 'mike.wilson@email.com',
-              phone: '+1 (555) 345-6789'
-            },
-            leaseEnd: '2024-04-01',
-            moveInDate: '2023-04-01',
-            lastRenovation: '2022-12-10',
-            amenities: ['Balcony', 'Dishwasher', 'Hardwood Floors'],
-            notes: 'Lease expiring soon'
-          },
-          {
-            id: '4',
-            number: 'D-101',
-            property: {
-              id: '2',
-              name: 'Oak Grove Condos',
-              address: '456 Oak Avenue'
-            },
-            type: '1 Bedroom',
-            squareFeet: 900,
-            monthlyRent: 2500,
-            status: 'Vacant',
-            tenant: null,
-            leaseEnd: null,
-            moveInDate: null,
-            lastRenovation: '2024-01-05',
-            amenities: ['Balcony', 'Washer/Dryer', 'Modern Kitchen'],
-            notes: 'Ready for new tenant, recently renovated'
-          }
-        ]
-      });
-    }
-    
-    // Real database logic would go here
-    return c.json({ success: true, data: [] });
-  } catch (error) {
-    console.error('Units error:', error);
-    return c.json({ error: 'Internal server error' }, 500);
-  }
-});
-
-// Tenants endpoints
-app.get('/api/tenants', authMiddleware, async (c) => {
-  try {
-    const user = c.get('user');
-    
-    // DEMO MODE: Return mock data for demo user
-    if (user.email === 'demo@ormi.com' || user.userId === 'demo-user-123') {
-      return c.json({
-        success: true,
-        data: [
-          {
-            id: '1',
-            firstName: 'John',
-            lastName: 'Smith',
-            email: 'john.smith@email.com',
-            phone: '+1 (555) 123-4567',
-            status: 'Active',
-            unit: {
-              id: '1',
-              number: 'A-101',
-              property: {
-                id: '1',
-                name: 'Sunset Apartments',
-                address: '123 Main Street'
-              }
-            },
-            lease: {
-              startDate: '2023-06-01',
-              endDate: '2024-06-01',
-              monthlyRent: 3200,
-              securityDeposit: 3200,
-              status: 'Active'
-            },
-            balance: 0,
-            lastPayment: {
-              date: '2024-01-01',
-              amount: 3200
-            },
-            moveInDate: '2023-06-01',
-            emergencyContact: {
-              name: 'Jane Smith',
-              phone: '+1 (555) 987-6543',
-              relationship: 'Spouse'
-            },
-            notes: 'Excellent tenant, always pays on time',
-            rating: 4.9,
-            maintenanceRequests: 2,
-            paymentHistory: {
-              onTime: 8,
-              late: 0,
-              total: 8
-            }
-          },
-          {
-            id: '2',
-            firstName: 'Sarah',
-            lastName: 'Johnson',
-            email: 'sarah.johnson@email.com',
-            phone: '+1 (555) 234-5678',
-            status: 'Late',
-            unit: {
-              id: '2',
-              number: 'B-205',
-              property: {
-                id: '2',
-                name: 'Oak Grove Condos',
-                address: '456 Oak Avenue'
-              }
-            },
-            lease: {
-              startDate: '2023-09-01',
-              endDate: '2024-09-01',
-              monthlyRent: 2800,
-              securityDeposit: 2800,
-              status: 'Active'
-            },
-            balance: -150,
-            lastPayment: {
-              date: '2023-12-15',
-              amount: 2800
-            },
-            moveInDate: '2023-09-01',
-            emergencyContact: {
-              name: 'Robert Johnson',
-              phone: '+1 (555) 876-5432',
-              relationship: 'Father'
-            },
-            rating: 4.2,
-            maintenanceRequests: 0,
-            paymentHistory: {
-              onTime: 3,
-              late: 1,
-              total: 4
-            }
-          },
-          {
-            id: '3',
-            firstName: 'Michael',
-            lastName: 'Wilson',
-            email: 'mike.wilson@email.com',
-            phone: '+1 (555) 345-6789',
-            status: 'Active',
-            unit: {
-              id: '3',
-              number: 'C-302',
-              property: {
-                id: '1',
-                name: 'Sunset Apartments',
-                address: '123 Main Street'
-              }
-            },
-            lease: {
-              startDate: '2023-04-01',
-              endDate: '2024-04-01',
-              monthlyRent: 3000,
-              securityDeposit: 3000,
-              status: 'Expiring Soon'
-            },
-            balance: 0,
-            lastPayment: {
-              date: '2024-01-01',
-              amount: 3000
-            },
-            moveInDate: '2023-04-01',
-            rating: 4.7,
-            maintenanceRequests: 1,
-            paymentHistory: {
-              onTime: 9,
-              late: 0,
-              total: 9
-            }
-          }
-        ]
-      });
-    }
-    
-    // Real database logic would go here
-    return c.json({ success: true, data: [] });
-  } catch (error) {
-    console.error('Tenants error:', error);
-    return c.json({ error: 'Internal server error' }, 500);
-  }
-});
-
-// Payments endpoints
-app.get('/api/payments', authMiddleware, async (c) => {
-  try {
-    const user = c.get('user');
-    
-    // DEMO MODE: Return mock data for demo user
-    if (user.email === 'demo@ormi.com' || user.userId === 'demo-user-123') {
-      return c.json({
-        success: true,
-        data: [
-          {
-            id: '1',
-            tenant: {
-              id: '1',
-              name: 'John Smith',
-              email: 'john.smith@email.com'
-            },
-            unit: {
-              id: '1',
-              number: 'A-101',
-              property: 'Sunset Apartments'
-            },
-            amount: 3200,
-            type: 'Rent',
-            method: 'ACH',
-            status: 'Paid',
-            dueDate: '2024-01-01',
-            paidDate: '2024-01-01',
-            transactionId: 'TXN-001',
-            notes: 'On time payment'
-          },
-          {
-            id: '2',
-            tenant: {
-              id: '2',
-              name: 'Sarah Johnson',
-              email: 'sarah.johnson@email.com'
-            },
-            unit: {
-              id: '2',
-              number: 'B-205',
-              property: 'Oak Grove Condos'
-            },
-            amount: 2800,
-            type: 'Rent',
-            method: 'Check',
-            status: 'Overdue',
-            dueDate: '2024-01-01',
-            paidDate: null,
-            transactionId: null,
-            notes: 'Payment 5 days overdue'
-          },
-          {
-            id: '3',
-            tenant: {
-              id: '3',
-              name: 'Michael Wilson',
-              email: 'mike.wilson@email.com'
-            },
-            unit: {
-              id: '3',
-              number: 'C-302',
-              property: 'Sunset Apartments'
-            },
-            amount: 3000,
-            type: 'Rent',
-            method: 'Online',
-            status: 'Paid',
-            dueDate: '2024-01-01',
-            paidDate: '2023-12-30',
-            transactionId: 'TXN-003',
-            notes: 'Early payment'
-          }
-        ]
-      });
-    }
-    
-    // Real database logic would go here
-    return c.json({ success: true, data: [] });
-  } catch (error) {
-    console.error('Payments error:', error);
-    return c.json({ error: 'Internal server error' }, 500);
-  }
-});
-
-// Maintenance endpoints
-app.get('/api/maintenance', authMiddleware, async (c) => {
-  try {
-    const user = c.get('user');
-    
-    // DEMO MODE: Return mock data for demo user
-    if (user.email === 'demo@ormi.com' || user.userId === 'demo-user-123') {
-      return c.json({
-        success: true,
-        data: [
-          {
-            id: '1',
-            title: 'Kitchen faucet leak',
-            description: 'Water dripping from kitchen faucet, needs repair',
-            property: {
-              id: '1',
-              name: 'Sunset Apartments'
-            },
-            unit: {
-              id: '1',
-              number: 'A-101'
-            },
-            tenant: {
-              id: '1',
-              name: 'John Smith',
-              email: 'john.smith@email.com',
-              phone: '+1 (555) 123-4567'
-            },
-            type: 'Plumbing',
-            priority: 'High',
-            status: 'In Progress',
-            requestDate: '2024-01-10',
-            scheduledDate: '2024-01-12',
-            completedDate: null,
-            assignedTo: 'Bob Plumber',
-            estimatedCost: 150,
-            actualCost: null,
-            notes: 'Ordered new faucet, will install tomorrow',
-            images: []
-          },
-          {
-            id: '2',
-            title: 'HVAC not working',
-            description: 'Heating system not responding, tenant reports cold apartment',
-            property: {
-              id: '2',
-              name: 'Oak Grove Condos'
-            },
-            unit: {
-              id: '2',
-              number: 'B-205'
-            },
-            tenant: {
-              id: '2',
-              name: 'Sarah Johnson',
-              email: 'sarah.johnson@email.com',
-              phone: '+1 (555) 234-5678'
-            },
-            type: 'HVAC',
-            priority: 'Urgent',
-            status: 'Open',
-            requestDate: '2024-01-08',
-            scheduledDate: '2024-01-09',
-            completedDate: null,
-            assignedTo: 'HVAC Specialists Inc',
-            estimatedCost: 350,
-            actualCost: null,
-            notes: 'Emergency repair needed',
-            images: []
-          },
-          {
-            id: '3',
-            title: 'Light bulb replacement',
-            description: 'Multiple light bulbs in common area need replacement',
-            property: {
-              id: '1',
-              name: 'Sunset Apartments'
-            },
-            unit: null,
-            tenant: null,
-            type: 'Electrical',
-            priority: 'Low',
-            status: 'Completed',
-            requestDate: '2024-01-05',
-            scheduledDate: '2024-01-06',
-            completedDate: '2024-01-06',
-            assignedTo: 'Maintenance Team',
-            estimatedCost: 50,
-            actualCost: 45,
-            notes: 'Replaced 6 LED bulbs in lobby and hallways',
-            images: []
-          }
-        ]
-      });
-    }
-    
-    // Real database logic would go here
-    return c.json({ success: true, data: [] });
-  } catch (error) {
-    console.error('Maintenance error:', error);
-    return c.json({ error: 'Internal server error' }, 500);
-  }
-});
-
-// Reports endpoints
-app.get('/api/reports/rent-roll', authMiddleware, reportsController.getRentRoll.bind(reportsController));
-app.get('/api/reports/payment-history', authMiddleware, reportsController.getPaymentHistory.bind(reportsController));
-app.get('/api/reports/maintenance-log', authMiddleware, reportsController.getMaintenanceLog.bind(reportsController));
-app.get('/api/reports/financial-summary', authMiddleware, reportsController.getFinancialSummary.bind(reportsController));
-app.get('/api/reports/vacancy', authMiddleware, reportsController.getVacancyReport.bind(reportsController));
-app.get('/api/reports/lease-expiration', authMiddleware, reportsController.getLeaseExpirationReport.bind(reportsController));
 
 // User profile endpoint
 app.get('/api/users/profile', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== PROFILE ENDPOINT CALLED =====');
   try {
     const user = c.get('user');
+    console.log('[DEBUG] User from context:', user);
     
-    // Return user profile information
+    console.log('[DEBUG] Getting Supabase client for profile...');
+    const supabase = getSupabaseClient(c.env);
+    
+    console.log('[DEBUG] Querying database for user profile...');
+    const { data: dbUser, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', user.email)
+      .single();
+    
+    console.log('[DEBUG] Profile query result:');
+    console.log('[DEBUG] - User found:', !!dbUser);
+    console.log('[DEBUG] - Error:', error);
+    
+    if (error || !dbUser) {
+      console.log('[DEBUG] User not found in DB for profile');
+      return c.json({ error: 'User not found' }, 404);
+    }
+    
+    console.log('[DEBUG] ===== PROFILE SUCCESSFUL =====');
     return c.json({
       success: true,
       user: {
-        id: user.userId,
-        email: user.email,
-        firstName: user.email === 'demo@ormi.com' ? 'Demo' : 'User',
-        lastName: user.email === 'demo@ormi.com' ? 'User' : 'Name',
-        role: user.role,
-        phoneNumber: user.email === 'demo@ormi.com' ? '+1 (555) 123-4567' : null,
-        avatar: null
+        id: dbUser.id,
+        email: dbUser.email,
+        firstName: dbUser.firstName,
+        lastName: dbUser.lastName,
+        role: dbUser.role,
+        phoneNumber: dbUser.phoneNumber,
+        avatar: dbUser.avatar
       }
     });
   } catch (error) {
-    console.error('Profile error:', error);
+    console.error('[DEBUG] ===== PROFILE ERROR =====');
+    console.error('[DEBUG] Error details:', error);
     return c.json({ error: 'Internal server error' }, 500);
   }
 });
 
-// Catch-all for unmatched routes
-app.all('*', (c) => {
-  return c.json({ error: 'Route not found' }, 404);
+// Dashboard endpoint
+app.get('/api/dashboard', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== DASHBOARD ENDPOINT CALLED =====');
+  try {
+    const user = c.get('user');
+    console.log('[DEBUG] User from context:', user);
+    
+    console.log('[DEBUG] Getting Supabase client for dashboard...');
+    const supabase = getSupabaseClient(c.env);
+    
+    // Get properties count
+    const { data: properties, error: propertiesError } = await supabase
+      .from('properties')
+      .select('id');
+    
+    // Get units count
+    const { data: units, error: unitsError } = await supabase
+      .from('units')
+      .select('id');
+    
+    // Get tenants count (users with role TENANT)
+    const { data: tenants, error: tenantsError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('role', 'TENANT');
+    
+    // Get payments count
+    const { data: payments, error: paymentsError } = await supabase
+      .from('payments')
+      .select('id');
+    
+    console.log('[DEBUG] Dashboard data query results:');
+    console.log('[DEBUG] - Properties:', properties?.length || 0);
+    console.log('[DEBUG] - Units:', units?.length || 0);
+    console.log('[DEBUG] - Tenants:', tenants?.length || 0);
+    console.log('[DEBUG] - Payments:', payments?.length || 0);
+    
+    const dashboardData = {
+      totalProperties: properties?.length || 0,
+      totalUnits: units?.length || 0,
+      totalTenants: tenants?.length || 0,
+      totalPayments: payments?.length || 0,
+      monthlyIncome: 0, // Will be calculated from payments
+      avgOccupancyRate: 0, // Will be calculated from units
+      recentActivity: [],
+      topPerformingProperty: null,
+      lowPerformingProperties: [],
+      urgentMaintenanceCount: 0,
+      leasesExpiringThisMonth: 0
+    };
+    
+    console.log('[DEBUG] ===== DASHBOARD SUCCESSFUL =====');
+    return c.json({
+      success: true,
+      data: dashboardData
+    });
+  } catch (error) {
+    console.error('[DEBUG] ===== DASHBOARD ERROR =====');
+    console.error('[DEBUG] Error details:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
 });
 
+// Properties endpoint
+app.get('/api/properties', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== PROPERTIES ENDPOINT CALLED =====');
+  try {
+    const user = c.get('user');
+    console.log('[DEBUG] User from context:', user);
+    
+    console.log('[DEBUG] Getting Supabase client for properties...');
+    const supabase = getSupabaseClient(c.env);
+    console.log('[DEBUG] Supabase client created successfully');
+    
+    // Debug: Check what environment variables are available
+    console.log('[DEBUG] Environment check:');
+    console.log('[DEBUG] - SUPABASE_URL exists:', !!c.env.SUPABASE_URL);
+    console.log('[DEBUG] - SUPABASE_ANON_KEY exists:', !!c.env.SUPABASE_ANON_KEY);
+    console.log('[DEBUG] - DATABASE_URL exists:', !!c.env.DATABASE_URL);
+    
+    // First, let's test with a simple count query like the dashboard
+    console.log('[DEBUG] Testing simple properties count query...');
+    const { data: propertiesCount, error: countError } = await supabase
+      .from('properties')
+      .select('id');
+    
+    console.log('[DEBUG] Properties count result:');
+    console.log('[DEBUG] - Count:', propertiesCount?.length || 0);
+    console.log('[DEBUG] - Error:', countError);
+    
+    if (countError) {
+      console.log('[DEBUG] Properties count error:', countError);
+      return c.json({ error: 'Failed to fetch properties count', details: countError.message }, 500);
+    }
+    
+    // If count works, try to get full data
+    console.log('[DEBUG] Testing full properties query...');
+    const { data: properties, error } = await supabase
+      .from('properties')
+      .select('*');
+    
+    console.log('[DEBUG] Properties full query result:');
+    console.log('[DEBUG] - Properties found:', properties?.length || 0);
+    console.log('[DEBUG] - Error:', error);
+    
+    if (error) {
+      console.log('[DEBUG] Properties full query error:', error);
+      return c.json({ error: 'Failed to fetch properties', details: error.message }, 500);
+    }
+    
+    console.log('[DEBUG] ===== PROPERTIES SUCCESSFUL =====');
+    return c.json({
+      success: true,
+      data: properties || [],
+      pagination: {
+        page: 1,
+        limit: 20,
+        total: properties?.length || 0,
+        pages: Math.ceil((properties?.length || 0) / 20)
+      }
+    });
+  } catch (error) {
+    console.error('[DEBUG] ===== PROPERTIES ERROR =====');
+    console.error('[DEBUG] Error details:', error);
+    return c.json({ error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' }, 500);
+  }
+});
+
+// Units endpoint
+app.get('/api/units', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== UNITS ENDPOINT CALLED =====');
+  try {
+    const user = c.get('user');
+    console.log('[DEBUG] User from context:', user);
+    
+    console.log('[DEBUG] Getting Supabase client for units...');
+    const supabase = getSupabaseClient(c.env);
+    
+    const { data: units, error } = await supabase
+      .from('units')
+      .select('*');
+    
+    console.log('[DEBUG] Units query result:');
+    console.log('[DEBUG] - Units found:', units?.length || 0);
+    console.log('[DEBUG] - Error:', error);
+    
+    if (error) {
+      console.log('[DEBUG] Units query error:', error);
+      return c.json({ error: 'Failed to fetch units' }, 500);
+    }
+    
+    console.log('[DEBUG] ===== UNITS SUCCESSFUL =====');
+    return c.json({
+      success: true,
+      data: units || []
+    });
+  } catch (error) {
+    console.error('[DEBUG] ===== UNITS ERROR =====');
+    console.error('[DEBUG] Error details:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+// Tenants endpoint
+app.get('/api/tenants', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== TENANTS ENDPOINT CALLED =====');
+  try {
+    const user = c.get('user');
+    console.log('[DEBUG] User from context:', user);
+    
+    console.log('[DEBUG] Getting Supabase client for tenants...');
+    const supabase = getSupabaseClient(c.env);
+    
+    const { data: tenants, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('role', 'TENANT');
+    
+    console.log('[DEBUG] Tenants query result:');
+    console.log('[DEBUG] - Tenants found:', tenants?.length || 0);
+    console.log('[DEBUG] - Error:', error);
+    
+    if (error) {
+      console.log('[DEBUG] Tenants query error:', error);
+      return c.json({ error: 'Failed to fetch tenants' }, 500);
+    }
+    
+    console.log('[DEBUG] ===== TENANTS SUCCESSFUL =====');
+    return c.json({
+      success: true,
+      data: tenants || []
+    });
+  } catch (error) {
+    console.error('[DEBUG] ===== TENANTS ERROR =====');
+    console.error('[DEBUG] Error details:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+// Payments endpoint
+app.get('/api/payments', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== PAYMENTS ENDPOINT CALLED =====');
+  try {
+    const user = c.get('user');
+    console.log('[DEBUG] User from context:', user);
+    
+    console.log('[DEBUG] Getting Supabase client for payments...');
+    const supabase = getSupabaseClient(c.env);
+    
+    const { data: payments, error } = await supabase
+      .from('payments')
+      .select('*');
+    
+    console.log('[DEBUG] Payments query result:');
+    console.log('[DEBUG] - Payments found:', payments?.length || 0);
+    console.log('[DEBUG] - Error:', error);
+    
+    if (error) {
+      console.log('[DEBUG] Payments query error:', error);
+      return c.json({ error: 'Failed to fetch payments' }, 500);
+    }
+    
+    console.log('[DEBUG] ===== PAYMENTS SUCCESSFUL =====');
+    return c.json({
+      success: true,
+      data: payments || []
+    });
+  } catch (error) {
+    console.error('[DEBUG] ===== PAYMENTS ERROR =====');
+    console.error('[DEBUG] Error details:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+// Export for Cloudflare Workers
 export default app; 

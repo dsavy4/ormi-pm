@@ -235,16 +235,54 @@ function getAuthHeaders(): HeadersInit {
   const token = getAuthToken();
   return {
     'Content-Type': 'application/json',
+    'Accept': 'application/json',
+    'Accept-Encoding': 'identity',
+    ...(token && { Authorization: `Bearer ${token}` }),
+  };
+}
+
+function getTenantAuthHeaders(): HeadersInit {
+  const token = getAuthToken();
+  return {
+    'Content-Type': 'application/json',
     ...(token && { Authorization: `Bearer ${token}` }),
   };
 }
 
 async function handleResponse<T>(response: Response): Promise<T> {
+  console.log('[DEBUG] handleResponse called with status:', response.status);
+  console.log('[DEBUG] Response headers:', Object.fromEntries(response.headers.entries()));
+  
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-    throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+    console.log('[DEBUG] Response not ok, trying to parse error');
+    try {
+      const errorData = await response.json();
+      console.log('[DEBUG] Error data parsed:', errorData);
+      throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+    } catch (parseError) {
+      console.log('[DEBUG] Failed to parse error response:', parseError);
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
   }
-  return response.json();
+  
+  console.log('[DEBUG] Response ok, trying to parse JSON');
+  try {
+    const text = await response.text();
+    console.log('[DEBUG] Response text (first 200 chars):', text.substring(0, 200));
+    
+    if (!text.trim()) {
+      console.log('[DEBUG] Empty response text');
+      throw new Error('Empty response from server');
+    }
+    
+    const data = JSON.parse(text);
+    console.log('[DEBUG] Successfully parsed JSON:', data);
+    return data;
+  } catch (parseError) {
+    console.error('[DEBUG] Failed to parse JSON response:', parseError);
+    console.error('[DEBUG] Response text that failed to parse:', await response.text());
+    throw new Error(`Failed to parse response: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`);
+  }
 }
 
 // Authentication API
@@ -542,7 +580,35 @@ export const propertiesApi = {
       },
       body: formData,
     });
-    return handleResponse<{ imageUrl: string }>(response);
+    return handleResponse<{ imageUrl: string; key: string; property: any }>(response);
+  },
+
+  async generateUploadUrl(propertyId: string, fileName: string, contentType: string) {
+    const response = await fetch(`${API_BASE_URL}/api/properties/${propertyId}/upload-url`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${getAuthToken()}`,
+      },
+      body: JSON.stringify({ fileName, contentType }),
+    });
+    return handleResponse<{ uploadUrl: string; key: string; publicUrl: string; expiresIn: number }>(response);
+  },
+
+  async uploadImageDirect(uploadUrl: string, file: File) {
+    const response = await fetch(uploadUrl, {
+      method: 'PUT',
+      body: file,
+      headers: {
+        'Content-Type': file.type,
+      },
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to upload image directly');
+    }
+    
+    return { success: true };
   },
 };
 
@@ -657,6 +723,272 @@ export const dashboardApi = {
 
   async getMaintenanceSummary() {
     const response = await fetch(`${API_BASE_URL}/api/dashboard/maintenance-summary`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse<any>(response);
+  },
+}; 
+
+// Tenant Portal API
+export const tenantApi = {
+  // Tenant login
+  login: async (credentials: { email: string; password: string }): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/api/tenant/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(credentials),
+    });
+    return handleResponse<any>(response);
+  },
+
+  // Get tenant dashboard
+  getDashboard: async (): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/api/tenant/dashboard`, {
+      headers: getTenantAuthHeaders(),
+    });
+    return handleResponse<any>(response);
+  },
+
+  // Get tenant profile
+  getProfile: async (): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/api/tenant/profile`, {
+      headers: getAuthHeaders(), // Use getAuthHeaders for tenant profile
+    });
+    return handleResponse<any>(response);
+  },
+
+  // Update tenant profile
+  updateProfile: async (data: any): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/api/tenant/profile`, {
+      method: 'PUT',
+      headers: getAuthHeaders(), // Use getAuthHeaders for tenant profile
+      body: JSON.stringify(data),
+    });
+    return handleResponse<any>(response);
+  },
+
+  // Get tenant payments
+  getPayments: async (): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/api/tenant/payments`, {
+      headers: getAuthHeaders(), // Use getAuthHeaders for tenant payments
+    });
+    return handleResponse<any>(response);
+  },
+
+  // Make a payment
+  makePayment: async (data: any): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/api/tenant/payments`, {
+      method: 'POST',
+      headers: getAuthHeaders(), // Use getAuthHeaders for tenant payments
+      body: JSON.stringify(data),
+    });
+    return handleResponse<any>(response);
+  },
+
+  // Get tenant maintenance requests
+  getMaintenanceRequests: async (): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/api/tenant/maintenance`, {
+      headers: getAuthHeaders(), // Use getAuthHeaders for tenant maintenance
+    });
+    return handleResponse<any>(response);
+  },
+
+  // Submit maintenance request
+  submitMaintenanceRequest: async (data: any): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/api/tenant/maintenance`, {
+      method: 'POST',
+      headers: getAuthHeaders(), // Use getAuthHeaders for tenant maintenance
+      body: JSON.stringify(data),
+    });
+    return handleResponse<any>(response);
+  },
+
+  // Document management
+  getDocuments: async (): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/api/tenant/documents`, {
+      headers: getTenantAuthHeaders(),
+    });
+    return handleResponse<any>(response);
+  },
+
+  uploadDocuments: async (files: File[]): Promise<any> => {
+    const formData = new FormData();
+    files.forEach((file) => {
+      formData.append('files', file);
+    });
+    
+    const response = await fetch(`${API_BASE_URL}/api/tenant/documents/upload`, {
+      method: 'POST',
+      headers: getTenantAuthHeaders(),
+      body: formData,
+    });
+    return handleResponse<any>(response);
+  },
+
+  // Get tenant notifications
+  getNotifications: async (): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/api/tenant/notifications`, {
+      headers: getAuthHeaders(), // Use getAuthHeaders for tenant notifications
+    });
+    return handleResponse<any>(response);
+  },
+
+  // Mark notification as read
+  markNotificationRead: async (notificationId: string): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/api/tenant/notifications/${notificationId}/read`, {
+      method: 'PUT',
+      headers: getAuthHeaders(), // Use getAuthHeaders for tenant notifications
+    });
+    return handleResponse<any>(response);
+  },
+
+  // Contact property manager
+  contactManager: async (data: any): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/api/tenant/contact-manager`, {
+      method: 'POST',
+      headers: getAuthHeaders(), // Use getAuthHeaders for tenant contact manager
+      body: JSON.stringify(data),
+    });
+    return handleResponse<any>(response);
+  },
+}; 
+
+// Managers API
+export const managersApi = {
+  // Get all managers
+  getAll: async (): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/api/managers`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse<any>(response);
+  },
+
+  // Get manager by ID
+  getById: async (id: string): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/api/managers/${id}`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse<any>(response);
+  },
+
+  // Create new manager
+  create: async (data: any): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/api/managers`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    return handleResponse<any>(response);
+  },
+
+  // Update manager
+  update: async (id: string, data: any): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/api/managers/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    return handleResponse<any>(response);
+  },
+
+  // Delete manager
+  delete: async (id: string): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/api/managers/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse<any>(response);
+  },
+
+  // Assign properties to manager
+  assignProperties: async (id: string, propertyIds: string[]): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/api/managers/${id}/assign-properties`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ propertyIds }),
+    });
+    return handleResponse<any>(response);
+  },
+
+  // Get manager performance
+  getPerformance: async (id: string): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/api/managers/${id}/performance`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse<any>(response);
+  },
+}; 
+
+// Payments API
+export const paymentsApi = {
+  // Create payment intent
+  createPaymentIntent: async (data: any): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/api/payments/create-payment-intent`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    return handleResponse<any>(response);
+  },
+
+  // Process payment
+  processPayment: async (data: any): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/api/payments/process-payment`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    return handleResponse<any>(response);
+  },
+
+  // Get payment history
+  getPaymentHistory: async (): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/api/payments/history`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse<any>(response);
+  },
+
+  // Get payment analytics
+  getPaymentAnalytics: async (): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/api/payments/analytics`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse<any>(response);
+  },
+
+  // Get payment methods
+  getPaymentMethods: async (): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/api/payments/payment-methods`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse<any>(response);
+  },
+
+  // Save payment method
+  savePaymentMethod: async (data: any): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/api/payments/payment-methods`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    return handleResponse<any>(response);
+  },
+
+  // Delete payment method
+  deletePaymentMethod: async (id: string): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/api/payments/payment-methods/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse<any>(response);
+  },
+
+  // Generate receipt
+  generateReceipt: async (paymentId: string): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/api/payments/receipts/${paymentId}`, {
       headers: getAuthHeaders(),
     });
     return handleResponse<any>(response);
