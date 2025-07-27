@@ -170,16 +170,21 @@ cd backend
 wrangler deploy
 ```
 
-## 🔐 **Authentication**
+## 🔐 **Authentication & Security**
 
-### **Demo Credentials**
-- **Email**: `demo@ormi.com`
-- **Password**: `ormi123`
+### **Default Admin Account**
+- **Email**: `admin@ormi.com`
+- **Password**: `admin123` (change immediately in production)
 
-### **API Endpoints**
-- **Auth**: `https://api.ormi.com/api/auth/login`
-- **Dashboard**: `https://api.ormi.com/api/dashboard`
-- **Properties**: `https://api.ormi.com/api/properties`
+### **Default Manager Account**
+- **Email**: `manager@ormi.com`
+- **Password**: `manager123` (change immediately in production)
+
+### **Default Tenant Accounts**
+- **Email**: `tenant1@ormi.com`
+- **Password**: `tenant123` (change immediately in production)
+- **Email**: `tenant2@ormi.com`
+- **Password**: `tenant123` (change immediately in production)
 
 ## 📊 **Performance Metrics**
 

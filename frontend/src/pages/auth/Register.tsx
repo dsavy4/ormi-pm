@@ -111,12 +111,13 @@ export function Register() {
               <div className="space-y-4">
                 <div className="p-4 bg-white/60 dark:bg-gray-800/60 rounded-lg border border-gray-200 dark:border-gray-700">
                   <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
-                    <span className="font-medium">Demo Account:</span>
+                    <span className="font-medium">Demo Credentials:</span>
                   </p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Email: demo@ormi.com<br/>
-                    Password: ormi123
-                  </p>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                    <strong>Demo Credentials:</strong><br/>
+                    Email: admin@ormi.com<br/>
+                    Password: admin123
+                  </div>
                 </div>
                 
                 <motion.div

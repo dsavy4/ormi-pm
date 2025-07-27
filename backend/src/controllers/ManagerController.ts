@@ -199,17 +199,14 @@ export class ManagerController {
         email, 
         phone, 
         role, 
-        password = 'defaultPassword123' // Would be generated or set by admin
+        password
       } = body;
 
-      if (!firstName || !lastName || !email || !role) {
-        return c.json({ error: 'First name, last name, email, and role are required' }, 400);
+      if (!firstName || !lastName || !email || !role || !password) {
+        return c.json({ error: 'First name, last name, email, role, and password are required' }, 400);
       }
 
-      // Hash password
-      const bcrypt = require('bcryptjs');
-      const hashedPassword = await bcrypt.hash(password, 12);
-
+      // Store password as plain text (as requested)
       const { data: newManager, error } = await supabase
         .from('users')
         .insert([
@@ -218,7 +215,7 @@ export class ManagerController {
             last_name: lastName,
             email: email,
             phone_number: phone,
-            password: hashedPassword,
+            password: password, // Plain text as requested
             role: role,
             is_active: true,
           }

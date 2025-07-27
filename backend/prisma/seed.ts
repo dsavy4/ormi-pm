@@ -8,10 +8,10 @@ async function main() {
   // Create users with plain text passwords (no bcrypt)
   const admin = await prisma.user.create({
     data: {
-      email: 'demo@ormi.com',
-      firstName: 'Demo',
+      email: 'admin@ormi.com',
+      firstName: 'Admin',
       lastName: 'User',
-      password: 'ormi123',
+      password: 'admin123', // This should be changed in production
       role: 'ADMIN',
       phoneNumber: '+1-555-0100',
       isActive: true,
@@ -24,7 +24,7 @@ async function main() {
       email: 'manager@ormi.com',
       firstName: 'Property',
       lastName: 'Manager',
-      password: 'manager123',
+      password: 'manager123', // This should be changed in production
       role: 'MANAGER',
       phoneNumber: '+1-555-0101',
       isActive: true,
@@ -37,7 +37,7 @@ async function main() {
       email: 'tenant1@ormi.com',
       firstName: 'John',
       lastName: 'Doe',
-      password: 'tenant123',
+      password: 'tenant123', // This should be changed in production
       role: 'TENANT',
       phoneNumber: '+1-555-0200',
       isActive: true,
@@ -50,7 +50,7 @@ async function main() {
       email: 'tenant2@ormi.com',
       firstName: 'Jane',
       lastName: 'Smith',
-      password: 'tenant123',
+      password: 'tenant123', // This should be changed in production
       role: 'TENANT',
       phoneNumber: '+1-555-0201',
       isActive: true,
