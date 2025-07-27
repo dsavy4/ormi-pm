@@ -406,6 +406,52 @@ app.get('/api/properties', authMiddleware, async (c) => {
   }
 });
 
+// Properties insights endpoint
+app.get('/api/properties/insights', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== PROPERTIES INSIGHTS ENDPOINT CALLED =====');
+  try {
+    const user = c.get('user');
+    console.log('[DEBUG] User from context:', user);
+    
+    console.log('[DEBUG] Getting Supabase client for properties insights...');
+    const supabase = getSupabaseClient(c.env);
+    
+    // Get properties for insights
+    const { data: properties, error: propertiesError } = await supabase
+      .from('properties')
+      .select('*');
+    
+    if (propertiesError) {
+      console.log('[DEBUG] Properties insights query error:', propertiesError);
+      return c.json({ error: 'Failed to fetch properties for insights' }, 500);
+    }
+    
+    // Calculate insights
+    const totalProperties = properties?.length || 0;
+    const totalUnits = properties?.reduce((sum, p) => sum + (p.totalUnits || 0), 0) || 0;
+    const totalValue = properties?.reduce((sum, p) => sum + (p.estimatedValue || 0), 0) || 0;
+    const avgOccupancy = properties?.reduce((sum, p) => sum + (p.occupancyRate || 0), 0) / totalProperties || 0;
+    
+    console.log('[DEBUG] ===== PROPERTIES INSIGHTS SUCCESSFUL =====');
+    return c.json({
+      success: true,
+      data: {
+        totalProperties,
+        totalUnits,
+        totalValue,
+        avgOccupancy: Math.round(avgOccupancy * 100) / 100,
+        occupancyTrend: 'up',
+        revenueTrend: 'up',
+        maintenanceTrend: 'down'
+      }
+    });
+  } catch (error) {
+    console.error('[DEBUG] ===== PROPERTIES INSIGHTS ERROR =====');
+    console.error('[DEBUG] Error details:', error);
+    return c.json({ error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' }, 500);
+  }
+});
+
 // Units endpoint
 app.get('/api/units', authMiddleware, async (c) => {
   console.log('[DEBUG] ===== UNITS ENDPOINT CALLED =====');

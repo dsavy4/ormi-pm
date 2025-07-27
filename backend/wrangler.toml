@@ -10,6 +10,8 @@ compatibility_flags = ["nodejs_compat"]
 [vars]
 NODE_ENV = "production"
 ENVIRONMENT = "production"
+SUPABASE_URL = "https://kmhmgutrhkzjnsgifsrl.supabase.co"
+SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImttaG1ndXRyaGt6am5zZ2lmc3JsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1MDYwNTYsImV4cCI6MjA2NzA4MjA1Nn0.Yeg2TBq3K9jddh-LQFHadr1rv_GaYS-SBVTfnZS6z3c"
 
 # Workers Logs configuration
 [observability]
@@ -47,7 +49,11 @@ routes = []
 name = "ormi-api-dev"
 workers_dev = true
 routes = []
-vars = { NODE_ENV = "development" }
+
+[env.development.vars]
+NODE_ENV = "development"
+SUPABASE_URL = "https://kmhmgutrhkzjnsgifsrl.supabase.co"
+SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImttaG1ndXRyaGt6am5zZ2lmc3JsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1MDYwNTYsImV4cCI6MjA2NzA4MjA1Nn0.Yeg2TBq3K9jddh-LQFHadr1rv_GaYS-SBVTfnZS6z3c"
 
 # Secrets are managed using `wrangler secret put` command
 # Required secrets:

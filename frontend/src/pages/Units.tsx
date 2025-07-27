@@ -70,14 +70,23 @@ export function Units() {
   const [selectedUnit, setSelectedUnit] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
 
+  // Add error boundary for debugging
+  console.log('Units component rendering...');
+
   // Fetch units data
-  const { data: units = [], error, isLoading, mutate } = useSWR(
+  const { data: unitsData, error, isLoading, mutate } = useSWR(
     '/api/units',
-    () => unitsApi.getAll(),
+    () => {
+      console.log('Fetching units data...');
+      return unitsApi.getAll();
+    },
     {
       refreshInterval: 300000, // Refresh every 5 minutes instead of 30 seconds
       revalidateOnFocus: false, // Disable revalidation on focus to prevent flashing
       dedupingInterval: 60000, // Dedupe requests for 1 minute
+      onError: (err) => {
+        console.error('SWR error fetching units:', err);
+      }
     }
   );
 
@@ -90,8 +99,14 @@ export function Units() {
     }
   );
 
-  // Extract properties array from the API response
-  const properties = propertiesData?.properties || [];
+  // Extract data with proper typing
+  const units = Array.isArray(unitsData) ? (unitsData as Unit[]) : [];
+  const properties = (propertiesData as any)?.properties || [];
+
+  console.log('Units data:', units);
+  console.log('Properties data:', properties);
+  console.log('Error:', error);
+  console.log('Loading:', isLoading);
 
   const filteredUnits = units.filter((unit: Unit) => {
     const unitNumber = unit.unitNumber || '';
@@ -109,6 +124,18 @@ export function Units() {
   const vacantUnits = units.filter((u: Unit) => u.leaseStatus === 'VACANT').length;
   const totalRent = units.reduce((sum: number, u: Unit) => sum + (u.monthlyRent || 0), 0);
   const occupancyRate = totalUnits > 0 ? (occupiedUnits / totalUnits) * 100 : 0;
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <Loader className="h-12 w-12 text-ormi-primary mx-auto mb-4 animate-spin" />
+          <p className="text-lg font-medium text-gray-900">Loading units...</p>
+          <p className="text-sm text-gray-500 mt-1">Please wait while we fetch your data</p>
+        </div>
+      </div>
+    );
+  }
 
   if (error) {
     return (
@@ -861,4 +888,6 @@ function AddUnitForm({ properties, onSuccess }: { properties: any[], onSuccess: 
       </div>
     </form>
   );
-} 
+}
+
+export default Units; 

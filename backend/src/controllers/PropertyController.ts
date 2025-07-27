@@ -50,7 +50,7 @@ export class PropertyController {
 
       // Add manager filter
       if (manager) {
-        whereClause = { ...whereClause, managerId: manager };
+        whereClause = { ...whereClause, propertyManagerId: manager };
       }
 
       const [properties, total] = await Promise.all([
@@ -61,11 +61,11 @@ export class PropertyController {
               select: {
                 id: true,
                 unitNumber: true,
-                leaseStatus: true,
+                status: true,
                 monthlyRent: true,
               },
             },
-            manager: {
+            propertyManager: {
               select: {
                 id: true,
                 firstName: true,
@@ -87,7 +87,7 @@ export class PropertyController {
       // Calculate additional metrics for each property
       const propertiesWithMetrics = properties.map(property => {
         const totalUnits = property.units.length;
-        const occupiedUnits = property.units.filter(unit => unit.leaseStatus === 'LEASED').length;
+        const occupiedUnits = property.units.filter(unit => unit.status === 'OCCUPIED').length;
         const occupancyRate = totalUnits > 0 ? (occupiedUnits / totalUnits) * 100 : 0;
         const monthlyRent = property.units.reduce((sum, unit) => sum + Number(unit.monthlyRent), 0);
 
@@ -165,15 +165,15 @@ export class PropertyController {
               },
             },
           },
-          manager: {
-            select: {
-              id: true,
-              firstName: true,
-              lastName: true,
-              email: true,
-              phoneNumber: true,
+                      propertyManager: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                phoneNumber: true,
+              },
             },
-          },
         },
       });
 

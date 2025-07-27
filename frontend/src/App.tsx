@@ -7,6 +7,11 @@ import { ProtectedRoute } from './components/auth/ProtectedRoute';
 // Layout
 import { DashboardLayout } from './components/layout/DashboardLayout';
 
+// Error Handling
+import ErrorPage from './pages/ErrorPage';
+import RouteErrorPage from './pages/RouteErrorPage';
+import NotFoundPage from './pages/NotFoundPage';
+
 // Auth Pages
 import { Login } from './pages/auth/Login';
 import { Register } from './pages/auth/Register';
@@ -45,48 +50,52 @@ function App() {
       <AuthProvider>
         <Router>
           <Routes>
-            {/* Public Routes */}
-            <Route path="/auth/login" element={<Login />} />
-            <Route path="/auth/register" element={<Register />} />
-            <Route path="/auth/forgot-password" element={<ForgotPassword />} />
-            <Route path="/auth/reset-password" element={<ResetPassword />} />
-            
-            {/* Redirect /login to /auth/login for convenience */}
-            <Route path="/login" element={<Navigate to="/auth/login" replace />} />
-            
-            {/* Tenant Portal Routes (temporarily commented out) */}
-            {/* <Route path="/tenant/login" element={<TenantLogin />} /> */}
-            {/* <Route path="/tenant/dashboard" element={<TenantDashboard />} /> */}
-            
-            {/* Protected Routes */}
-            <Route path="/" element={<ProtectedRoute><DashboardLayout><Dashboard /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout><Dashboard /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/properties" element={<ProtectedRoute><DashboardLayout><Properties /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/units" element={<ProtectedRoute><DashboardLayout><Units /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/tenants" element={<ProtectedRoute><DashboardLayout><Tenants /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/maintenance" element={<ProtectedRoute><DashboardLayout><Maintenance /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/reports" element={<ProtectedRoute><DashboardLayout><Reports /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/settings" element={<ProtectedRoute><DashboardLayout><Settings /></DashboardLayout></ProtectedRoute>} />
-            
-            {/* Advanced Features (commented out for now) */}
-            {/* <Route path="/managers" element={<ProtectedRoute><Managers /></ProtectedRoute>} /> */}
-            {/* <Route path="/payments" element={<ProtectedRoute><Payments /></ProtectedRoute>} /> */}
-            {/* <Route path="/document-management" element={<ProtectedRoute><DocumentManagement /></ProtectedRoute>} /> */}
-            {/* <Route path="/advanced-maintenance" element={<ProtectedRoute><AdvancedMaintenance /></ProtectedRoute>} /> */}
-            {/* <Route path="/ai-analytics" element={<ProtectedRoute><AIAnalytics /></ProtectedRoute>} /> */}
-            {/* <Route path="/communication" element={<ProtectedRoute><CommunicationSystem /></ProtectedRoute>} /> */}
-            {/* <Route path="/multi-property" element={<ProtectedRoute><MultiPropertyManagement /></ProtectedRoute>} /> */}
-            
-            {/* Tenant Portal Protected Routes (commented out for now) */}
-            {/* <Route path="/tenant/document-management" element={<ProtectedRoute><TenantDocumentManagement /></ProtectedRoute>} /> */}
-            {/* <Route path="/tenant/maintenance-request" element={<ProtectedRoute><TenantMaintenanceRequest /></ProtectedRoute>} /> */}
-            
-            {/* Default redirect */}
-            <Route path="*" element={<Navigate to="/auth/login" replace />} />
-          </Routes>
-        </Router>
-      </AuthProvider>
-    </ThemeProvider>
+              {/* Public Routes */}
+              <Route path="/auth/login" element={<Login />} />
+              <Route path="/auth/register" element={<Register />} />
+              <Route path="/auth/forgot-password" element={<ForgotPassword />} />
+              <Route path="/auth/reset-password" element={<ResetPassword />} />
+              
+              {/* Redirect /login to /auth/login for convenience */}
+              <Route path="/login" element={<Navigate to="/auth/login" replace />} />
+              
+              {/* Error Pages */}
+              <Route path="/error" element={<ErrorPage />} />
+              <Route path="/404" element={<NotFoundPage />} />
+              
+              {/* Tenant Portal Routes (temporarily commented out) */}
+              {/* <Route path="/tenant/login" element={<TenantLogin />} /> */}
+              {/* <Route path="/tenant/dashboard" element={<TenantDashboard />} /> */}
+              
+              {/* Protected Routes */}
+              <Route path="/" element={<ProtectedRoute><DashboardLayout><Dashboard /></DashboardLayout></ProtectedRoute>} errorElement={<RouteErrorPage />} />
+              <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout><Dashboard /></DashboardLayout></ProtectedRoute>} errorElement={<RouteErrorPage />} />
+              <Route path="/properties" element={<ProtectedRoute><DashboardLayout><Properties /></DashboardLayout></ProtectedRoute>} errorElement={<RouteErrorPage />} />
+              <Route path="/units" element={<ProtectedRoute><DashboardLayout><Units /></DashboardLayout></ProtectedRoute>} errorElement={<RouteErrorPage />} />
+              <Route path="/tenants" element={<ProtectedRoute><DashboardLayout><Tenants /></DashboardLayout></ProtectedRoute>} errorElement={<RouteErrorPage />} />
+              <Route path="/maintenance" element={<ProtectedRoute><DashboardLayout><Maintenance /></DashboardLayout></ProtectedRoute>} errorElement={<RouteErrorPage />} />
+              <Route path="/reports" element={<ProtectedRoute><DashboardLayout><Reports /></DashboardLayout></ProtectedRoute>} errorElement={<RouteErrorPage />} />
+              <Route path="/settings" element={<ProtectedRoute><DashboardLayout><Settings /></DashboardLayout></ProtectedRoute>} errorElement={<RouteErrorPage />} />
+              
+              {/* Advanced Features (commented out for now) */}
+              {/* <Route path="/managers" element={<ProtectedRoute><Managers /></ProtectedRoute>} /> */}
+              {/* <Route path="/payments" element={<ProtectedRoute><Payments /></ProtectedRoute>} /> */}
+              {/* <Route path="/document-management" element={<ProtectedRoute><DocumentManagement /></ProtectedRoute>} /> */}
+              {/* <Route path="/advanced-maintenance" element={<ProtectedRoute><AdvancedMaintenance /></ProtectedRoute>} /> */}
+              {/* <Route path="/ai-analytics" element={<ProtectedRoute><AIAnalytics /></ProtectedRoute>} /> */}
+              {/* <Route path="/communication" element={<ProtectedRoute><CommunicationSystem /></ProtectedRoute>} /> */}
+              {/* <Route path="/multi-property" element={<ProtectedRoute><MultiPropertyManagement /></ProtectedRoute>} /> */}
+              
+              {/* Tenant Portal Protected Routes (commented out for now) */}
+              {/* <Route path="/tenant/document-management" element={<ProtectedRoute><TenantDocumentManagement /></ProtectedRoute>} /> */}
+              {/* <Route path="/tenant/maintenance-request" element={<ProtectedRoute><TenantMaintenanceRequest /></ProtectedRoute>} /> */}
+              
+              {/* Catch-all route for 404 */}
+              <Route path="*" element={<NotFoundPage />} />
+            </Routes>
+          </Router>
+        </AuthProvider>
+      </ThemeProvider>
   );
 }
 

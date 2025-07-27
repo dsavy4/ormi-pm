@@ -1,14 +1,20 @@
-# 🚀 Storage Configuration Guide
+# 🚀 Cloudflare R2 Storage Configuration Guide
 
-This guide shows you how to configure different storage providers for the ORMI Property Management system.
+This guide shows you how to configure Cloudflare R2 storage for the ORMI Property Management system.
 
-## 🎯 **Recommended: Cloudflare R2**
+## 🎯 **Cloudflare R2 - Our Storage Solution**
 
-Cloudflare R2 is our recommended storage solution because it's:
+Cloudflare R2 is our exclusive storage solution because it's:
 - ✅ **S3-compatible** - Easy to use with existing AWS SDK
 - ✅ **Cost-effective** - No egress fees
-- ✅ **Fast** - Global CDN
+- ✅ **Fast** - Global CDN with edge locations worldwide
 - ✅ **Integrated** - Works seamlessly with our Cloudflare infrastructure
+- ✅ **Secure** - Enterprise-grade security
+- ✅ **Scalable** - Handles unlimited storage needs
+
+---
+
+## 🚀 **Setup Instructions**
 
 ### **Step 1: Create Cloudflare R2 Bucket**
 
@@ -16,7 +22,7 @@ Cloudflare R2 is our recommended storage solution because it's:
 2. Navigate to **R2 Object Storage**
 3. Click **Create bucket**
 4. Name it `ormi-property-images`
-5. Choose your preferred region
+5. Choose your preferred region (auto is recommended for global performance)
 
 ### **Step 2: Create API Token**
 
@@ -26,14 +32,14 @@ Cloudflare R2 is our recommended storage solution because it's:
 4. Add these permissions:
    - **Cloudflare R2:Edit** (for bucket access)
    - **Zone:Read** (for public access)
-5. Save the token
+5. Save the token securely
 
 ### **Step 3: Configure Environment Variables**
 
 Add these to your `.env` file:
 
 ```bash
-# Storage Provider
+# Storage Provider (Cloudflare R2)
 STORAGE_PROVIDER="r2"
 
 # Cloudflare R2 Configuration
@@ -52,52 +58,22 @@ For direct public access to images:
 1. Go to your R2 bucket
 2. Click **Settings** → **Public Access**
 3. Enable **Public Access**
-4. Configure your custom domain
+4. Configure your custom domain for better performance
 
-## 🔄 **Alternative Storage Providers**
-
-### **AWS S3**
-
-```bash
-STORAGE_PROVIDER="s3"
-S3_BUCKET_NAME="ormi-property-images"
-S3_REGION="us-east-1"
-S3_ACCESS_KEY_ID="your-s3-access-key-id"
-S3_SECRET_ACCESS_KEY="your-s3-secret-access-key"
-S3_PUBLIC_URL="https://your-bucket.s3.amazonaws.com"
-```
-
-### **Supabase Storage**
-
-```bash
-STORAGE_PROVIDER="supabase"
-SUPABASE_BUCKET_NAME="property-images"
-SUPABASE_REGION="us-east-1"
-SUPABASE_ACCESS_KEY_ID="your-supabase-access-key-id"
-SUPABASE_SECRET_ACCESS_KEY="your-supabase-secret-access-key"
-SUPABASE_ENDPOINT="https://your-project.supabase.co"
-SUPABASE_PUBLIC_URL="https://your-project.supabase.co/storage/v1/object/public"
-```
-
-### **Local Storage (Development)**
-
-```bash
-STORAGE_PROVIDER="local"
-LOCAL_STORAGE_URL="http://localhost:3000/uploads"
-```
+---
 
 ## 🔧 **Storage Service Features**
 
 ### **Automatic Configuration**
 
-The storage service automatically detects your configuration:
+The storage service automatically detects your Cloudflare R2 configuration:
 
 ```typescript
 import { storageService, getActiveStorageConfig } from '../utils/storage';
 
 // Get current configuration
 const config = getActiveStorageConfig();
-console.log(`Using ${config.name}`);
+console.log(`Using Cloudflare R2: ${config.name}`);
 
 // Upload file
 const result = await storageService.uploadFile(
@@ -128,24 +104,11 @@ await fetch(uploadUrl, {
 });
 ```
 
-### **Easy Provider Switching**
-
-Change storage providers without code changes:
-
-```bash
-# Switch to S3
-STORAGE_PROVIDER="s3"
-
-# Switch to Supabase
-STORAGE_PROVIDER="supabase"
-
-# Switch back to R2
-STORAGE_PROVIDER="r2"
-```
+---
 
 ## 📁 **File Organization**
 
-Files are organized by type and ID:
+Files are organized by type and ID for optimal performance:
 
 ```
 properties/
@@ -168,52 +131,79 @@ documents/
 ├── leases/
 ├── contracts/
 └── ...
+
+profiles/
+├── managers/
+├── tenants/
+└── ...
 ```
+
+---
 
 ## 🔒 **Security Features**
 
 - ✅ **Access Control** - Only authenticated users can upload
-- ✅ **File Validation** - Only images allowed
+- ✅ **File Validation** - Only allowed file types (images, PDFs, etc.)
 - ✅ **Size Limits** - 10MB per file
-- ✅ **Virus Scanning** - Optional integration
-- ✅ **Backup** - Automatic versioning
+- ✅ **Virus Scanning** - Optional integration with Cloudflare
+- ✅ **Backup** - Automatic versioning and redundancy
+- ✅ **Encryption** - End-to-end encryption
+- ✅ **CORS Protection** - Configured for secure cross-origin requests
+
+---
 
 ## 📊 **Performance Optimization**
 
-- ✅ **CDN Caching** - 1-year cache headers
-- ✅ **Image Optimization** - Automatic resizing
+- ✅ **Global CDN** - 200+ edge locations worldwide
+- ✅ **Image Optimization** - Automatic resizing and compression
 - ✅ **Lazy Loading** - Frontend optimization
 - ✅ **Compression** - Automatic file compression
+- ✅ **Cache Headers** - 1-year cache headers for static assets
+- ✅ **Edge Computing** - Process files at the edge
+
+---
 
 ## 🚨 **Troubleshooting**
 
 ### **Upload Fails**
 
-1. Check your API credentials
+1. Check your R2 API credentials
 2. Verify bucket permissions
 3. Ensure bucket exists
 4. Check network connectivity
+5. Verify environment variables
 
 ### **Images Not Loading**
 
 1. Verify public URL configuration
-2. Check CORS settings
+2. Check CORS settings in R2
 3. Ensure files are public
 4. Test direct URL access
+5. Check CDN cache
 
-### **Switch Providers**
+### **Performance Issues**
 
-1. Update environment variables
-2. Restart the application
-3. Test with a small file
-4. Verify configuration
+1. Verify region selection (auto is recommended)
+2. Check CDN cache settings
+3. Optimize image sizes before upload
+4. Use presigned URLs for large files
+5. Monitor bandwidth usage
+
+---
 
 ## 🎉 **Ready to Go!**
 
-Your storage is now configured and ready for the best-in-class property management system!
+Your Cloudflare R2 storage is now configured and ready for the best-in-class property management system!
+
+**Benefits of Cloudflare R2:**
+- 🚀 **Global Performance** - 200+ edge locations
+- 💰 **Cost Effective** - No egress fees
+- 🔒 **Enterprise Security** - SOC 2 compliant
+- 📈 **Scalable** - Unlimited storage
+- 🔧 **Easy Integration** - S3-compatible API
 
 **Next Steps:**
 1. Test image uploads
-2. Configure your domain
+2. Configure your custom domain
 3. Set up monitoring
-4. Enjoy fast, reliable file storage! 🚀 
+4. Enjoy fast, reliable, and secure file storage! 🚀 

@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { useQuery } from '@tanstack/react-query';
+import useSWR from 'swr';
+import { tenantsApi } from '@/lib/api';
 import {
   Users,
   Plus,
@@ -133,132 +134,8 @@ interface Tenant {
   };
 }
 
-// Mock data - in real app this would come from API
-const mockTenants: Tenant[] = [
-  {
-    id: '1',
-    firstName: 'John',
-    lastName: 'Smith',
-    email: 'john.smith@email.com',
-    phone: '+1 (555) 123-4567',
-    avatar: '/api/placeholder/100/100',
-    status: 'Active',
-    unit: {
-      id: '1',
-      number: 'A-101',
-      property: {
-        id: '1',
-        name: 'Sunset Apartments',
-        address: '123 Main Street'
-      }
-    },
-    lease: {
-      startDate: '2023-06-01',
-      endDate: '2024-06-01',
-      monthlyRent: 3200,
-      securityDeposit: 3200,
-      status: 'Active'
-    },
-    balance: 0,
-    lastPayment: {
-      date: '2024-01-01',
-      amount: 3200
-    },
-    moveInDate: '2023-06-01',
-    emergencyContact: {
-      name: 'Jane Smith',
-      phone: '+1 (555) 987-6543',
-      relationship: 'Spouse'
-    },
-    notes: 'Excellent tenant, always pays on time',
-    rating: 4.9,
-    maintenanceRequests: 2,
-    paymentHistory: {
-      onTime: 8,
-      late: 0,
-      total: 8
-    }
-  },
-  {
-    id: '2',
-    firstName: 'Sarah',
-    lastName: 'Johnson',
-    email: 'sarah.johnson@email.com',
-    phone: '+1 (555) 234-5678',
-    status: 'Late',
-    unit: {
-      id: '2',
-      number: 'B-205',
-      property: {
-        id: '2',
-        name: 'Oak Grove Condos',
-        address: '456 Oak Avenue'
-      }
-    },
-    lease: {
-      startDate: '2023-09-01',
-      endDate: '2024-09-01',
-      monthlyRent: 2800,
-      securityDeposit: 2800,
-      status: 'Active'
-    },
-    balance: -150,
-    lastPayment: {
-      date: '2023-12-15',
-      amount: 2800
-    },
-    moveInDate: '2023-09-01',
-    emergencyContact: {
-      name: 'Robert Johnson',
-      phone: '+1 (555) 876-5432',
-      relationship: 'Father'
-    },
-    rating: 4.2,
-    maintenanceRequests: 0,
-    paymentHistory: {
-      onTime: 3,
-      late: 1,
-      total: 4
-    }
-  },
-  {
-    id: '3',
-    firstName: 'Michael',
-    lastName: 'Wilson',
-    email: 'mike.wilson@email.com',
-    phone: '+1 (555) 345-6789',
-    status: 'Active',
-    unit: {
-      id: '3',
-      number: 'C-302',
-      property: {
-        id: '1',
-        name: 'Sunset Apartments',
-        address: '123 Main Street'
-      }
-    },
-    lease: {
-      startDate: '2023-04-01',
-      endDate: '2024-04-01',
-      monthlyRent: 3000,
-      securityDeposit: 3000,
-      status: 'Expiring Soon'
-    },
-    balance: 0,
-    lastPayment: {
-      date: '2024-01-01',
-      amount: 3000
-    },
-    moveInDate: '2023-04-01',
-    rating: 4.7,
-    maintenanceRequests: 1,
-    paymentHistory: {
-      onTime: 9,
-      late: 0,
-      total: 9
-    }
-  }
-];
+// API fetcher for tenants
+const tenantsFetcher = () => tenantsApi.getAll();
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -282,12 +159,22 @@ const itemVariants = {
 };
 
 export function Tenants() {
-  const [tenants] = useState(mockTenants);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
   const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
   const [showAddTenant, setShowAddTenant] = useState(false);
+
+  // Data fetching with SWR
+  const { 
+    data: tenantsData, 
+    error: tenantsError, 
+    isLoading: tenantsLoading,
+    mutate: mutateTenants 
+  } = useSWR('/api/tenants', tenantsFetcher);
+
+  // Extract tenants from API response
+  const tenants = (tenantsData as any)?.data || [];
 
   // Filter and search tenants
   const filteredTenants = useMemo(() => {
@@ -347,6 +234,40 @@ export function Tenants() {
     }
   };
 
+  // Loading state
+  if (tenantsLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-ormi-primary mx-auto mb-4"></div>
+          <p className="text-lg font-medium text-gray-900">Loading tenants...</p>
+          <p className="text-sm text-gray-500 mt-1">Please wait while we fetch your data</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (tenantsError) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <p className="text-lg font-medium text-gray-900">Failed to load tenants</p>
+          <p className="text-sm text-gray-500 mt-1">Please try refreshing the page</p>
+          <Button 
+            onClick={() => mutateTenants()} 
+            className="mt-4"
+            variant="outline"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Retry
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <motion.div
       variants={containerVariants}
@@ -367,6 +288,11 @@ export function Tenants() {
           <p className="mt-1 text-sm text-gray-500">
             Manage tenant relationships, track payments, and monitor lease status
           </p>
+          {tenants.length === 0 && !tenantsLoading && (
+            <p className="mt-1 text-sm text-orange-600">
+              No tenants found. Add your first tenant to get started.
+            </p>
+          )}
         </div>
         <div className="mt-4 sm:mt-0 flex items-center space-x-3">
           <Select value={viewMode} onValueChange={(value: 'grid' | 'table') => setViewMode(value)}>

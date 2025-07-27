@@ -544,8 +544,8 @@ export function Properties() {
   } = useSWR<PropertyInsights>('/api/properties/insights', () => propertiesApi.getInsights());
 
   // Computed values
-  const properties = propertiesData?.properties || [];
-  const pagination = propertiesData?.pagination;
+  const properties = (propertiesData as any)?.data || [];
+  const pagination = (propertiesData as any)?.pagination;
 
   // Client-side filtering as fallback for search functionality
   const filteredProperties = useMemo(() => {
@@ -1874,13 +1874,13 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1">
             <div className="text-sm text-muted-foreground">Units</div>
-            <div className="text-lg font-semibold">{property.totalUnits}</div>
+            <div className="text-lg font-semibold">{property.totalUnits || 0}</div>
           </div>
           <div className="space-y-1">
             <div className="text-sm text-muted-foreground">Occupancy</div>
             <div className="flex items-center gap-2">
-              <div className="text-lg font-semibold">{property.occupancyRate.toFixed(1)}%</div>
-              <div className={`w-2 h-2 rounded-full ${getOccupancyBadgeColor(property.occupancyRate).includes('green') ? 'bg-green-500' : getOccupancyBadgeColor(property.occupancyRate).includes('yellow') ? 'bg-yellow-500' : 'bg-red-500'}`} />
+              <div className="text-lg font-semibold">{(property.occupancyRate || 0).toFixed(1)}%</div>
+              <div className={`w-2 h-2 rounded-full ${getOccupancyBadgeColor(property.occupancyRate || 0).includes('green') ? 'bg-green-500' : getOccupancyBadgeColor(property.occupancyRate || 0).includes('yellow') ? 'bg-yellow-500' : 'bg-red-500'}`} />
             </div>
           </div>
         </div>
@@ -1889,35 +1889,35 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
         <div className="space-y-1">
           <div className="text-sm text-muted-foreground">Monthly Net Income</div>
           <div className="text-xl font-bold text-green-600">
-            {formatCurrency(property.netIncome)}
+            {formatCurrency(property.netIncome || 0)}
           </div>
         </div>
 
         {/* Alerts */}
         <div className="flex gap-2 flex-wrap">
-          {property.urgentMaintenanceRequests > 0 && (
+          {(property.urgentMaintenanceRequests || 0) > 0 && (
             <Tooltip>
               <TooltipTrigger asChild>
                 <Badge variant="destructive" className="text-xs">
                   <TrendingDown className="h-3 w-3 mr-1" />
-                  {property.urgentMaintenanceRequests}
+                  {property.urgentMaintenanceRequests || 0}
                 </Badge>
               </TooltipTrigger>
               <TooltipContent>
-                <p>{property.urgentMaintenanceRequests} urgent maintenance requests</p>
+                <p>{property.urgentMaintenanceRequests || 0} urgent maintenance requests</p>
               </TooltipContent>
             </Tooltip>
           )}
-          {property.leasesExpiringNext30Days > 0 && (
+          {(property.leasesExpiringNext30Days || 0) > 0 && (
             <Tooltip>
               <TooltipTrigger asChild>
                 <Badge variant="outline" className="text-xs border-orange-300 text-orange-700">
                   <Calendar className="h-3 w-3 mr-1" />
-                  {property.leasesExpiringNext30Days}
+                  {property.leasesExpiringNext30Days || 0}
                 </Badge>
               </TooltipTrigger>
               <TooltipContent>
-                <p>{property.leasesExpiringNext30Days} leases expiring soon</p>
+                <p>{property.leasesExpiringNext30Days || 0} leases expiring soon</p>
               </TooltipContent>
             </Tooltip>
           )}
