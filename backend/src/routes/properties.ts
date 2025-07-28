@@ -3,9 +3,11 @@ import { body, query, param } from 'express-validator';
 import multer from 'multer';
 import { authenticateToken } from '../middleware/auth';
 import { PropertyController } from '../controllers/PropertyController';
+import { UnitController } from '../controllers/UnitController';
 
 const router = Router();
 const propertyController = new PropertyController();
+const unitController = new UnitController();
 
 // Configure multer for file uploads
 const upload = multer({
@@ -41,8 +43,17 @@ router.get('/insights', propertyController.getInsights);
 
 // GET /api/properties/:id - Get property by ID
 router.get('/:id', 
-  param('id').isUUID(),
-  propertyController.getById
+  param('id').notEmpty().withMessage('Property ID is required'),
+  (req, res) => {
+    console.log(`[DEBUG] Property route hit - ID: ${req.params.id}`);
+    propertyController.getById(req, res);
+  }
+);
+
+// GET /api/properties/:propertyId/units - Get units for a specific property
+router.get('/:propertyId/units', 
+  param('propertyId').notEmpty().withMessage('Property ID is required'),
+  unitController.getByPropertyId
 );
 
 // POST /api/properties - Create new property

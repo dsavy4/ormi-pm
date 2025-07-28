@@ -46,7 +46,7 @@ export class DashboardController {
         prisma.unit.count({
           where: {
             property: whereClause,
-            leaseStatus: 'LEASED',
+            status: 'OCCUPIED',
           },
         }),
 
@@ -54,7 +54,7 @@ export class DashboardController {
         prisma.user.count({
           where: {
             role: 'TENANT',
-            tenantUnits: {
+            units: {
               some: {
                 property: whereClause,
               },
@@ -119,6 +119,8 @@ export class DashboardController {
         }),
       ]);
 
+      const monthlyRevenueAmount = monthlyRevenue._sum.amount ? Number(monthlyRevenue._sum.amount) : 0;
+      
       res.json({
         totalProperties,
         totalUnits,
@@ -127,7 +129,7 @@ export class DashboardController {
         upcomingRentPayments: upcomingPayments,
         overdueRents: overduePayments,
         openMaintenanceRequests,
-        monthlyRevenue: monthlyRevenue._sum.amount || 0,
+        monthlyRevenue: isNaN(monthlyRevenueAmount) ? 0 : monthlyRevenueAmount,
       });
     } catch (error) {
       console.error('Dashboard overview error:', error);
@@ -149,25 +151,8 @@ export class DashboardController {
         whereClause = { ownerId: userId };
       }
 
-      // Get recent audit logs
-      const recentActivity = await prisma.auditLog.findMany({
-        where: {
-          userId: userRole === 'TENANT' ? userId : undefined,
-        },
-        orderBy: {
-          createdAt: 'desc',
-        },
-        take: 20,
-        include: {
-          user: {
-            select: {
-              firstName: true,
-              lastName: true,
-              email: true,
-            },
-          },
-        },
-      });
+      // Get recent activity (auditLog not implemented yet)
+      const recentActivity: any[] = [];
 
       res.json(recentActivity);
     } catch (error) {

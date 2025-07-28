@@ -183,12 +183,7 @@ const navigation: NavItem[] = [
     description: 'Team Management',
     badge: 5 // Active managers count
   },
-  { 
-    name: 'Units', 
-    href: '/units', 
-    icon: Home,
-    description: 'Unit Management'
-  },
+
   { 
     name: 'Tenants', 
     href: '/tenants', 
@@ -452,10 +447,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                     <Building2 className="h-4 w-4 mr-2" />
                     Add Property
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => window.location.href = '/units?action=add'}>
-                    <Home className="h-4 w-4 mr-2" />
-                    Add Unit
-                  </DropdownMenuItem>
+
                   <DropdownMenuItem onClick={() => window.location.href = '/tenants?action=add'}>
                     <Users className="h-4 w-4 mr-2" />
                     Add Tenant

@@ -26,6 +26,7 @@ model User {
 
   // Relations
   properties    Property[]    @relation("PropertyManager")
+  ownedProperties Property[]  @relation("PropertyOwner")
   units         Unit[]        @relation("UnitTenant")
   payments      Payment[]     @relation("PaymentTenant")
   maintenanceRequests MaintenanceRequest[] @relation("MaintenanceTenant")
@@ -49,6 +50,7 @@ model Property {
   occupiedUnits Int    @default(0)
   monthlyRent Decimal  @db.Decimal(10, 2)
   propertyManagerId String?
+  ownerId     String?  // Add ownerId field (nullable for existing data)
   images      String[] // Array of image URLs
   description String?
   amenities   String[] // Array of amenities
@@ -58,6 +60,7 @@ model Property {
 
   // Relations
   propertyManager User? @relation("PropertyManager", fields: [propertyManagerId], references: [id])
+  owner         User?  @relation("PropertyOwner", fields: [ownerId], references: [id])
   units         Unit[]
   maintenanceRequests MaintenanceRequest[]
 

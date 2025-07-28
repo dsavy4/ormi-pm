@@ -514,6 +514,13 @@ export const unitsApi = {
     return handleResponse(response);
   },
 
+  getByProperty: async (propertyId: string) => {
+    const response = await fetch(`${API_BASE_URL}/api/properties/${propertyId}/units`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
   getById: async (id: string) => {
     const response = await fetch(`${API_BASE_URL}/api/units/${id}`, {
       headers: getAuthHeaders(),

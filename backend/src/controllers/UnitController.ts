@@ -1,26 +1,27 @@
-import { Context } from 'hono';
+import { Request, Response } from 'express';
 import { getSupabaseClient } from '../utils/supabase';
+import { AuthRequest } from '../middleware/auth';
 
 export class UnitController {
   /**
    * Get all units for a property
    */
-  async getByPropertyId(c: Context) {
+  async getByPropertyId(req: AuthRequest, res: Response) {
     try {
-      const supabase = getSupabaseClient(c.env);
-      const user = c.get('user') as any;
-      const propertyId = c.req.param('propertyId');
+      const supabase = getSupabaseClient(process.env);
+      const user = req.user as any;
+      const propertyId = req.params.propertyId;
       
       // Verify user owns the property
       const { data: property, error: propertyError } = await supabase
         .from('properties')
-        .select('id')
+        .select('id, name, address, city, state, zipCode, propertyType, totalUnits, monthlyRent, propertyManagerId')
         .eq('id', propertyId)
         .eq('owner_id', user.userId)
         .single();
       
       if (propertyError || !property) {
-        return c.json({ error: 'Property not found or access denied' }, 404);
+        return res.status(404).json({ error: 'Property not found or access denied' });
       }
       
       const { data: units, error } = await supabase
@@ -37,7 +38,14 @@ export class UnitController {
           property:properties!units_property_id_fkey (
             id,
             name,
-            address
+            address,
+            city,
+            state,
+            zipCode,
+            propertyType,
+            totalUnits,
+            monthlyRent,
+            propertyManagerId
           ),
           payments (
             id,
@@ -45,6 +53,14 @@ export class UnitController {
             due_date,
             status,
             payment_date
+          ),
+          maintenance_requests (
+            id,
+            title,
+            description,
+            status,
+            priority,
+            created_at
           )
         `)
         .eq('property_id', propertyId)
@@ -52,25 +68,25 @@ export class UnitController {
       
       if (error) {
         console.error('Units fetch error:', error);
-        return c.json({ error: 'Failed to fetch units' }, 500);
+        return res.status(500).json({ error: 'Failed to fetch units' });
       }
       
-      return c.json(units || []);
+      return res.json(units || []);
       
     } catch (error) {
       console.error('Units fetch error:', error);
-      return c.json({ error: 'Internal server error' }, 500);
+      return res.status(500).json({ error: 'Internal server error' });
     }
   }
 
   /**
    * Get single unit by ID
    */
-  async getById(c: Context) {
+  async getById(req: AuthRequest, res: Response) {
     try {
-      const supabase = getSupabaseClient(c.env);
-      const user = c.get('user') as any;
-      const unitId = c.req.param('id');
+      const supabase = getSupabaseClient(process.env);
+      const user = req.user as any;
+      const unitId = req.params.id;
       
       const { data: unit, error } = await supabase
         .from('units')
@@ -87,6 +103,13 @@ export class UnitController {
             id,
             name,
             address,
+            city,
+            state,
+            zipCode,
+            propertyType,
+            totalUnits,
+            monthlyRent,
+            propertyManagerId,
             owner_id
           ),
           payments (
@@ -110,58 +133,62 @@ export class UnitController {
         .single();
       
       if (error || !unit) {
-        return c.json({ error: 'Unit not found' }, 404);
+        return res.status(404).json({ error: 'Unit not found' });
       }
       
       // Verify user owns the property
       if (unit.property.owner_id !== user.userId) {
-        return c.json({ error: 'Access denied' }, 403);
+        return res.status(403).json({ error: 'Access denied' });
       }
       
-      return c.json(unit);
+      return res.json(unit);
       
     } catch (error) {
       console.error('Unit fetch error:', error);
-      return c.json({ error: 'Internal server error' }, 500);
+      return res.status(500).json({ error: 'Internal server error' });
     }
   }
 
   /**
-   * Create new unit
+   * Create a new unit for a property
    */
-  async create(c: Context) {
+  async create(req: AuthRequest, res: Response) {
     try {
-      const supabase = getSupabaseClient(c.env);
-      const user = c.get('user') as any;
-      const body = await c.req.json();
+      const supabase = getSupabaseClient(process.env);
+      const user = req.user as any;
+      const body = req.body;
       
-      const { 
-        propertyId, 
-        unitNumber, 
-        monthlyRent, 
-        securityDeposit, 
-        leaseStatus = 'VACANT',
-        notes 
-      } = body;
+      const { propertyId, unitNumber, bedrooms, bathrooms, squareFootage, monthlyRent, floor, amenities, notes } = body;
       
-      if (!propertyId || !unitNumber || !monthlyRent || !securityDeposit) {
-        return c.json({ error: 'Property ID, unit number, monthly rent, and security deposit are required' }, 400);
+      // Validate required fields
+      if (!propertyId || !unitNumber || !bedrooms || !bathrooms || !squareFootage || !monthlyRent) {
+        return res.status(400).json({ error: 'Missing required fields' });
       }
       
       // Verify user owns the property
       const { data: property, error: propertyError } = await supabase
         .from('properties')
-        .select('id')
+        .select('id, name, totalUnits, occupiedUnits, isActive')
         .eq('id', propertyId)
         .eq('owner_id', user.userId)
         .single();
       
       if (propertyError || !property) {
-        return c.json({ error: 'Property not found or access denied' }, 404);
+        return res.status(404).json({ error: 'Property not found or access denied' });
+      }
+      
+      // Validate property status
+      if (!property.isActive) {
+        return res.status(400).json({ error: 'Cannot add units to inactive property' });
+      }
+      
+      // Check property capacity
+      if (property.occupiedUnits >= property.totalUnits) {
+        return res.status(400).json({ error: 'Property is at maximum capacity' });
       }
       
       // Check if unit number already exists for this property
-      const { data: existingUnit } = await supabase
+      const { data: existingUnit, error: checkError } = await supabase
         .from('units')
         .select('id')
         .eq('property_id', propertyId)
@@ -169,133 +196,143 @@ export class UnitController {
         .single();
       
       if (existingUnit) {
-        return c.json({ error: 'Unit number already exists for this property' }, 400);
+        return res.status(400).json({ error: 'Unit number already exists for this property' });
       }
       
+      // Create the unit with property inheritance
       const { data: unit, error } = await supabase
         .from('units')
-        .insert([
-          {
-            property_id: propertyId,
-            unit_number: unitNumber,
-            monthly_rent: monthlyRent,
-            security_deposit: securityDeposit,
-            lease_status: leaseStatus,
-            notes
-          }
-        ])
+        .insert({
+          unit_number: unitNumber,
+          property_id: propertyId,
+          bedrooms: parseInt(bedrooms),
+          bathrooms: parseInt(bathrooms),
+          square_footage: parseInt(squareFootage),
+          monthly_rent: parseFloat(monthlyRent),
+          floor: floor ? parseInt(floor) : null,
+          amenities: amenities || [],
+          notes: notes || '',
+          status: 'VACANT',
+          is_active: true
+        })
         .select()
         .single();
       
       if (error) {
         console.error('Unit creation error:', error);
-        return c.json({ error: 'Failed to create unit' }, 500);
+        return res.status(500).json({ error: 'Failed to create unit' });
       }
       
-      return c.json(unit);
+      return res.status(201).json(unit);
       
     } catch (error) {
       console.error('Unit creation error:', error);
-      return c.json({ error: 'Internal server error' }, 500);
+      return res.status(500).json({ error: 'Internal server error' });
     }
   }
 
   /**
-   * Update unit
+   * Update a unit
    */
-  async update(c: Context) {
+  async update(req: AuthRequest, res: Response) {
     try {
-      const supabase = getSupabaseClient(c.env);
-      const user = c.get('user') as any;
-      const unitId = c.req.param('id');
-      const body = await c.req.json();
+      const supabase = getSupabaseClient(process.env);
+      const user = req.user as any;
+      const unitId = req.params.id;
+      const body = req.body;
       
-      // Verify user owns the property
-      const { data: unit, error: unitError } = await supabase
+      // Get the unit to verify ownership
+      const { data: existingUnit, error: fetchError } = await supabase
         .from('units')
         .select(`
-          id,
+          *,
           property:properties!units_property_id_fkey (
+            id,
             owner_id
           )
         `)
         .eq('id', unitId)
         .single();
       
-      if (unitError || !unit || unit.property.owner_id !== user.userId) {
-        return c.json({ error: 'Unit not found or access denied' }, 404);
+      if (fetchError || !existingUnit) {
+        return res.status(404).json({ error: 'Unit not found' });
       }
       
-      const { 
-        unitNumber, 
-        monthlyRent, 
-        securityDeposit, 
-        leaseStatus,
-        leaseStart,
-        leaseEnd,
-        notes 
-      } = body;
+      // Verify user owns the property
+      if (existingUnit.property.owner_id !== user.userId) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
       
-      const updateData: any = {};
-      if (unitNumber !== undefined) updateData.unit_number = unitNumber;
-      if (monthlyRent !== undefined) updateData.monthly_rent = monthlyRent;
-      if (securityDeposit !== undefined) updateData.security_deposit = securityDeposit;
-      if (leaseStatus !== undefined) updateData.lease_status = leaseStatus;
-      if (leaseStart !== undefined) updateData.lease_start = leaseStart;
-      if (leaseEnd !== undefined) updateData.lease_end = leaseEnd;
-      if (notes !== undefined) updateData.notes = notes;
-      
-      const { data: updatedUnit, error } = await supabase
+      // Update the unit
+      const { data: unit, error } = await supabase
         .from('units')
-        .update(updateData)
+        .update({
+          unit_number: body.unitNumber || existingUnit.unit_number,
+          bedrooms: body.bedrooms ? parseInt(body.bedrooms) : existingUnit.bedrooms,
+          bathrooms: body.bathrooms ? parseInt(body.bathrooms) : existingUnit.bathrooms,
+          square_footage: body.squareFootage ? parseInt(body.squareFootage) : existingUnit.square_footage,
+          monthly_rent: body.monthlyRent ? parseFloat(body.monthlyRent) : existingUnit.monthly_rent,
+          floor: body.floor ? parseInt(body.floor) : existingUnit.floor,
+          amenities: body.amenities || existingUnit.amenities,
+          notes: body.notes || existingUnit.notes,
+          status: body.status || existingUnit.status,
+          is_active: body.isActive !== undefined ? body.isActive : existingUnit.is_active,
+          updated_at: new Date().toISOString()
+        })
         .eq('id', unitId)
         .select()
         .single();
       
       if (error) {
         console.error('Unit update error:', error);
-        return c.json({ error: 'Failed to update unit' }, 500);
+        return res.status(500).json({ error: 'Failed to update unit' });
       }
       
-      return c.json(updatedUnit);
+      return res.json(unit);
       
     } catch (error) {
       console.error('Unit update error:', error);
-      return c.json({ error: 'Internal server error' }, 500);
+      return res.status(500).json({ error: 'Internal server error' });
     }
   }
 
   /**
-   * Delete unit
+   * Delete a unit
    */
-  async delete(c: Context) {
+  async delete(req: AuthRequest, res: Response) {
     try {
-      const supabase = getSupabaseClient(c.env);
-      const user = c.get('user') as any;
-      const unitId = c.req.param('id');
+      const supabase = getSupabaseClient(process.env);
+      const user = req.user as any;
+      const unitId = req.params.id;
       
-      // Verify user owns the property and check if unit has active lease
-      const { data: unit, error: unitError } = await supabase
+      // Get the unit to verify ownership
+      const { data: unit, error: fetchError } = await supabase
         .from('units')
         .select(`
-          id,
-          lease_status,
-          tenant_id,
+          *,
           property:properties!units_property_id_fkey (
+            id,
             owner_id
           )
         `)
         .eq('id', unitId)
         .single();
       
-      if (unitError || !unit || unit.property.owner_id !== user.userId) {
-        return c.json({ error: 'Unit not found or access denied' }, 404);
+      if (fetchError || !unit) {
+        return res.status(404).json({ error: 'Unit not found' });
       }
       
-      if (unit.lease_status === 'LEASED' || unit.tenant_id) {
-        return c.json({ error: 'Cannot delete unit with active lease' }, 400);
+      // Verify user owns the property
+      if (unit.property.owner_id !== user.userId) {
+        return res.status(403).json({ error: 'Access denied' });
       }
       
+      // Check if unit has active tenant
+      if (unit.tenant_id) {
+        return res.status(400).json({ error: 'Cannot delete unit with active tenant' });
+      }
+      
+      // Delete the unit
       const { error } = await supabase
         .from('units')
         .delete()
@@ -303,73 +340,58 @@ export class UnitController {
       
       if (error) {
         console.error('Unit deletion error:', error);
-        return c.json({ error: 'Failed to delete unit' }, 500);
+        return res.status(500).json({ error: 'Failed to delete unit' });
       }
       
-      return c.json({ message: 'Unit deleted successfully' });
+      return res.json({ message: 'Unit deleted successfully' });
       
     } catch (error) {
       console.error('Unit deletion error:', error);
-      return c.json({ error: 'Internal server error' }, 500);
+      return res.status(500).json({ error: 'Internal server error' });
     }
   }
 
   /**
    * Assign tenant to unit
    */
-  async assignTenant(c: Context) {
+  async assignTenant(req: AuthRequest, res: Response) {
     try {
-      const supabase = getSupabaseClient(c.env);
-      const user = c.get('user') as any;
-      const unitId = c.req.param('id');
-      const body = await c.req.json();
+      const supabase = getSupabaseClient(process.env);
+      const user = req.user as any;
+      const unitId = req.params.id;
+      const body = req.body;
       
-      const { tenantId, leaseStart, leaseEnd } = body;
+      const { tenantId } = body;
       
-      if (!tenantId || !leaseStart || !leaseEnd) {
-        return c.json({ error: 'Tenant ID, lease start, and lease end are required' }, 400);
-      }
-      
-      // Verify user owns the property
-      const { data: unit, error: unitError } = await supabase
+      // Get the unit to verify ownership
+      const { data: unit, error: fetchError } = await supabase
         .from('units')
         .select(`
-          id,
-          lease_status,
+          *,
           property:properties!units_property_id_fkey (
+            id,
             owner_id
           )
         `)
         .eq('id', unitId)
         .single();
       
-      if (unitError || !unit || unit.property.owner_id !== user.userId) {
-        return c.json({ error: 'Unit not found or access denied' }, 404);
+      if (fetchError || !unit) {
+        return res.status(404).json({ error: 'Unit not found' });
       }
       
-      if (unit.lease_status === 'LEASED') {
-        return c.json({ error: 'Unit is already leased' }, 400);
+      // Verify user owns the property
+      if (unit.property.owner_id !== user.userId) {
+        return res.status(403).json({ error: 'Access denied' });
       }
       
-      // Verify tenant exists
-      const { data: tenant, error: tenantError } = await supabase
-        .from('users')
-        .select('id')
-        .eq('id', tenantId)
-        .eq('role', 'TENANT')
-        .single();
-      
-      if (tenantError || !tenant) {
-        return c.json({ error: 'Tenant not found' }, 404);
-      }
-      
+      // Update the unit with tenant assignment
       const { data: updatedUnit, error } = await supabase
         .from('units')
         .update({
           tenant_id: tenantId,
-          lease_status: 'LEASED',
-          lease_start: leaseStart,
-          lease_end: leaseEnd
+          status: tenantId ? 'OCCUPIED' : 'VACANT',
+          updated_at: new Date().toISOString()
         })
         .eq('id', unitId)
         .select()
@@ -377,49 +399,55 @@ export class UnitController {
       
       if (error) {
         console.error('Tenant assignment error:', error);
-        return c.json({ error: 'Failed to assign tenant' }, 500);
+        return res.status(500).json({ error: 'Failed to assign tenant' });
       }
       
-      return c.json(updatedUnit);
+      return res.json(updatedUnit);
       
     } catch (error) {
       console.error('Tenant assignment error:', error);
-      return c.json({ error: 'Internal server error' }, 500);
+      return res.status(500).json({ error: 'Internal server error' });
     }
   }
 
   /**
    * Remove tenant from unit
    */
-  async removeTenant(c: Context) {
+  async removeTenant(req: AuthRequest, res: Response) {
     try {
-      const supabase = getSupabaseClient(c.env);
-      const user = c.get('user') as any;
-      const unitId = c.req.param('id');
+      const supabase = getSupabaseClient(process.env);
+      const user = req.user as any;
+      const unitId = req.params.id;
       
-      // Verify user owns the property
-      const { data: unit, error: unitError } = await supabase
+      // Get the unit to verify ownership
+      const { data: unit, error: fetchError } = await supabase
         .from('units')
         .select(`
-          id,
+          *,
           property:properties!units_property_id_fkey (
+            id,
             owner_id
           )
         `)
         .eq('id', unitId)
         .single();
       
-      if (unitError || !unit || unit.property.owner_id !== user.userId) {
-        return c.json({ error: 'Unit not found or access denied' }, 404);
+      if (fetchError || !unit) {
+        return res.status(404).json({ error: 'Unit not found' });
       }
       
+      // Verify user owns the property
+      if (unit.property.owner_id !== user.userId) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+      
+      // Update the unit to remove tenant
       const { data: updatedUnit, error } = await supabase
         .from('units')
         .update({
           tenant_id: null,
-          lease_status: 'VACANT',
-          lease_start: null,
-          lease_end: null
+          status: 'VACANT',
+          updated_at: new Date().toISOString()
         })
         .eq('id', unitId)
         .select()
@@ -427,14 +455,94 @@ export class UnitController {
       
       if (error) {
         console.error('Tenant removal error:', error);
-        return c.json({ error: 'Failed to remove tenant' }, 500);
+        return res.status(500).json({ error: 'Failed to remove tenant' });
       }
       
-      return c.json(updatedUnit);
+      return res.json(updatedUnit);
       
     } catch (error) {
       console.error('Tenant removal error:', error);
-      return c.json({ error: 'Internal server error' }, 500);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+
+  /**
+   * Bulk operations on units
+   */
+  async bulkOperations(req: AuthRequest, res: Response) {
+    try {
+      const supabase = getSupabaseClient(process.env);
+      const user = req.user as any;
+      const body = req.body;
+      
+      const { unitIds, action, data } = body;
+      
+      if (!unitIds || !Array.isArray(unitIds) || unitIds.length === 0) {
+        return res.status(400).json({ error: 'No units selected' });
+      }
+      
+      // Verify user owns all properties for these units
+      const { data: units, error: fetchError } = await supabase
+        .from('units')
+        .select(`
+          id,
+          property:properties!units_property_id_fkey (
+            id,
+            owner_id
+          )
+        `)
+        .in('id', unitIds);
+      
+      if (fetchError) {
+        return res.status(500).json({ error: 'Failed to fetch units' });
+      }
+      
+      // Check if user owns all properties
+      const unauthorizedUnits = units.filter((unit: any) => unit.property?.owner_id !== user.userId);
+      if (unauthorizedUnits.length > 0) {
+        return res.status(403).json({ error: 'Access denied to some units' });
+      }
+      
+      let updateData: any = {};
+      
+      switch (action) {
+        case 'archive':
+          updateData = { is_active: false };
+          break;
+        case 'activate':
+          updateData = { is_active: true };
+          break;
+        case 'maintenance':
+          updateData = { status: 'MAINTENANCE' };
+          break;
+        case 'update_rent':
+          if (!data.monthlyRent) {
+            return res.status(400).json({ error: 'Monthly rent is required' });
+          }
+          updateData = { monthly_rent: parseFloat(data.monthlyRent) };
+          break;
+        default:
+          return res.status(400).json({ error: 'Invalid action' });
+      }
+      
+      updateData.updated_at = new Date().toISOString();
+      
+      // Perform bulk update
+      const { error } = await supabase
+        .from('units')
+        .update(updateData)
+        .in('id', unitIds);
+      
+      if (error) {
+        console.error('Bulk operation error:', error);
+        return res.status(500).json({ error: 'Failed to perform bulk operation' });
+      }
+      
+      return res.json({ message: `Bulk ${action} completed successfully` });
+      
+    } catch (error) {
+      console.error('Bulk operation error:', error);
+      return res.status(500).json({ error: 'Internal server error' });
     }
   }
 }

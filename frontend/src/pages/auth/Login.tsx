@@ -164,6 +164,7 @@ export function Login() {
                     onChange={(e) => setEmail(e.target.value)}
                     className="pl-10 h-12 form-input hover-glow focus:ring-ormi-primary/20"
                     placeholder="Enter your email"
+                    autoComplete="email"
                     disabled={isLoading}
                     required
                   />
@@ -183,6 +184,7 @@ export function Login() {
                     onChange={(e) => setPassword(e.target.value)}
                     className="pl-10 pr-12 h-12 form-input hover-glow focus:ring-ormi-primary/20"
                     placeholder="Enter your password"
+                    autoComplete="current-password"
                     disabled={isLoading}
                     required
                   />

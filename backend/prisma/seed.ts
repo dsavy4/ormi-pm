@@ -71,6 +71,7 @@ async function main() {
       occupiedUnits: 20,
       monthlyRent: 2500.00,
       propertyManagerId: manager.id,
+      ownerId: admin.id, // Add ownerId
       images: [
         'https://r2.ormi.com/properties/sunset-apts-1.jpg',
         'https://r2.ormi.com/properties/sunset-apts-2.jpg'
@@ -93,6 +94,7 @@ async function main() {
       occupiedUnits: 10,
       monthlyRent: 3200.00,
       propertyManagerId: manager.id,
+      ownerId: admin.id, // Add ownerId
       images: [
         'https://r2.ormi.com/properties/downtown-lofts-1.jpg'
       ],

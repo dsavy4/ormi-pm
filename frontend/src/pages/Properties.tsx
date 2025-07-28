@@ -6,6 +6,7 @@ import { useDropzone } from 'react-dropzone';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
 import useSWR, { mutate } from 'swr';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
   MapPin,
   Plus,
@@ -63,6 +64,7 @@ import {
   FileSpreadsheet,
   Database,
   ChevronDown,
+  RefreshCw,
 } from 'lucide-react';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -213,6 +215,11 @@ const insightsFetcher = () => {
 
 // Utility functions
 const formatCurrency = (amount: number) => {
+  // Handle NaN, null, or undefined values
+  if (isNaN(amount) || amount === null || amount === undefined) {
+    return '$0';
+  }
+  
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
@@ -396,6 +403,9 @@ interface EnhancedProperty extends Omit<Property, 'manager'> {
 }
 
 export function Properties() {
+  const navigate = useNavigate();
+  const { propertyId } = useParams<{ propertyId?: string }>();
+  
   // State Management
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [selectedProperties, setSelectedProperties] = useState<string[]>([]);
@@ -478,6 +488,8 @@ export function Properties() {
     return () => clearTimeout(timer);
   }, [advancedFilters.search]);
 
+
+
   // Create SWR key for properties with advanced filters
   const propertiesKey = useMemo(() => {
     const params = new URLSearchParams();
@@ -540,12 +552,29 @@ export function Properties() {
   const { 
     data: insights, 
     error: insightsError, 
-    isLoading: insightsLoading 
+    isLoading: insightsLoading,
+    mutate: mutateInsights 
   } = useSWR<PropertyInsights>('/api/properties/insights', () => propertiesApi.getInsights());
+
+  // Force refresh function to clear cache and refetch
+  const forceRefresh = () => {
+    mutateProperties();
+    mutateInsights();
+  };
 
   // Computed values
   const properties = (propertiesData as any)?.data || [];
   const pagination = (propertiesData as any)?.pagination;
+
+  // Auto-open property view when propertyId is provided in URL
+  useEffect(() => {
+    if (propertyId && properties && properties.length > 0) {
+      const property = properties.find(p => p.id === propertyId);
+      if (property) {
+        handleViewProperty(propertyId);
+      }
+    }
+  }, [propertyId, properties]);
 
   // Client-side filtering as fallback for search functionality
   const filteredProperties = useMemo(() => {
@@ -785,7 +814,16 @@ export function Properties() {
 
   // View Mode and Filter Management
   const handleViewModeChange = (newMode: ViewMode) => {
-    if (newMode === viewMode) return;
+    console.log('[DEBUG] View mode change requested:', newMode, 'current:', viewMode);
+    
+    // Handle empty string case (ToggleGroup issue)
+    if (!newMode || (newMode as string) === '') {
+      console.log('[DEBUG] Empty mode detected, keeping current mode:', viewMode);
+      return;
+    }
+    
+    // Always update the view mode, even if it's the same
+    // This ensures the ToggleGroup stays in sync
     setViewTransition(true);
     setTimeout(() => {
       setViewMode(newMode);
@@ -836,6 +874,13 @@ export function Properties() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [properties.length]);
+
+  // Debug view mode and filtered properties
+  useEffect(() => {
+    console.log('[DEBUG] View mode:', viewMode);
+    console.log('[DEBUG] Filtered properties count:', filteredProperties.length);
+    console.log('[DEBUG] View transition:', viewTransition);
+  }, [viewMode, filteredProperties.length, viewTransition]);
 
   // Handle loading and error states
   if (propertiesError) {
@@ -926,15 +971,46 @@ export function Properties() {
     setSelectedProperty(property || null);
     setShowPropertyView(true);
     
-    // For now, use the basic property data since the detailed API endpoint isn't implemented yet
     if (property) {
-      setPropertyViewData({
-        property,
-        manager: undefined, // Will be enhanced later when we have proper manager data
-        units: [],
-        recentActivity: [],
-        documents: []
-      });
+      try {
+        // Try to fetch detailed property data from the API
+        const response = await fetch(`/api/properties/${propertyId}`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          },
+        });
+        
+        if (response.ok) {
+          const detailedProperty = await response.json();
+          setPropertyViewData({
+            property: detailedProperty,
+            manager: undefined, // Will be enhanced later when we have proper manager data
+            units: detailedProperty.units || [],
+            recentActivity: [],
+            documents: []
+          });
+        } else {
+          // If API fails, use the basic property data from the list
+          console.log(`Property details API returned ${response.status}, using basic property data`);
+          setPropertyViewData({
+            property,
+            manager: undefined,
+            units: [],
+            recentActivity: [],
+            documents: []
+          });
+        }
+      } catch (error) {
+        console.error('Failed to fetch property details:', error);
+        // Fallback to basic property data
+        setPropertyViewData({
+          property,
+          manager: undefined,
+          units: [],
+          recentActivity: [],
+          documents: []
+        });
+      }
     }
   };
 
@@ -1411,17 +1487,45 @@ export function Properties() {
                 </div>
 
                 {/* View Mode Toggle */}
-                <ToggleGroup type="single" value={viewMode} onValueChange={handleViewModeChange}>
-                  <ToggleGroupItem value="grid" aria-label="Grid view">
-                    <Grid3X3 className="h-4 w-4" />
-                  </ToggleGroupItem>
-                  <ToggleGroupItem value="list" aria-label="List view">
-                    <List className="h-4 w-4" />
-                  </ToggleGroupItem>
-                  <ToggleGroupItem value="map" aria-label="Map view">
-                    <MapPin className="h-4 w-4" />
-                  </ToggleGroupItem>
-                </ToggleGroup>
+                <div className="flex items-center space-x-1 bg-muted/50 rounded-lg p-1">
+                  <ToggleGroup type="single" value={viewMode} onValueChange={handleViewModeChange} className="flex">
+                    <ToggleGroupItem 
+                      value="grid" 
+                      aria-label="Grid view"
+                      className="flex items-center gap-2 px-3 py-2 text-sm font-medium"
+                    >
+                      <Grid3X3 className="h-4 w-4" />
+                      <span className="hidden sm:inline">Grid</span>
+                    </ToggleGroupItem>
+                    <ToggleGroupItem 
+                      value="list" 
+                      aria-label="List view"
+                      className="flex items-center gap-2 px-3 py-2 text-sm font-medium"
+                    >
+                      <List className="h-4 w-4" />
+                      <span className="hidden sm:inline">List</span>
+                    </ToggleGroupItem>
+                    <ToggleGroupItem 
+                      value="map" 
+                      aria-label="Map view"
+                      className="flex items-center gap-2 px-3 py-2 text-sm font-medium"
+                    >
+                      <MapPin className="h-4 w-4" />
+                      <span className="hidden sm:inline">Map</span>
+                    </ToggleGroupItem>
+                  </ToggleGroup>
+                </div>
+                
+                {/* Refresh Button */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={forceRefresh}
+                  disabled={propertiesLoading || insightsLoading}
+                  className="ml-2"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                </Button>
               </div>
             </div>
           </motion.div>
@@ -1473,96 +1577,166 @@ export function Properties() {
                   {/* List View */}
                   {viewMode === 'list' && (
                     <div className="space-y-4">
-                      {/* List Header */}
-                      <div className="bg-muted/50 rounded-lg p-4">
+                      {/* Enhanced List Header */}
+                      <div className="bg-gradient-to-r from-muted/30 to-muted/50 rounded-lg p-4 border">
                         <div className="grid grid-cols-12 gap-4 items-center text-sm font-medium text-muted-foreground">
                           <div className="col-span-1">
                             <input
                               type="checkbox"
                               checked={selectedProperties.length === properties.length && properties.length > 0}
                               onChange={handleSelectAll}
-                              className="rounded border-gray-300"
+                              className="rounded border-gray-300 focus:ring-2 focus:ring-primary"
                             />
                           </div>
-                          <div className="col-span-3">Property Name</div>
-                          <div className="col-span-2">Units</div>
-                          <div className="col-span-2">Net Income</div>
-                          <div className="col-span-2">Occupancy</div>
-                          <div className="col-span-2">Actions</div>
+                          <div className="col-span-3 flex items-center gap-2">
+                            <Building2 className="h-4 w-4" />
+                            Property Name
+                          </div>
+                          <div className="col-span-2 flex items-center gap-2">
+                            <Home className="h-4 w-4" />
+                            Units
+                          </div>
+                          <div className="col-span-2 flex items-center gap-2">
+                            <DollarSign className="h-4 w-4" />
+                            Net Income
+                          </div>
+                          <div className="col-span-2 flex items-center gap-2">
+                            <Users className="h-4 w-4" />
+                            Occupancy
+                          </div>
+                          <div className="col-span-2 flex items-center gap-2">
+                            <Settings className="h-4 w-4" />
+                            Actions
+                          </div>
                         </div>
                       </div>
 
-                      {/* List Items */}
-                      {filteredProperties.map((property) => (
-                        <PropertyListItem
-                          key={property.id}
-                          property={property}
-                          isSelected={selectedProperties.includes(property.id)}
-                          onSelect={() => handleSelectProperty(property.id)}
-                          isHighlighted={highlightedProperty === property.id}
-                          onView={handleViewProperty}
-                          onEdit={handleEditProperty}
-                          onArchive={handleArchiveProperty}
-                          onDelete={handleDeleteProperty}
-                          formatCurrency={formatCurrency}
-                          getOccupancyBadgeColor={getOccupancyBadgeColor}
-                        />
-                      ))}
+                      {/* Enhanced List Items */}
+                      <div className="space-y-2">
+                        {filteredProperties.map((property) => (
+                          <PropertyListItem
+                            key={property.id}
+                            property={property}
+                            isSelected={selectedProperties.includes(property.id)}
+                            onSelect={() => handleSelectProperty(property.id)}
+                            isHighlighted={highlightedProperty === property.id}
+                            onView={handleViewProperty}
+                            onEdit={handleEditProperty}
+                            onArchive={handleArchiveProperty}
+                            onDelete={handleDeleteProperty}
+                            formatCurrency={formatCurrency}
+                            getOccupancyBadgeColor={getOccupancyBadgeColor}
+                          />
+                        ))}
+                      </div>
                     </div>
                   )}
 
-                  {/* Map View */}
+                  {/* Enhanced Map View */}
                   {viewMode === 'map' && (
-                    <div className="h-96 lg:h-[600px] rounded-lg overflow-hidden border">
-                      <MapContainer
-                        center={[37.7749, -122.4194]}
-                        zoom={11}
-                        style={{ height: '100%', width: '100%' }}
-                      >
-                        <TileLayer
-                          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                        />
-                        {filteredProperties.filter(p => p.coordinates).map((property) => (
-                          <Marker
-                            key={property.id}
-                            position={[property.coordinates!.lat, property.coordinates!.lng]}
-                          >
-                            <Popup>
-                              <div className="p-2 min-w-48">
-                                <h3 className="font-semibold text-sm">{property.name}</h3>
-                                <p className="text-xs text-muted-foreground">{property.address}</p>
-                                <div className="mt-2 space-y-1">
-                                  <div className="flex justify-between text-xs">
-                                    <span>Units:</span>
-                                    <span>{property.totalUnits}</span>
+                    <div className="space-y-4">
+                      {/* Map Header */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <MapPin className="h-5 w-5 text-primary" />
+                          <h3 className="text-lg font-semibold">Property Locations</h3>
+                          <Badge variant="secondary" className="ml-2">
+                            {filteredProperties.filter(p => p.coordinates).length} properties
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-1">
+                            <div className="w-3 h-3 bg-primary rounded-full"></div>
+                            <span>Properties with coordinates</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Map Container */}
+                      <div className="h-96 lg:h-[600px] rounded-lg overflow-hidden border shadow-lg">
+                        <MapContainer
+                          center={[37.7749, -122.4194]}
+                          zoom={11}
+                          style={{ height: '100%', width: '100%' }}
+                          className="z-0"
+                        >
+                          <TileLayer
+                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                          />
+                          {filteredProperties.filter(p => p.coordinates).map((property) => (
+                            <Marker
+                              key={property.id}
+                              position={[property.coordinates!.lat, property.coordinates!.lng]}
+                            >
+                              <Popup>
+                                <div className="p-3 min-w-56">
+                                  <div className="flex items-start gap-3">
+                                    <div className="w-12 h-12 bg-gradient-to-br from-primary/10 to-primary/20 rounded-lg flex items-center justify-center">
+                                      <Building2 className="h-6 w-6 text-primary" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <h3 className="font-semibold text-sm text-gray-900 truncate">{property.name}</h3>
+                                      <p className="text-xs text-muted-foreground mt-1">{property.address}</p>
+                                    </div>
                                   </div>
-                                  <div className="flex justify-between text-xs">
-                                    <span>Occupancy:</span>
-                                    <span>{property.occupancyRate.toFixed(1)}%</span>
+                                  
+                                  <div className="mt-3 space-y-2">
+                                    <div className="flex justify-between items-center text-xs">
+                                      <span className="text-muted-foreground">Units:</span>
+                                      <span className="font-medium">{property.totalUnits}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center text-xs">
+                                      <span className="text-muted-foreground">Occupancy:</span>
+                                      <span className="font-medium">{(property.occupancyRate || 0).toFixed(1)}%</span>
+                                    </div>
+                                    <div className="flex justify-between items-center text-xs">
+                                      <span className="text-muted-foreground">Net Income:</span>
+                                      <span className="font-medium">{formatCurrency(property.netIncome)}</span>
+                                    </div>
                                   </div>
-                                  <div className="flex justify-between text-xs">
-                                    <span>Net Income:</span>
-                                    <span>{formatCurrency(property.netIncome)}</span>
+                                  
+                                  <div className="mt-3 flex gap-2">
+                                    <button
+                                      onClick={() => {
+                                        setViewMode('grid');
+                                        setTimeout(() => {
+                                          scrollToProperty(property.id);
+                                          highlightProperty(property.id);
+                                        }, 300);
+                                      }}
+                                      className="flex-1 bg-primary text-primary-foreground px-3 py-1.5 rounded text-xs hover:bg-primary/90 transition-colors font-medium"
+                                    >
+                                      View Details
+                                    </button>
+                                    <button
+                                      onClick={() => handleViewProperty(property.id)}
+                                      className="flex-1 bg-secondary text-secondary-foreground px-3 py-1.5 rounded text-xs hover:bg-secondary/90 transition-colors font-medium"
+                                    >
+                                      Quick View
+                                    </button>
                                   </div>
                                 </div>
-                                <button
-                                  onClick={() => {
-                                    setViewMode('grid');
-                                    setTimeout(() => {
-                                      scrollToProperty(property.id);
-                                      highlightProperty(property.id);
-                                    }, 300);
-                                  }}
-                                  className="mt-2 w-full bg-primary text-primary-foreground px-2 py-1 rounded text-xs hover:bg-primary/90 transition-colors"
-                                >
-                                  View Details
-                                </button>
-                              </div>
-                            </Popup>
-                          </Marker>
-                        ))}
-                      </MapContainer>
+                              </Popup>
+                            </Marker>
+                          ))}
+                        </MapContainer>
+                      </div>
+
+                      {/* Properties without coordinates warning */}
+                      {filteredProperties.filter(p => !p.coordinates).length > 0 && (
+                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                          <div className="flex items-center gap-2">
+                            <AlertTriangle className="h-4 w-4 text-amber-600" />
+                            <span className="text-sm font-medium text-amber-800">
+                              {filteredProperties.filter(p => !p.coordinates).length} properties don't have location data
+                            </span>
+                          </div>
+                          <p className="text-xs text-amber-700 mt-1">
+                            Add coordinates to these properties to see them on the map
+                          </p>
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -1939,6 +2113,15 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
               variant="outline" 
               size="sm" 
               className="flex items-center gap-2"
+              onClick={() => window.location.href = `/properties/${property.id}/units`}
+            >
+              <Home className="h-4 w-4" />
+              Units
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex items-center gap-2"
               onClick={() => onEdit(property.id)}
             >
               <Edit className="h-4 w-4" />
@@ -2078,10 +2261,10 @@ const PropertyListItem: React.FC<PropertyListItemProps> = ({
         {/* Occupancy */}
         <div className="col-span-2">
           <div className="flex items-center gap-2">
-            <div className="text-sm font-medium">{property.occupancyRate.toFixed(1)}%</div>
-            <div className={`w-2 h-2 rounded-full ${getOccupancyBadgeColor(property.occupancyRate).includes('green') ? 'bg-green-500' : getOccupancyBadgeColor(property.occupancyRate).includes('yellow') ? 'bg-yellow-500' : 'bg-red-500'}`} />
+            <div className="text-sm font-medium">{(property.occupancyRate || 0).toFixed(1)}%</div>
+            <div className={`w-2 h-2 rounded-full ${getOccupancyBadgeColor(property.occupancyRate || 0).includes('green') ? 'bg-green-500' : getOccupancyBadgeColor(property.occupancyRate || 0).includes('yellow') ? 'bg-yellow-500' : 'bg-red-500'}`} />
           </div>
-          <Progress value={property.occupancyRate} className="w-full h-1" />
+          <Progress value={property.occupancyRate || 0} className="w-full h-1" />
         </div>
 
         {/* Actions */}
@@ -2094,6 +2277,14 @@ const PropertyListItem: React.FC<PropertyListItemProps> = ({
               onClick={() => onView(property.id)}
             >
               <Eye className="h-4 w-4" />
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex items-center gap-2"
+              onClick={() => window.location.href = `/properties/${property.id}/units`}
+            >
+              <Home className="h-4 w-4" />
             </Button>
             <Button 
               variant="outline" 
@@ -2334,12 +2525,13 @@ const AddPropertySheet: React.FC<AddPropertySheetProps> = ({ isOpen, onClose, on
                 size="sm" 
                 onClick={() => {
                   toast.dismiss(t.id);
-                  window.location.href = '/units';
+                  // Navigate to properties page since units are accessed through properties
+                  window.location.href = '/properties';
                 }}
                 className="text-xs bg-blue-600 hover:bg-blue-700"
               >
                 <Plus className="h-3 w-3 mr-1" />
-                Add Units
+                View Properties
               </Button>
               <Button 
                 size="sm" 
@@ -2647,12 +2839,16 @@ const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({ dialog, onClose
   if (!dialog.isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div 
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4"
+      onClick={(e) => e.stopPropagation()}
+    >
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
         className="bg-white rounded-lg shadow-xl max-w-md w-full"
+        onClick={(e) => e.stopPropagation()}
       >
         <div className="p-6">
           <div className="flex items-center gap-3 mb-4">
@@ -4006,7 +4202,7 @@ interface PropertyViewSheetProps {
   formatCurrency: (amount: number) => string;
 }
 
-const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({ 
+export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({ 
   isOpen, 
   onClose, 
   property, 
@@ -4034,6 +4230,14 @@ const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
                 </SheetDescription>
               </div>
             </div>
+
+          </div>
+        </SheetHeader>
+        
+        <div className="space-y-6 mt-6">
+
+          {/* Property Actions */}
+          <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
             <div className="flex items-center gap-2">
               <Button 
                 variant="outline" 
@@ -4041,16 +4245,16 @@ const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
                 onClick={() => onEdit(property.id)}
               >
                 <Edit className="h-4 w-4 mr-2" />
-                Edit
+                Edit Property
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="relative">
-                    <MoreHorizontal className="h-4 w-4" />
-                    <span className="sr-only">More options</span>
+                  <Button variant="outline" size="sm">
+                    <MoreHorizontal className="h-4 w-4 mr-2" />
+                    More Actions
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuContent align="start" className="w-48">
                   <DropdownMenuItem onClick={() => onArchive(property.id)}>
                     <Archive className="h-4 w-4 mr-2" />
                     Archive Property
@@ -4067,9 +4271,7 @@ const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
               </DropdownMenu>
             </div>
           </div>
-        </SheetHeader>
-        
-        <div className="space-y-6 mt-6">
+
           {/* Property Images - Enhanced UX */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Property Images</h3>
@@ -4135,9 +4337,9 @@ const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
                   <TrendingUp className="h-5 w-5 text-green-600" />
                   <span className="text-sm font-medium">Occupancy Rate</span>
                 </div>
-                <div className="text-2xl font-bold">{property.occupancyRate.toFixed(1)}%</div>
+                <div className="text-2xl font-bold">{(property.occupancyRate || 0).toFixed(1)}%</div>
                 <div className="text-sm text-gray-500">
-                  {property.occupancyRate >= 90 ? 'Excellent' : property.occupancyRate >= 80 ? 'Good' : 'Needs Attention'}
+                  {(property.occupancyRate || 0) >= 90 ? 'Excellent' : (property.occupancyRate || 0) >= 80 ? 'Good' : 'Needs Attention'}
                 </div>
               </CardContent>
             </Card>
