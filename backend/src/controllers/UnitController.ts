@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { getSupabaseClient } from '../utils/supabase';
 import { AuthRequest } from '../middleware/auth';
+import { storageService } from '../utils/storage';
 
 export class UnitController {
   /**
@@ -158,10 +159,15 @@ export class UnitController {
       const user = req.user as any;
       const body = req.body;
       
-      const { propertyId, unitNumber, bedrooms, bathrooms, squareFootage, monthlyRent, floor, amenities, notes } = body;
+      const { 
+        propertyId, unitNumber, bedrooms, bathrooms, squareFootage, monthlyRent, floor, 
+        amenities, notes, unitType, status, balcony, parking, storageUnit, 
+        securityDeposit, petDeposit, applicationFee, leaseTerms, appliances,
+        furnished, smartHome, description, images, availableDate, showOnWebsite
+      } = body;
       
       // Validate required fields
-      if (!propertyId || !unitNumber || !bedrooms || !bathrooms || !squareFootage || !monthlyRent) {
+      if (!propertyId || !unitNumber || bedrooms === undefined || bathrooms === undefined || !squareFootage || !monthlyRent) {
         return res.status(400).json({ error: 'Missing required fields' });
       }
       
@@ -205,15 +211,32 @@ export class UnitController {
         .insert({
           unit_number: unitNumber,
           property_id: propertyId,
-          bedrooms: parseInt(bedrooms),
-          bathrooms: parseInt(bathrooms),
+          unit_type: unitType || 'apartment',
+          bedrooms: parseInt(bedrooms) || 0,
+          bathrooms: parseFloat(bathrooms) || 1,
           square_footage: parseInt(squareFootage),
           monthly_rent: parseFloat(monthlyRent),
+          security_deposit: securityDeposit ? parseFloat(securityDeposit) : 0,
+          pet_deposit: petDeposit ? parseFloat(petDeposit) : 0,
+          application_fee: applicationFee ? parseFloat(applicationFee) : 0,
           floor: floor ? parseInt(floor) : null,
           amenities: amenities || [],
+          appliances: appliances || [],
           notes: notes || '',
-          status: 'VACANT',
-          is_active: true
+          description: description || '',
+          status: status || 'VACANT',
+          lease_terms: leaseTerms || '12_months',
+          balcony: balcony || false,
+          parking: parking || false,
+          storage_unit: storageUnit || false,
+          furnished: furnished || false,
+          smart_home: smartHome || false,
+          images: images || [],
+          available_date: availableDate || null,
+          show_on_website: showOnWebsite !== undefined ? showOnWebsite : true,
+          is_active: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         })
         .select()
         .single();
@@ -543,6 +566,148 @@ export class UnitController {
     } catch (error) {
       console.error('Bulk operation error:', error);
       return res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+
+  /**
+   * Generate upload URL for unit images
+   */
+  async generateImageUploadUrl(c: any) {
+    try {
+      const unitId = c.req.param('id');
+      const user = c.get('user');
+      const body = await c.req.json();
+      const { fileName, fileType } = body;
+
+      if (!fileName || !fileType) {
+        return c.json({ error: 'fileName and fileType are required' }, 400);
+      }
+
+      // Verify unit exists and user has access
+      const supabase = getSupabaseClient(c.env);
+      const { data: unit, error: unitError } = await supabase
+        .from('units')
+        .select(`
+          id,
+          property:properties!units_property_id_fkey (
+            id,
+            owner_id
+          )
+        `)
+        .eq('id', unitId)
+        .single();
+
+      if (unitError || !unit) {
+        return c.json({ error: 'Unit not found' }, 404);
+      }
+
+      // Type assertion for the property relationship
+      const unitWithProperty = unit as any;
+      if (!unitWithProperty.property || unitWithProperty.property.owner_id !== user.userId) {
+        return c.json({ error: 'Access denied' }, 403);
+      }
+
+      // Generate presigned URL
+      const result = await storageService.generatePresignedUrl(fileName, fileType, `units/${unitId}/images`);
+
+      return c.json({
+        success: true,
+        data: {
+          uploadUrl: result.uploadUrl,
+          fileName: result.key,
+          publicUrl: result.publicUrl
+        }
+      });
+    } catch (error) {
+      console.error('Unit image upload URL generation error:', error);
+      return c.json({ error: 'Internal server error' }, 500);
+    }
+  }
+
+  /**
+   * Upload unit images directly
+   */
+  async uploadImages(c: any) {
+    try {
+      const unitId = c.req.param('id');
+      const user = c.get('user');
+
+      // Verify unit exists and user has access
+      const supabase = getSupabaseClient(c.env);
+      const { data: unit, error: unitError } = await supabase
+        .from('units')
+        .select(`
+          id,
+          images,
+          property:properties!units_property_id_fkey (
+            id,
+            owner_id
+          )
+        `)
+        .eq('id', unitId)
+        .single();
+
+      if (unitError || !unit) {
+        return c.json({ error: 'Unit not found' }, 404);
+      }
+
+      // Type assertion for the property relationship  
+      const unitWithPropertyImg = unit as any;
+      if (!unitWithPropertyImg.property || unitWithPropertyImg.property.owner_id !== user.userId) {
+        return c.json({ error: 'Access denied' }, 403);
+      }
+
+      const formData = await c.req.formData();
+      const files = formData.getAll('images') as File[];
+
+      if (!files || files.length === 0) {
+        return c.json({ error: 'No images provided' }, 400);
+      }
+
+      const uploadedImages = [];
+
+      for (const file of files) {
+        if (file && file.size > 0) {
+          // Generate unique file name
+          const timestamp = Date.now();
+          const extension = file.name.split('.').pop();
+          const fileName = `units/${unitId}/images/${timestamp}-${Math.random().toString(36).substring(7)}.${extension}`;
+
+          // Upload to R2
+          const buffer = await file.arrayBuffer();
+          const uploadResult = await storageService.uploadFile(Buffer.from(buffer), fileName, file.type, `units/${unitId}/images`);
+
+          uploadedImages.push(uploadResult.url);
+        }
+      }
+
+      // Update unit with new images
+      const existingImages = unit.images || [];
+      const allImages = [...existingImages, ...uploadedImages];
+
+      const { error: updateError } = await supabase
+        .from('units')
+        .update({ 
+          images: allImages,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', unitId);
+
+      if (updateError) {
+        console.error('Unit image update error:', updateError);
+        return c.json({ error: 'Failed to update unit images' }, 500);
+      }
+
+      return c.json({
+        success: true,
+        data: {
+          images: allImages,
+          uploadedCount: uploadedImages.length
+        }
+      });
+    } catch (error) {
+      console.error('Unit image upload error:', error);
+      return c.json({ error: 'Internal server error' }, 500);
     }
   }
 }

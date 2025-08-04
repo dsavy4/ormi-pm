@@ -265,6 +265,7 @@ export class PropertyController {
         lotSize,
         amenities,
         tags,
+        propertyManager,
         managerId,
         rentDueDay,
         allowOnlinePayments,
@@ -287,7 +288,7 @@ export class PropertyController {
           lotSize: lotSize ? parseFloat(lotSize) : null,
           amenities: amenities || [],
           tags: tags || [],
-          managerId,
+          propertyManagerId: propertyManager || managerId,
           rentDueDay: rentDueDay ? parseInt(rentDueDay) : 1,
           allowOnlinePayments: allowOnlinePayments || false,
           enableMaintenanceRequests: enableMaintenanceRequests || true,
@@ -295,7 +296,7 @@ export class PropertyController {
           status: 'ACTIVE',
         },
         include: {
-          manager: {
+          propertyManager: {
             select: {
               id: true,
               firstName: true,

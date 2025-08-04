@@ -1034,9 +1034,31 @@ export function MultiPropertyManagement() {
 
       {/* Portfolio Details Dialog */}
       <Dialog open={!!selectedPortfolio} onOpenChange={() => setSelectedPortfolio(null)}>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>Portfolio Details</DialogTitle>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader className="sticky top-0 bg-white z-10 pb-4 border-b">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-gradient-to-r from-purple-600/20 to-pink-600/20 rounded-lg border border-purple-500/30">
+                  <Building2 className="h-6 w-6 text-purple-600" />
+                </div>
+                <div>
+                  <DialogTitle className="text-xl font-bold">Portfolio Details</DialogTitle>
+                  {selectedPortfolio && (
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {selectedPortfolio.name} • {selectedPortfolio.type}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSelectedPortfolio(null)}
+                className="h-10 w-10 p-0 rounded-lg bg-background/80 backdrop-blur-sm border border-border/50 shadow-sm hover:shadow-md hover:bg-background/90 transition-all duration-200 hover:scale-105"
+              >
+                <X className="h-5 w-5 text-foreground/80 hover:text-foreground transition-colors" />
+              </Button>
+            </div>
           </DialogHeader>
           {selectedPortfolio && (
             <div className="space-y-6">

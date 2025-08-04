@@ -77,6 +77,79 @@ class StorageService {
   }
 
   /**
+   * Upload team member avatar to storage
+   */
+  async uploadTeamMemberAvatar(
+    file: Buffer,
+    fileName: string,
+    contentType: string,
+    teamMemberId: string
+  ): Promise<{ url: string; key: string }> {
+    try {
+      const key = `team-avatars/${teamMemberId}/${Date.now()}-${fileName}`;
+      
+      const command = new PutObjectCommand({
+        Bucket: this.config.bucket,
+        Key: key,
+        Body: file,
+        ContentType: contentType,
+        CacheControl: 'public, max-age=31536000', // 1 year cache
+        ACL: 'public-read',
+      });
+
+      await this.s3Client.send(command);
+
+      // Return the public URL
+      const publicUrl = `${this.config.publicUrl}/${key}`;
+      
+      return {
+        url: publicUrl,
+        key: key,
+      };
+    } catch (error) {
+      console.error('Team member avatar upload error:', error);
+      throw new Error('Failed to upload team member avatar to storage');
+    }
+  }
+
+  /**
+   * Generate presigned URL for team member avatar upload
+   */
+  async generateTeamMemberAvatarUploadUrl(
+    fileName: string,
+    contentType: string,
+    teamMemberId: string,
+    expiresIn: number = 3600
+  ): Promise<{ uploadUrl: string; key: string; publicUrl: string }> {
+    try {
+      const key = `team-avatars/${teamMemberId}/${Date.now()}-${fileName}`;
+      
+      const command = new PutObjectCommand({
+        Bucket: this.config.bucket,
+        Key: key,
+        ContentType: contentType,
+        CacheControl: 'public, max-age=31536000',
+        ACL: 'public-read',
+      });
+
+      const uploadUrl = await getSignedUrl(this.s3Client, command, {
+        expiresIn,
+      });
+
+      const publicUrl = `${this.config.publicUrl}/${key}`;
+
+      return {
+        uploadUrl,
+        key,
+        publicUrl,
+      };
+    } catch (error) {
+      console.error('Team member avatar presigned URL generation error:', error);
+      throw new Error('Failed to generate team member avatar upload URL');
+    }
+  }
+
+  /**
    * Delete a file from storage
    */
   async deleteFile(key: string): Promise<void> {

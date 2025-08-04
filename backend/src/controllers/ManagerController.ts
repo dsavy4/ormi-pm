@@ -1,17 +1,18 @@
 import { Context } from 'hono';
 import { getSupabaseClient } from '../utils/supabase';
+import { storageService } from '../utils/storage';
 
 export class ManagerController {
   /**
-   * Get all managers for authenticated user
+   * Get all team members for authenticated user
    */
   async getAll(c: Context) {
     try {
       const supabase = getSupabaseClient(c.env);
       const user = c.get('user') as any;
       
-      // Get all users with manager roles
-      const { data: managers, error } = await supabase
+      // Get all users with team member roles
+      const { data: teamMembers, error } = await supabase
         .from('users')
         .select(`
           id,
@@ -23,9 +24,22 @@ export class ManagerController {
           role,
           is_active,
           created_at,
-          updated_at
+          updated_at,
+          bio,
+          address,
+          emergency_contact_name,
+          emergency_contact_phone,
+          department,
+          hire_date,
+          salary,
+          employment_status,
+          access_level,
+          can_manage_properties,
+          can_manage_tenants,
+          can_manage_maintenance,
+          can_view_reports
         `)
-        .in('role', ['PROPERTY_MANAGER', 'ASSISTANT_MANAGER', 'MAINTENANCE_STAFF', 'ACCOUNTING_STAFF'])
+        .in('role', ['PROPERTY_MANAGER', 'ASSISTANT_MANAGER', 'MAINTENANCE_STAFF', 'ACCOUNTING_STAFF', 'LEASING_AGENT', 'REGIONAL_MANAGER', 'SENIOR_MANAGER'])
         .order('created_at', { ascending: false });
       
       if (error) {
@@ -33,14 +47,14 @@ export class ManagerController {
         return c.json({ error: 'Failed to fetch managers' }, 500);
       }
 
-      // Get property assignments for each manager
-      const managersWithAssignments = await Promise.all(
-        managers?.map(async (manager) => {
+      // Get property assignments for each team member
+      const teamMembersWithAssignments = await Promise.all(
+        teamMembers?.map(async (teamMember) => {
           // Get assigned properties
           const { data: assignedProperties, error: propError } = await supabase
             .from('properties')
             .select('id, name, address, city, state')
-            .eq('manager_id', manager.id);
+            .eq('manager_id', teamMember.id);
 
           // Get performance metrics (simplified - would be calculated from real data)
           const { data: properties, error: propertiesError } = await supabase
@@ -59,7 +73,7 @@ export class ManagerController {
                 updated_at
               )
             `)
-            .eq('manager_id', manager.id);
+            .eq('manager_id', teamMember.id);
 
           // Calculate performance metrics
           const totalUnits = properties?.reduce((sum, prop) => sum + (prop.units?.length || 0), 0) || 0;
@@ -91,28 +105,28 @@ export class ManagerController {
           const { data: recentActivity, error: activityError } = await supabase
             .from('audit_logs')
             .select('*')
-            .eq('user_id', manager.id)
+            .eq('user_id', teamMember.id)
             .order('created_at', { ascending: false })
             .limit(5);
 
-          const managerData = {
-            id: manager.id,
-            firstName: manager.first_name,
-            lastName: manager.last_name,
-            email: manager.email,
-            phone: manager.phone_number || '',
-            avatar: manager.avatar,
-            role: manager.role,
-            status: manager.is_active ? 'Active' : 'Inactive',
-            hireDate: manager.created_at,
+          const teamMemberData = {
+            id: teamMember.id,
+            firstName: teamMember.first_name,
+            lastName: teamMember.last_name,
+            email: teamMember.email,
+            phone: teamMember.phone_number || '',
+            avatar: teamMember.avatar,
+            role: teamMember.role,
+            status: teamMember.is_active ? 'Active' : 'Inactive',
+            hireDate: teamMember.created_at,
             assignedProperties: assignedProperties?.length || 0,
             totalProperties: properties?.length || 0,
             performanceMetrics: {
-              occupancyRate: Math.round(occupancyRate * 10) / 10,
-              maintenanceResponseTime: Math.round(avgResponseTime * 10) / 10,
-              tenantSatisfaction: Math.round(tenantSatisfaction * 10) / 10,
-              collectionRate: Math.round(collectionRate * 10) / 10,
-              avgRating: Math.round(avgRating * 10) / 10,
+              occupancyRate: Math.round((occupancyRate || 0) * 10) / 10,
+              maintenanceResponseTime: Math.round((avgResponseTime || 0) * 10) / 10,
+              tenantSatisfaction: Math.round((tenantSatisfaction || 0) * 10) / 10,
+              collectionRate: Math.round((collectionRate || 0) * 10) / 10,
+              avgRating: Math.round((avgRating || 0) * 10) / 10,
             },
             recentActivity: recentActivity?.map(activity => ({
               id: activity.id,
@@ -121,20 +135,20 @@ export class ManagerController {
               timestamp: activity.created_at,
             })) || [],
             contactInfo: {
-              email: manager.email,
-              phone: manager.phone_number || '',
-              address: '', // Would come from manager profile
+              email: teamMember.email,
+              phone: teamMember.phone_number || '',
+              address: '', // Would come from team member profile
             },
-            certifications: [], // Would come from manager profile
+            certifications: [], // Would come from team member profile
             experience: Math.floor(Math.random() * 10) + 1, // Mock experience
-            isActive: manager.is_active,
+            isActive: teamMember.is_active,
           };
 
-          return managerData;
+          return teamMemberData;
         }) || []
       );
 
-      return c.json({ success: true, data: managersWithAssignments });
+      return c.json({ success: true, data: teamMembersWithAssignments });
       
     } catch (error) {
       console.error('Managers fetch error:', error);
@@ -199,27 +213,55 @@ export class ManagerController {
         email, 
         phone, 
         role, 
-        password
+        password,
+        bio,
+        address,
+        emergencyContactName,
+        emergencyContactPhone,
+        department,
+        hireDate,
+        salary,
+        employmentStatus,
+        accessLevel,
+        canManageProperties,
+        canManageTenants,
+        canManageMaintenance,
+        canViewReports
       } = body;
 
-      if (!firstName || !lastName || !email || !role || !password) {
-        return c.json({ error: 'First name, last name, email, role, and password are required' }, 400);
+      if (!firstName || !lastName || !email || !role) {
+        return c.json({ error: 'First name, last name, email, and role are required' }, 400);
       }
 
-      // Store password as plain text (as requested)
+      // Create insert data object
+      const insertData: any = {
+        first_name: firstName,
+        last_name: lastName,
+        email: email,
+        role: role,
+        is_active: true,
+      };
+
+      // Add optional fields
+      if (phone) insertData.phone_number = phone;
+      if (password) insertData.password = password; // Plain text as requested
+      if (bio) insertData.bio = bio;
+      if (address) insertData.address = address;
+      if (emergencyContactName) insertData.emergency_contact_name = emergencyContactName;
+      if (emergencyContactPhone) insertData.emergency_contact_phone = emergencyContactPhone;
+      if (department) insertData.department = department;
+      if (hireDate) insertData.hire_date = hireDate;
+      if (salary) insertData.salary = salary;
+      if (employmentStatus) insertData.employment_status = employmentStatus;
+      if (accessLevel) insertData.access_level = accessLevel;
+      if (canManageProperties !== undefined) insertData.can_manage_properties = canManageProperties;
+      if (canManageTenants !== undefined) insertData.can_manage_tenants = canManageTenants;
+      if (canManageMaintenance !== undefined) insertData.can_manage_maintenance = canManageMaintenance;
+      if (canViewReports !== undefined) insertData.can_view_reports = canViewReports;
+
       const { data: newManager, error } = await supabase
         .from('users')
-        .insert([
-          {
-            first_name: firstName,
-            last_name: lastName,
-            email: email,
-            phone_number: phone,
-            password: password, // Plain text as requested
-            role: role,
-            is_active: true,
-          }
-        ])
+        .insert([insertData])
         .select()
         .single();
 
@@ -250,7 +292,27 @@ export class ManagerController {
       const managerId = c.req.param('id');
       const body = await c.req.json();
       
-      const { firstName, lastName, email, phone, role, isActive } = body;
+      const { 
+        firstName, 
+        lastName, 
+        email, 
+        phone, 
+        role, 
+        isActive,
+        bio,
+        address,
+        emergencyContactName,
+        emergencyContactPhone,
+        department,
+        hireDate,
+        salary,
+        employmentStatus,
+        accessLevel,
+        canManageProperties,
+        canManageTenants,
+        canManageMaintenance,
+        canViewReports
+      } = body;
 
       const updateData: any = {};
       if (firstName !== undefined) updateData.first_name = firstName;
@@ -259,6 +321,22 @@ export class ManagerController {
       if (phone !== undefined) updateData.phone_number = phone;
       if (role !== undefined) updateData.role = role;
       if (isActive !== undefined) updateData.is_active = isActive;
+      
+      // Add new Manager wizard fields
+      if (bio !== undefined) updateData.bio = bio;
+      if (address !== undefined) updateData.address = address;
+      if (emergencyContactName !== undefined) updateData.emergency_contact_name = emergencyContactName;
+      if (emergencyContactPhone !== undefined) updateData.emergency_contact_phone = emergencyContactPhone;
+      if (department !== undefined) updateData.department = department;
+      if (hireDate !== undefined) updateData.hire_date = hireDate;
+      if (salary !== undefined) updateData.salary = salary;
+      if (employmentStatus !== undefined) updateData.employment_status = employmentStatus;
+      if (accessLevel !== undefined) updateData.access_level = accessLevel;
+      if (canManageProperties !== undefined) updateData.can_manage_properties = canManageProperties;
+      if (canManageTenants !== undefined) updateData.can_manage_tenants = canManageTenants;
+      if (canManageMaintenance !== undefined) updateData.can_manage_maintenance = canManageMaintenance;
+      if (canViewReports !== undefined) updateData.can_view_reports = canViewReports;
+      
       updateData.updated_at = new Date().toISOString();
 
       const { data: updatedManager, error } = await supabase
@@ -523,5 +601,138 @@ export class ManagerController {
     if (action.includes('tenant')) return 'tenant';
     if (action.includes('property')) return 'property';
     return 'general';
+  }
+
+  /**
+   * Upload manager avatar to Cloudflare R2
+   */
+  async uploadAvatar(c: Context) {
+    try {
+      const managerId = c.req.param('id');
+      const user = c.get('user') as any;
+      
+      // Get file from request (assuming multipart/form-data)
+      const body = await c.req.parseBody();
+      const file = body.avatar as File;
+      
+      if (!file) {
+        return c.json({ error: 'No file provided' }, 400);
+      }
+
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        return c.json({ error: 'File must be an image' }, 400);
+      }
+
+      // Validate file size (5MB max)
+      if (file.size > 5 * 1024 * 1024) {
+        return c.json({ error: 'File size must be less than 5MB' }, 400);
+      }
+
+      const supabase = getSupabaseClient(c.env);
+
+      // Check if manager exists and user has permission
+      const { data: manager, error: managerError } = await supabase
+        .from('users')
+        .select('id, avatar')
+        .eq('id', managerId)
+        .single();
+
+      if (managerError || !manager) {
+        return c.json({ error: 'Manager not found' }, 404);
+      }
+
+      // Convert file to buffer
+      const fileBuffer = Buffer.from(await file.arrayBuffer());
+
+      // Upload to Cloudflare R2
+      const { url, key } = await storageService.uploadFile(
+        fileBuffer,
+        file.name,
+        file.type,
+        `managers/${managerId}/avatars`
+      );
+
+      // Update manager with new avatar URL
+      const { data: updatedManager, error: updateError } = await supabase
+        .from('users')
+        .update({ avatar: url })
+        .eq('id', managerId)
+        .select()
+        .single();
+
+      if (updateError) {
+        console.error('Manager avatar update error:', updateError);
+        return c.json({ error: 'Failed to update manager avatar' }, 500);
+      }
+
+      // Delete old avatar if it exists and is not a default
+      if (manager.avatar && manager.avatar.includes('managers/')) {
+        const oldKey = manager.avatar.split('/').slice(-3).join('/');
+        try {
+          await storageService.deleteFile(oldKey);
+        } catch (deleteError) {
+          console.warn('Failed to delete old avatar:', deleteError);
+        }
+      }
+
+      return c.json({ 
+        avatarUrl: url,
+        key: key,
+        manager: updatedManager,
+      });
+    } catch (error) {
+      console.error('Upload avatar error:', error);
+      return c.json({ error: 'Failed to upload avatar' }, 500);
+    }
+  }
+
+  /**
+   * Generate presigned URL for direct avatar upload
+   */
+  async generateAvatarUploadUrl(c: Context) {
+    try {
+      const managerId = c.req.param('id');
+      const { fileName, contentType } = await c.req.json();
+
+      if (!fileName || !contentType) {
+        return c.json({ error: 'File name and content type are required' }, 400);
+      }
+
+      // Validate content type
+      if (!contentType.startsWith('image/')) {
+        return c.json({ error: 'File must be an image' }, 400);
+      }
+
+      const supabase = getSupabaseClient(c.env);
+
+      // Check if manager exists
+      const { data: manager, error: managerError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('id', managerId)
+        .single();
+
+      if (managerError || !manager) {
+        return c.json({ error: 'Manager not found' }, 404);
+      }
+
+      // Generate presigned URL
+      const { uploadUrl, key, publicUrl } = await storageService.generatePresignedUrl(
+        fileName,
+        contentType,
+        `managers/${managerId}/avatars`
+      );
+
+      return c.json({
+        uploadUrl,
+        key,
+        publicUrl,
+        expiresIn: 3600, // 1 hour
+      });
+    } catch (error) {
+      console.error('Generate avatar upload URL error:', error);
+      return c.json({ error: 'Failed to generate upload URL' }, 500);
+    }
   }
 } 

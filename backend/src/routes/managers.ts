@@ -27,4 +27,10 @@ app.post('/:id/assign-properties', (c) => managerController.assignProperties(c))
 // Get manager performance analytics
 app.get('/:id/performance', (c) => managerController.getPerformance(c));
 
+// Upload manager avatar
+app.post('/:id/avatar', (c) => managerController.uploadAvatar(c));
+
+// Generate presigned URL for avatar upload
+app.post('/:id/avatar/upload-url', (c) => managerController.generateAvatarUploadUrl(c));
+
 export default app; 

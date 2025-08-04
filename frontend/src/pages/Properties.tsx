@@ -39,6 +39,7 @@ import {
   Camera,
   ChevronLeft,
   ChevronRight,
+  ArrowLeft,
   X,
   Loader2,
   Building,
@@ -71,6 +72,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { ProCheckbox } from '@/components/ui/pro-checkbox';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -87,10 +91,12 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { ConfirmationDialog as UnsavedChangesDialog } from '@/components/ui/confirmation-dialog';
 import {
   Sheet,
   SheetContent,
@@ -99,6 +105,13 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
+import {
+  GrippableSheet,
+  GrippableSheetContent,
+  GrippableSheetHeader,
+  GrippableSheetTitle,
+  GrippableSheetDescription,
+} from '@/components/ui/grippable-sheet';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Slider } from '@/components/ui/slider';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
@@ -294,35 +307,35 @@ const WIZARD_STEPS = [
   {
     id: 1,
     title: 'Basic Info',
-    description: 'Property name and type',
+    description: '',
     icon: Building,
     schema: step1Schema,
   },
   {
     id: 2,
     title: 'Location',
-    description: 'Address and location details',
+    description: '',
     icon: MapPin,
     schema: step2Schema,
   },
   {
     id: 3,
     title: 'Property Details',
-    description: 'Units, size, and description',
+    description: '',
     icon: Settings,
     schema: step3Schema,
   },
   {
     id: 4,
     title: 'Media',
-    description: 'Upload property images',
+    description: '',
     icon: Camera,
     schema: step4Schema,
   },
   {
     id: 5,
     title: 'Review',
-    description: 'Review and create property',
+    description: '',
     icon: CheckCircle2,
     schema: step5Schema,
   },
@@ -487,6 +500,19 @@ export function Properties() {
     }, 300);
     return () => clearTimeout(timer);
   }, [advancedFilters.search]);
+
+  // Handle Quick Add events
+  useEffect(() => {
+    const handleOpenAddProperty = () => {
+      setShowAddProperty(true);
+    };
+
+    window.addEventListener('openAddProperty', handleOpenAddProperty);
+    
+    return () => {
+      window.removeEventListener('openAddProperty', handleOpenAddProperty);
+    };
+  }, []);
 
 
 
@@ -855,8 +881,14 @@ export function Properties() {
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Only handle if not in an input field
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.contentEditable === 'true') {
+        return;
+      }
+
       if (e.metaKey || e.ctrlKey) {
-        switch (e.key) {
+        switch (e.key.toLowerCase()) {
           case 'k':
             e.preventDefault();
             searchInputRef.current?.focus();
@@ -1581,11 +1613,10 @@ export function Properties() {
                       <div className="bg-gradient-to-r from-muted/30 to-muted/50 rounded-lg p-4 border">
                         <div className="grid grid-cols-12 gap-4 items-center text-sm font-medium text-muted-foreground">
                           <div className="col-span-1">
-                            <input
-                              type="checkbox"
+                            <ProCheckbox
                               checked={selectedProperties.length === properties.length && properties.length > 0}
-                              onChange={handleSelectAll}
-                              className="rounded border-gray-300 focus:ring-2 focus:ring-primary"
+                              onCheckedChange={handleSelectAll}
+                              size="md"
                             />
                           </div>
                           <div className="col-span-3 flex items-center gap-2">
@@ -1959,7 +1990,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
       id={`property-${property.id}`}
-      className={`group relative bg-card rounded-xl shadow-sm border transition-all duration-300 hover:shadow-lg hover:shadow-black/5 ${
+      className={`group relative bg-card rounded-2xl shadow-sm border transition-all duration-300 hover:shadow-lg hover:shadow-black/5 ${
         isSelected ? 'ring-2 ring-blue-500' : ''
       }`}
       style={{
@@ -1978,23 +2009,33 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="absolute inset-0 bg-blue-50/50 rounded-xl pointer-events-none"
+          className="absolute inset-0 bg-blue-50/50 rounded-2xl pointer-events-none"
           style={{
             background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(147, 197, 253, 0.05) 100%)'
           }}
         />
       )}
 
-      {/* Selection Checkbox */}
+      {/* Selection Checkbox - Highly Visible */}
       <div className="absolute top-3 left-3 z-10">
-        <div className="flex items-center justify-center w-6 h-6 rounded-full bg-card/90 backdrop-blur-sm border">
-          <input
-            type="checkbox"
+        <button
+          onClick={onSelect}
+          className={`flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all duration-200 cursor-pointer group ${
+            isSelected 
+              ? 'bg-primary border-primary shadow-lg shadow-primary/25' 
+              : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 hover:border-primary/50 hover:shadow-md'
+          }`}
+          aria-label={`Select ${property.name}`}
+        >
+          <ProCheckbox
             checked={isSelected}
-            onChange={onSelect}
-            className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+            onCheckedChange={onSelect}
+            size="md"
+            className={`group-hover:scale-110 transition-transform duration-200 ${
+              isSelected ? 'text-white' : 'text-gray-600 dark:text-gray-400'
+            }`}
           />
-        </div>
+        </button>
       </div>
 
       {/* Property Rating */}
@@ -2192,7 +2233,7 @@ const PropertyListItem: React.FC<PropertyListItemProps> = ({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
       id={`property-${property.id}`}
-      className={`bg-white rounded-lg border p-4 hover:shadow-md transition-all duration-200 ${
+      className={`bg-white rounded-xl border p-4 hover:shadow-md transition-all duration-200 ${
         isSelected ? 'ring-2 ring-blue-500' : ''
       }`}
       style={{
@@ -2211,7 +2252,7 @@ const PropertyListItem: React.FC<PropertyListItemProps> = ({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="absolute inset-0 bg-blue-50/30 rounded-lg pointer-events-none"
+          className="absolute inset-0 bg-blue-50/30 rounded-xl pointer-events-none"
           style={{
             background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(147, 197, 253, 0.03) 100%)'
           }}
@@ -2219,14 +2260,26 @@ const PropertyListItem: React.FC<PropertyListItemProps> = ({
       )}
 
       <div className="grid grid-cols-12 gap-4 items-center relative z-10">
-        {/* Selection */}
+        {/* Selection - Highly Visible */}
         <div className="col-span-1">
-          <input
-            type="checkbox"
-            checked={isSelected}
-            onChange={onSelect}
-            className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-          />
+          <button
+            onClick={onSelect}
+            className={`flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all duration-200 cursor-pointer group ${
+              isSelected 
+                ? 'bg-primary border-primary shadow-lg shadow-primary/25' 
+                : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 hover:border-primary/50 hover:shadow-md'
+            }`}
+            aria-label={`Select ${property.name}`}
+          >
+            <ProCheckbox
+              checked={isSelected}
+              onCheckedChange={onSelect}
+              size="md"
+              className={`group-hover:scale-110 transition-transform duration-200 ${
+                isSelected ? 'text-white' : 'text-gray-600 dark:text-gray-400'
+              }`}
+            />
+          </button>
         </div>
 
         {/* Property Info */}
@@ -2340,6 +2393,7 @@ const AddPropertySheet: React.FC<AddPropertySheetProps> = ({ isOpen, onClose, on
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [isDirty, setIsDirty] = useState(false);
+  const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
 
   const form = useForm<PropertyFormData>({
     resolver: zodResolver(propertyFormSchema),
@@ -2446,12 +2500,26 @@ const AddPropertySheet: React.FC<AddPropertySheetProps> = ({ isOpen, onClose, on
   const handleNext = () => {
     if (currentStep < WIZARD_STEPS.length && isCurrentStepValid) {
       setCurrentStep(prev => prev + 1);
+      // Smooth scroll to top of form content
+      setTimeout(() => {
+        const formContent = document.querySelector('.overflow-y-auto');
+        if (formContent) {
+          formContent.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      }, 100);
     }
   };
 
   const handleBack = () => {
     if (currentStep > 1) {
       setCurrentStep(prev => prev - 1);
+      // Smooth scroll to top of form content
+      setTimeout(() => {
+        const formContent = document.querySelector('.overflow-y-auto');
+        if (formContent) {
+          formContent.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      }, 100);
     }
   };
 
@@ -2459,6 +2527,13 @@ const AddPropertySheet: React.FC<AddPropertySheetProps> = ({ isOpen, onClose, on
     // Allow navigation to previous steps or current step
     if (stepId <= currentStep) {
       setCurrentStep(stepId);
+      // Smooth scroll to top of form content
+      setTimeout(() => {
+        const formContent = document.querySelector('.overflow-y-auto');
+        if (formContent) {
+          formContent.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      }, 100);
     }
   };
 
@@ -2556,17 +2631,18 @@ const AddPropertySheet: React.FC<AddPropertySheetProps> = ({ isOpen, onClose, on
 
   const handleClose = () => {
     if (isDirty) {
-      // Show confirmation dialog for dirty form
-      if (window.confirm('You have unsaved changes. Are you sure you want to close?')) {
-        form.reset();
-        setImagePreviews([]);
-        setCurrentStep(1);
-        setIsDirty(false);
-        onClose();
-      }
+      setShowUnsavedDialog(true);
     } else {
       onClose();
     }
+  };
+
+  const handleConfirmClose = () => {
+    form.reset();
+    setImagePreviews([]);
+    setCurrentStep(1);
+    setIsDirty(false);
+    onClose();
   };
 
   // Reset form when sheet opens
@@ -2665,8 +2741,6 @@ const AddPropertySheet: React.FC<AddPropertySheetProps> = ({ isOpen, onClose, on
             
             {/* Enhanced step info */}
             <div className="text-center mt-8">
-              <p className="text-sm text-gray-600 mb-4">{currentStepConfig?.description}</p>
-              
               {/* Progress bar */}
               <div className="relative w-full bg-gray-200 rounded-full h-2 overflow-hidden">
                 <div 
@@ -2693,6 +2767,11 @@ const AddPropertySheet: React.FC<AddPropertySheetProps> = ({ isOpen, onClose, on
 
         {/* Form Content - Scrollable */}
         <div className="flex-1 overflow-y-auto px-6 py-6">
+          {/* Step Description */}
+          <div className="text-center mb-6">
+            <p className="text-sm text-gray-600">{currentStepConfig?.description}</p>
+          </div>
+          
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             
             {/* Step 1: Basic Info */}
@@ -2753,21 +2832,28 @@ const AddPropertySheet: React.FC<AddPropertySheetProps> = ({ isOpen, onClose, on
 
         {/* Sticky Footer */}
         <div className="border-t bg-card p-6 flex-shrink-0 shadow-lg">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              {!isCurrentStepValid && !isLastStep && (
-                <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg">
-                  <AlertTriangle className="h-4 w-4 text-amber-600" />
-                  <span className="text-sm text-amber-700 font-medium">Complete required fields to continue</span>
+          {/* Validation Status - Full Width on Mobile */}
+          {(!isCurrentStepValid || isCurrentStepValid) && !isLastStep && (
+            <div className="mb-4">
+              {!isCurrentStepValid && (
+                <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/30 rounded-lg">
+                  <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                  <span className="text-sm text-amber-700 dark:text-amber-300 font-medium">Complete required fields to continue</span>
                 </div>
               )}
               
-              {isCurrentStepValid && !isLastStep && (
-                <div className="flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-200 rounded-lg">
-                  <CheckCircle2 className="h-4 w-4 text-green-600" />
-                  <span className="text-sm text-green-700 font-medium">Step completed</span>
+              {isCurrentStepValid && (
+                <div className="flex items-center gap-2 px-3 py-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/30 rounded-lg">
+                  <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+                  <span className="text-sm text-green-700 dark:text-green-300 font-medium">Step completed</span>
                 </div>
               )}
+            </div>
+          )}
+          
+          {/* Navigation Buttons */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
             </div>
             
             <div className="flex items-center gap-3">
@@ -2825,6 +2911,18 @@ const AddPropertySheet: React.FC<AddPropertySheetProps> = ({ isOpen, onClose, on
           </div>
         </div>
       </SheetContent>
+
+      {/* Unsaved Changes Dialog */}
+      <UnsavedChangesDialog
+        isOpen={showUnsavedDialog}
+        onClose={() => setShowUnsavedDialog(false)}
+        onConfirm={handleConfirmClose}
+        title="Unsaved Changes"
+        description="You have unsaved changes that will be lost. Are you sure you want to close?"
+        confirmText="Close Without Saving"
+        cancelText="Continue Editing"
+        variant="warning"
+      />
     </Sheet>
   );
 };
@@ -2836,54 +2934,46 @@ interface ConfirmationDialogProps {
 }
 
 const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({ dialog, onClose }) => {
-  if (!dialog.isOpen) return null;
-
   return (
-    <div 
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4"
-      onClick={(e) => e.stopPropagation()}
-    >
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        className="bg-white rounded-lg shadow-xl max-w-md w-full"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="p-6">
-          <div className="flex items-center gap-3 mb-4">
-            {dialog.type === 'destructive' && (
-              <div className="p-2 bg-red-100 rounded-full">
-                <AlertTriangle className="h-5 w-5 text-red-600" />
-              </div>
-            )}
-            {dialog.type === 'warning' && (
-              <div className="p-2 bg-yellow-100 rounded-full">
-                <AlertTriangle className="h-5 w-5 text-yellow-600" />
-              </div>
-            )}
-            {dialog.type === 'info' && (
-              <div className="p-2 bg-blue-100 rounded-full">
-                <Info className="h-5 w-5 text-blue-600" />
-              </div>
-            )}
-            <h3 className="text-lg font-semibold">{dialog.title}</h3>
+    <Dialog open={dialog.isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <div className="flex items-center gap-3">
+            <div className={`p-2 rounded-full ${
+              dialog.type === 'destructive' ? 'bg-red-100 dark:bg-red-900/20' :
+              dialog.type === 'warning' ? 'bg-yellow-100 dark:bg-yellow-900/20' :
+              'bg-blue-100 dark:bg-blue-900/20'
+            }`}>
+              {dialog.type === 'destructive' && (
+                <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
+              )}
+              {dialog.type === 'warning' && (
+                <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+              )}
+              {dialog.type === 'info' && (
+                <Info className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              )}
+            </div>
+            <DialogTitle className="text-lg font-semibold">{dialog.title}</DialogTitle>
           </div>
-          <p className="text-muted-foreground mb-6">{dialog.message}</p>
-          <div className="flex gap-3 justify-end">
-            <Button variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button
-              variant={dialog.type === 'destructive' ? 'destructive' : 'default'}
-              onClick={dialog.onConfirm}
-            >
-              {dialog.confirmText}
-            </Button>
-          </div>
-        </div>
-      </motion.div>
-    </div>
+          <DialogDescription className="text-muted-foreground">
+            {dialog.message}
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter className="flex-col sm:flex-row gap-2">
+          <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">
+            Cancel
+          </Button>
+          <Button
+            variant={dialog.type === 'destructive' ? 'destructive' : 'default'}
+            onClick={dialog.onConfirm}
+            className="w-full sm:w-auto"
+          >
+            {dialog.confirmText}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }; 
 
@@ -2982,8 +3072,8 @@ const IncomeAnalyticsModal: React.FC<IncomeAnalyticsModalProps> = ({ isOpen, onC
                   <SelectItem value="12">12 Months</SelectItem>
                 </SelectContent>
               </Select>
-              <Button variant="ghost" size="sm" onClick={onClose}>
-                <X className="h-4 w-4" />
+              <Button variant="ghost" size="sm" onClick={onClose} className="h-10 w-10 p-0 rounded-lg bg-background/80 backdrop-blur-sm border border-border/50 shadow-sm hover:shadow-md hover:bg-background/90 transition-all duration-200 hover:scale-105">
+                <X className="h-5 w-5 text-foreground/80 hover:text-foreground transition-colors" />
               </Button>
             </div>
           </div>
@@ -3287,20 +3377,20 @@ const Step1BasicInfo: React.FC<Step1Props> = ({ form, formErrors, formValues }) 
     <div className="space-y-8">
       <div className="text-center">
         <div className="relative inline-flex">
-          <div className="p-4 bg-gradient-to-r from-blue-100 to-blue-50 rounded-full">
-            <Building className="h-16 w-16 text-blue-600" />
+          <div className="p-4 bg-gradient-to-r from-blue-100 to-blue-50 dark:from-blue-900/30 dark:to-blue-800/30 rounded-full">
+            <Building className="h-16 w-16 text-blue-600 dark:text-blue-400" />
           </div>
-          <div className="absolute -top-2 -right-2 w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
+          <div className="absolute -top-2 -right-2 w-6 h-6 bg-blue-600 dark:bg-blue-500 rounded-full flex items-center justify-center">
             <span className="text-white text-xs font-bold">1</span>
           </div>
         </div>
-        <h2 className="text-2xl font-bold text-foreground mt-4 mb-2">Basic Information</h2>
-        <p className="text-gray-600 max-w-md mx-auto">Let's start with the essential details about your property. This information helps us understand your property type and categorization.</p>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mt-4 mb-2">Basic Information</h2>
+        <p className="text-gray-600 dark:text-gray-300 max-w-md mx-auto">Let's start with the essential details about your property. This information helps us understand your property type and categorization.</p>
       </div>
 
       <div className="bg-card rounded-xl shadow-sm border border-gray-100 p-6 space-y-6">
         <div>
-          <label className="block text-sm font-semibold text-foreground mb-3">Property Name *</label>
+          <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-3">Property Name *</label>
           <Input
             {...form.register('name')}
             placeholder="e.g., Sunset Apartments, Oak Street Complex"
@@ -3322,7 +3412,7 @@ const Step1BasicInfo: React.FC<Step1Props> = ({ form, formErrors, formValues }) 
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-semibold text-foreground mb-3">Property Type *</label>
+            <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-3">Property Type *</label>
             <Select 
               value={form.watch('propertyType')} 
               onValueChange={(value) => form.setValue('propertyType', value as any)}
@@ -3452,15 +3542,15 @@ const Step2Location: React.FC<Step1Props> = ({ form, formErrors, formValues }) =
     <div className="space-y-8">
       <div className="text-center">
         <div className="relative inline-flex">
-          <div className="p-4 bg-gradient-to-r from-green-100 to-green-50 rounded-full">
-            <MapPin className="h-16 w-16 text-green-600" />
+          <div className="p-4 bg-gradient-to-r from-green-100 to-green-50 dark:from-green-900/30 dark:to-green-800/30 rounded-full">
+            <MapPin className="h-16 w-16 text-green-600 dark:text-green-400" />
           </div>
-          <div className="absolute -top-2 -right-2 w-6 h-6 bg-green-600 rounded-full flex items-center justify-center">
+          <div className="absolute -top-2 -right-2 w-6 h-6 bg-green-600 dark:bg-green-500 rounded-full flex items-center justify-center">
             <span className="text-white text-xs font-bold">2</span>
           </div>
         </div>
-        <h2 className="text-2xl font-bold text-foreground mt-4 mb-2">Location Details</h2>
-        <p className="text-gray-600 max-w-md mx-auto">Specify the exact location of your property. Accurate address information is essential for legal documents and tenant communications.</p>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mt-4 mb-2">Location Details</h2>
+        <p className="text-gray-600 dark:text-gray-300 max-w-md mx-auto">Specify the exact location of your property. Accurate address information is essential for legal documents and tenant communications.</p>
       </div>
 
       <div className="bg-card rounded-xl shadow-sm border border-gray-100 p-6 space-y-6">
@@ -3584,11 +3674,18 @@ const Step2Location: React.FC<Step1Props> = ({ form, formErrors, formValues }) =
 // Step 3: Property Details Component
 const Step3PropertyDetails: React.FC<Step1Props> = ({ form, formErrors, formValues }) => {
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="text-center">
-        <Settings className="h-12 w-12 text-blue-600 mx-auto mb-4" />
-        <h2 className="text-xl font-semibold text-foreground mb-2">Property Details</h2>
-        <p className="text-sm text-gray-600">Tell us more about the physical characteristics of your property.</p>
+        <div className="relative inline-flex">
+          <div className="p-4 bg-gradient-to-r from-purple-100 to-purple-50 dark:from-purple-900/30 dark:to-purple-800/30 rounded-full">
+            <Settings className="h-16 w-16 text-purple-600 dark:text-purple-400" />
+          </div>
+          <div className="absolute -top-2 -right-2 w-6 h-6 bg-purple-600 dark:bg-purple-500 rounded-full flex items-center justify-center">
+            <span className="text-white text-xs font-bold">3</span>
+          </div>
+        </div>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mt-4 mb-2">Property Details</h2>
+        <p className="text-gray-600 dark:text-gray-300 max-w-md mx-auto">Tell us more about the physical characteristics of your property. These details help tenants understand what they're getting.</p>
       </div>
 
       <div className="space-y-4">
@@ -3705,11 +3802,18 @@ const Step4Media: React.FC<Step4Props> = ({
   reorderImages 
 }) => {
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="text-center">
-        <Camera className="h-12 w-12 text-blue-600 mx-auto mb-4" />
-        <h2 className="text-xl font-semibold text-foreground mb-2">Property Images</h2>
-        <p className="text-sm text-gray-600">Upload high-quality photos to showcase your property.</p>
+        <div className="relative inline-flex">
+          <div className="p-4 bg-gradient-to-r from-orange-100 to-orange-50 dark:from-orange-900/30 dark:to-orange-800/30 rounded-full">
+            <Camera className="h-16 w-16 text-orange-600 dark:text-orange-400" />
+          </div>
+          <div className="absolute -top-2 -right-2 w-6 h-6 bg-orange-600 dark:bg-orange-500 rounded-full flex items-center justify-center">
+            <span className="text-white text-xs font-bold">4</span>
+          </div>
+        </div>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mt-4 mb-2">Property Images</h2>
+        <p className="text-gray-600 dark:text-gray-300 max-w-md mx-auto">Upload high-quality photos to showcase your property. Great photos attract better tenants.</p>
       </div>
 
       <div className="space-y-4">
@@ -3807,9 +3911,9 @@ const Step4Media: React.FC<Step4Props> = ({
               ))}
             </div>
             
-            <div className="text-xs text-gray-500 bg-blue-50 p-3 rounded-lg">
-              <p className="font-medium text-blue-800 mb-1">💡 Tips for great property photos:</p>
-              <ul className="space-y-1 text-blue-700">
+            <div className="text-xs bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-200 dark:border-blue-800/30">
+              <p className="font-medium text-blue-800 dark:text-blue-200 mb-1">💡 Tips for great property photos:</p>
+              <ul className="space-y-1 text-blue-700 dark:text-blue-300">
                 <li>• Take photos during the day with natural lighting</li>
                 <li>• Include exterior, common areas, and representative unit interiors</li>
                 <li>• Make sure the first image is the best overall view</li>
@@ -4096,15 +4200,19 @@ const ManagerAssignmentSheet: React.FC<ManagerAssignmentSheetProps> = ({
   
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent className="w-[600px] sm:w-[600px]">
-        <SheetHeader>
-          <SheetTitle className="flex items-center gap-2">
-            <UserPlus className="h-5 w-5 text-blue-600" />
-            Assign Manager
-          </SheetTitle>
-          <SheetDescription>
-            Assign a property manager to {selectedProperties.length} selected {selectedProperties.length === 1 ? 'property' : 'properties'}
-          </SheetDescription>
+      <SheetContent className="w-full sm:w-[700px] lg:w-[900px] xl:w-[1000px] 2xl:w-[1200px] max-w-[95vw] overflow-y-auto">
+        <SheetHeader className="sticky top-0 bg-white z-10 pb-6 border-b">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-gradient-to-r from-blue-600/20 to-purple-600/20 rounded-lg border border-blue-500/30">
+              <UserPlus className="h-6 w-6 text-blue-700" />
+            </div>
+            <div>
+              <SheetTitle className="text-xl font-bold text-gray-900">Assign Manager</SheetTitle>
+              <SheetDescription className="text-sm text-gray-600 mt-1">
+                Assign a property manager to {selectedProperties.length} selected {selectedProperties.length === 1 ? 'property' : 'properties'}
+              </SheetDescription>
+            </div>
+          </div>
         </SheetHeader>
         
         <div className="mt-6 space-y-6">
@@ -4215,62 +4323,112 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
   
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent className="w-[900px] sm:w-[900px] max-w-[95vw] overflow-y-auto">
-        <SheetHeader>
-          <div className="flex items-center justify-between">
+      <SheetContent side="right" className="w-full sm:w-[45%] md:w-[40%] flex flex-col h-full p-0 gap-0">
+        {/* Header with Property Identity */}
+        <div className="border-b bg-card">
+          {/* Header */}
+          <SheetHeader className="px-6 py-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-gradient-to-r from-blue-600/20 to-blue-500/20 rounded-lg border border-blue-500/30">
-                <Building2 className="h-6 w-6 text-blue-400" />
+              <div className="relative">
+                <div className="p-3 bg-gradient-to-r from-blue-100 to-blue-50 dark:from-blue-900/30 dark:to-blue-800/30 rounded-full">
+                  <Building2 className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 dark:bg-green-400 rounded-full flex items-center justify-center">
+                  <Eye className="h-2 w-2 text-white" />
+                </div>
               </div>
-              <div>
-                <SheetTitle className="text-2xl font-bold">{property.name}</SheetTitle>
-                <SheetDescription className="flex items-center gap-2 mt-1">
+              <div className="flex-1">
+                <SheetTitle className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                  {property.name}
+                  <Badge variant="outline" className="text-xs font-medium">
+                    {property.propertyType || 'Property'}
+                  </Badge>
+                </SheetTitle>
+                <SheetDescription className="text-sm text-gray-600 dark:text-gray-300 mt-1 flex items-center gap-2">
                   <MapPin className="h-4 w-4" />
                   {property.address}, {property.city}, {property.state} {property.zipCode}
                 </SheetDescription>
               </div>
             </div>
+          </SheetHeader>
 
-          </div>
-        </SheetHeader>
-        
-        <div className="space-y-6 mt-6">
-
-          {/* Property Actions */}
-          <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
-            <div className="flex items-center gap-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => onEdit(property.id)}
-              >
-                <Edit className="h-4 w-4 mr-2" />
-                Edit Property
-              </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    <MoreHorizontal className="h-4 w-4 mr-2" />
-                    More Actions
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-48">
-                  <DropdownMenuItem onClick={() => onArchive(property.id)}>
-                    <Archive className="h-4 w-4 mr-2" />
-                    Archive Property
-                  </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <FileText className="h-4 w-4 mr-2" />
-                    Generate Report
-                  </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    View on Map
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+          {/* Quick Stats Bar */}
+          <div className="px-6 pb-4">
+            <div className="grid grid-cols-3 gap-4">
+              <div className="text-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800/30">
+                <div className="text-lg font-bold text-blue-700 dark:text-blue-400">
+                  {property.totalUnits || 0}
+                </div>
+                <div className="text-xs text-blue-600 dark:text-blue-300 font-medium">Total Units</div>
+              </div>
+              <div className="text-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800/30">
+                <div className="text-lg font-bold text-green-700 dark:text-green-400">
+                  {property.occupiedUnits || 0}
+                </div>
+                <div className="text-xs text-green-600 dark:text-green-300 font-medium">Occupied</div>
+              </div>
+              <div className="text-center p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800/30">
+                <div className="text-lg font-bold text-purple-700 dark:text-purple-400">
+                  {formatCurrency(property.monthlyRent || 0)}
+                </div>
+                <div className="text-xs text-purple-600 dark:text-purple-300 font-medium">Monthly Rent</div>
+              </div>
             </div>
           </div>
+        </div>
+        
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto px-6 py-6">
+          <div className="space-y-6">
+
+            {/* Navigation Actions */}
+            <div className="grid grid-cols-2 gap-3">
+              <Button 
+                variant="outline" 
+                onClick={() => onEdit(property.id)}
+                className="flex items-center gap-2 justify-center h-12 font-medium hover:bg-blue-50 dark:hover:bg-blue-900/20 border-blue-200 dark:border-blue-800 hover:border-blue-300 dark:hover:border-blue-700"
+              >
+                <Edit className="h-4 w-4" />
+                Edit Property
+              </Button>
+              <Button 
+                variant="default" 
+                onClick={() => window.open(`/properties/${property.id}/units`, '_blank')}
+                className="flex items-center gap-2 justify-center h-12 font-medium bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700"
+              >
+                <Home className="h-4 w-4" />
+                View Units ({property.totalUnits || 0})
+              </Button>
+            </div>
+
+            {/* Quick Actions */}
+            <div className="grid grid-cols-3 gap-2">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => onArchive(property.id)}
+                className="h-10 text-xs"
+              >
+                <Archive className="h-3 w-3 mr-1" />
+                Archive
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                className="h-10 text-xs"
+              >
+                <FileText className="h-3 w-3 mr-1" />
+                Report
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                className="h-10 text-xs"
+              >
+                <ExternalLink className="h-3 w-3 mr-1" />
+                Map
+              </Button>
+            </div>
 
           {/* Property Images - Enhanced UX */}
           <div className="space-y-4">
@@ -4659,6 +4817,7 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
               </CardContent>
             </Card>
           )}
+          </div>
         </div>
       </SheetContent>
     </Sheet>
@@ -4811,15 +4970,15 @@ const AdvancedFiltersSheet: React.FC<AdvancedFiltersSheetProps> = ({
             <label className="text-sm font-medium">Property Status</label>
             <div className="grid grid-cols-2 gap-2">
               {propertyStatuses.map((status) => (
-                <label key={status} className="flex items-center space-x-2 cursor-pointer">
-                  <input
-                    type="checkbox"
+                <div key={status} className="flex items-center space-x-2">
+                  <ProCheckbox
+                    id={`status-${status}`}
                     checked={filters.status.includes(status)}
-                    onChange={() => toggleArrayValue('status', status)}
-                    className="rounded border-gray-300 text-primary focus:ring-primary"
+                    onCheckedChange={() => toggleArrayValue('status', status)}
+                    size="sm"
                   />
-                  <span className="text-sm">{status}</span>
-                </label>
+                  <Label htmlFor={`status-${status}`} className="text-sm cursor-pointer">{status}</Label>
+                </div>
               ))}
             </div>
           </div>
@@ -4829,15 +4988,15 @@ const AdvancedFiltersSheet: React.FC<AdvancedFiltersSheetProps> = ({
             <label className="text-sm font-medium">Property Type</label>
             <div className="grid grid-cols-2 gap-2">
               {propertyTypes.map((type) => (
-                <label key={type} className="flex items-center space-x-2 cursor-pointer">
-                  <input
-                    type="checkbox"
+                <div key={type} className="flex items-center space-x-2">
+                  <ProCheckbox
+                    id={`property-type-${type}`}
                     checked={filters.propertyType.includes(type)}
-                    onChange={() => toggleArrayValue('propertyType', type)}
-                    className="rounded border-gray-300 text-primary focus:ring-primary"
+                    onCheckedChange={() => toggleArrayValue('propertyType', type)}
+                    size="sm"
                   />
-                  <span className="text-sm">{type}</span>
-                </label>
+                  <Label htmlFor={`property-type-${type}`} className="text-sm cursor-pointer">{type}</Label>
+                </div>
               ))}
             </div>
           </div>
@@ -4846,33 +5005,33 @@ const AdvancedFiltersSheet: React.FC<AdvancedFiltersSheetProps> = ({
           <div className="space-y-3">
             <label className="text-sm font-medium">Assigned Manager</label>
             <div className="space-y-2">
-              <label className="flex items-center space-x-2 cursor-pointer">
-                <input
-                  type="checkbox"
+              <div className="flex items-center space-x-2">
+                <ProCheckbox
+                  id="manager-unassigned"
                   checked={filters.manager.includes('unassigned')}
-                  onChange={() => toggleArrayValue('manager', 'unassigned')}
-                  className="rounded border-gray-300 text-primary focus:ring-primary"
+                  onCheckedChange={() => toggleArrayValue('manager', 'unassigned')}
+                  size="sm"
                 />
-                <span className="text-sm">Unassigned</span>
-              </label>
+                <Label htmlFor="manager-unassigned" className="text-sm cursor-pointer">Unassigned</Label>
+              </div>
               {managers.map((manager) => (
-                <label key={manager.id} className="flex items-center space-x-2 cursor-pointer">
-                  <input
-                    type="checkbox"
+                <div key={manager.id} className="flex items-center space-x-2">
+                  <ProCheckbox
+                    id={`manager-${manager.id}`}
                     checked={filters.manager.includes(manager.id)}
-                    onChange={() => toggleArrayValue('manager', manager.id)}
-                    className="rounded border-gray-300 text-primary focus:ring-primary"
+                    onCheckedChange={() => toggleArrayValue('manager', manager.id)}
+                    size="sm"
                   />
-                  <div className="flex items-center gap-2">
+                  <Label htmlFor={`manager-${manager.id}`} className="flex items-center gap-2 text-sm cursor-pointer">
                     <Avatar className="h-6 w-6">
                       <AvatarImage src={manager.avatar} />
                       <AvatarFallback className="text-xs">
                         {manager.name.split(' ').map(n => n[0]).join('')}
                       </AvatarFallback>
                     </Avatar>
-                    <span className="text-sm">{manager.name}</span>
-                  </div>
-                </label>
+                    <span>{manager.name}</span>
+                  </Label>
+                </div>
               ))}
             </div>
           </div>
@@ -4880,30 +5039,29 @@ const AdvancedFiltersSheet: React.FC<AdvancedFiltersSheetProps> = ({
           {/* Occupancy Rate */}
           <div className="space-y-3">
             <label className="text-sm font-medium">Occupancy Rate</label>
-            <div className="space-y-2">
+            <RadioGroup 
+              value={`${filters.occupancyRange[0]}-${filters.occupancyRange[1]}`}
+              onValueChange={(value) => {
+                if (value === "0-100") {
+                  updateFilter('occupancyRange', [0, 100]);
+                } else {
+                  const range = occupancyRanges.find(r => `${r.min}-${r.max}` === value);
+                  if (range) updateFilter('occupancyRange', [range.min, range.max]);
+                }
+              }}
+              className="space-y-2"
+            >
               {occupancyRanges.map((range) => (
-                <label key={range.label} className="flex items-center space-x-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="occupancy"
-                    checked={filters.occupancyRange[0] === range.min && filters.occupancyRange[1] === range.max}
-                    onChange={() => updateFilter('occupancyRange', [range.min, range.max])}
-                    className="border-gray-300 text-primary focus:ring-primary"
-                  />
-                  <span className="text-sm">{range.label}</span>
-                </label>
+                <div key={range.label} className="flex items-center space-x-2">
+                  <RadioGroupItem value={`${range.min}-${range.max}`} id={`occupancy-${range.label}`} />
+                  <Label htmlFor={`occupancy-${range.label}`} className="text-sm cursor-pointer">{range.label}</Label>
+                </div>
               ))}
-              <label className="flex items-center space-x-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="occupancy"
-                  checked={filters.occupancyRange[0] === 0 && filters.occupancyRange[1] === 100}
-                  onChange={() => updateFilter('occupancyRange', [0, 100])}
-                  className="border-gray-300 text-primary focus:ring-primary"
-                />
-                <span className="text-sm">All</span>
-              </label>
-            </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="0-100" id="occupancy-all" />
+                <Label htmlFor="occupancy-all" className="text-sm cursor-pointer">All</Label>
+              </div>
+            </RadioGroup>
           </div>
 
           {/* Location */}
@@ -4914,15 +5072,15 @@ const AdvancedFiltersSheet: React.FC<AdvancedFiltersSheetProps> = ({
                 <label className="text-xs text-gray-500">Cities</label>
                 <div className="max-h-32 overflow-y-auto space-y-1 mt-1">
                   {cities.map((city) => (
-                    <label key={city} className="flex items-center space-x-2 cursor-pointer">
-                      <input
-                        type="checkbox"
+                    <div key={city} className="flex items-center space-x-2">
+                      <ProCheckbox
+                        id={`city-${city}`}
                         checked={filters.city.includes(city)}
-                        onChange={() => toggleArrayValue('city', city)}
-                        className="rounded border-gray-300 text-primary focus:ring-primary"
+                        onCheckedChange={() => toggleArrayValue('city', city)}
+                        size="sm"
                       />
-                      <span className="text-sm">{city}</span>
-                    </label>
+                      <Label htmlFor={`city-${city}`} className="text-sm cursor-pointer">{city}</Label>
+                    </div>
                   ))}
                 </div>
               </div>
@@ -4930,15 +5088,15 @@ const AdvancedFiltersSheet: React.FC<AdvancedFiltersSheetProps> = ({
                 <label className="text-xs text-gray-500">States</label>
                 <div className="max-h-32 overflow-y-auto space-y-1 mt-1">
                   {states.map((state) => (
-                    <label key={state} className="flex items-center space-x-2 cursor-pointer">
-                      <input
-                        type="checkbox"
+                    <div key={state} className="flex items-center space-x-2">
+                      <ProCheckbox
+                        id={`state-${state}`}
                         checked={filters.state.includes(state)}
-                        onChange={() => toggleArrayValue('state', state)}
-                        className="rounded border-gray-300 text-primary focus:ring-primary"
+                        onCheckedChange={() => toggleArrayValue('state', state)}
+                        size="sm"
                       />
-                      <span className="text-sm">{state}</span>
-                    </label>
+                      <Label htmlFor={`state-${state}`} className="text-sm cursor-pointer">{state}</Label>
+                    </div>
                   ))}
                 </div>
               </div>
@@ -4959,27 +5117,27 @@ const AdvancedFiltersSheet: React.FC<AdvancedFiltersSheetProps> = ({
             <label className="text-sm font-medium">Ownership Type</label>
             <div className="space-y-2">
               {ownershipTypes.map((type) => (
-                <label key={type} className="flex items-center space-x-2 cursor-pointer">
-                  <input
-                    type="checkbox"
+                <div key={type} className="flex items-center space-x-2">
+                  <ProCheckbox
+                    id={`ownership-${type}`}
                     checked={filters.ownershipType.includes(type)}
-                    onChange={() => toggleArrayValue('ownershipType', type)}
-                    className="rounded border-gray-300 text-primary focus:ring-primary"
+                    onCheckedChange={() => toggleArrayValue('ownershipType', type)}
+                    size="sm"
                   />
-                  <span className="text-sm">{type}</span>
-                </label>
+                  <Label htmlFor={`ownership-${type}`} className="text-sm cursor-pointer">{type}</Label>
+                </div>
               ))}
             </div>
           </div>
 
           {/* Include Archived */}
           <div className="flex items-center justify-between">
-            <label className="text-sm font-medium">Include Archived Properties</label>
-            <input
-              type="checkbox"
+            <Label htmlFor="include-archived" className="text-sm font-medium cursor-pointer">Include Archived Properties</Label>
+            <ProCheckbox
+              id="include-archived"
               checked={filters.includeArchived}
-              onChange={(e) => updateFilter('includeArchived', e.target.checked)}
-              className="rounded border-gray-300 text-primary focus:ring-primary"
+              onCheckedChange={(checked) => updateFilter('includeArchived', !!checked)}
+              size="sm"
             />
           </div>
         </div>
@@ -5045,6 +5203,8 @@ const PropertyEditSheet: React.FC<PropertyEditSheetProps> = ({
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [managers, setManagers] = useState<PropertyManager[]>([]);
+  const [isDirty, setIsDirty] = useState(false);
+  const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
 
   // Pre-populate form when property changes
   useEffect(() => {
@@ -5083,6 +5243,27 @@ const PropertyEditSheet: React.FC<PropertyEditSheetProps> = ({
       fetchManagers();
     }
   }, [isOpen]);
+
+  // Helper function to update form data and track dirty state
+  const updateFormData = (updates: Partial<typeof formData>) => {
+    setFormData(prev => ({ ...prev, ...updates }));
+    setIsDirty(true);
+  };
+
+  // Handle close with unsaved changes check
+  const handleClose = () => {
+    if (isDirty) {
+      setShowUnsavedDialog(true);
+    } else {
+      onClose();
+    }
+  };
+
+  const handleConfirmClose = () => {
+    setIsDirty(false);
+    setCurrentStep(0);
+    onClose();
+  };
 
   const fetchManagers = async () => {
     // For now, use mock manager data since the API endpoint isn't implemented yet
@@ -5157,13 +5338,13 @@ const PropertyEditSheet: React.FC<PropertyEditSheetProps> = ({
             <Input
               placeholder="Enter property name"
               value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                              onChange={(e) => updateFormData({ name: e.target.value })}
               className="mt-1"
             />
           </div>
           <div>
             <label className="text-sm font-medium">Property Type</label>
-            <Select value={formData.type} onValueChange={(value) => setFormData({ ...formData, type: value })}>
+                          <Select value={formData.type} onValueChange={(value) => updateFormData({ type: value })}>
               <SelectTrigger className="mt-1">
                 <SelectValue placeholder="Select property type" />
               </SelectTrigger>
@@ -5230,7 +5411,7 @@ const PropertyEditSheet: React.FC<PropertyEditSheetProps> = ({
             <Input
               placeholder="Enter street address"
               value={formData.address}
-              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                              onChange={(e) => updateFormData({ address: e.target.value })}
               className="mt-1"
             />
           </div>
@@ -5379,85 +5560,194 @@ const PropertyEditSheet: React.FC<PropertyEditSheetProps> = ({
   };
 
   return (
-    <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent className="w-[600px] sm:w-[600px] overflow-y-auto">
-        <SheetHeader>
-          <SheetTitle className="flex items-center gap-2">
-            <Edit className="h-5 w-5 text-primary" />
-            Edit Property
-          </SheetTitle>
-          <SheetDescription>
-            Update property information and settings
-          </SheetDescription>
-        </SheetHeader>
+    <Sheet open={isOpen} onOpenChange={handleClose}>
+      <SheetContent side="right" className="w-full sm:w-[45%] md:w-[40%] flex flex-col h-full p-0 gap-0">
+        {/* Header with Progress */}
+        <div className="border-b bg-card">
+          {/* Header */}
+          <SheetHeader className="px-6 py-4">
+            <SheetTitle className="text-xl font-semibold flex items-center gap-2">
+              <Edit className="h-5 w-5 text-blue-600" />
+              Edit Property
+            </SheetTitle>
+            <SheetDescription>
+              Step {currentStep + 1} of {steps.length}: {steps[currentStep].title}
+            </SheetDescription>
+          </SheetHeader>
 
-        <div className="mt-6">
-          {/* Progress Steps */}
-          <div className="flex items-center justify-between mb-8">
-            {steps.map((step, index) => (
-              <div key={index} className="flex items-center">
-                <div
-                  className={`flex items-center justify-center w-10 h-10 rounded-full border-2 cursor-pointer transition-all ${
-                    index === currentStep
-                      ? 'bg-primary border-primary text-white'
-                      : index < currentStep
-                      ? 'bg-primary border-primary text-white'
-                      : 'border-gray-300 text-gray-300'
-                  }`}
-                  onClick={() => index < currentStep && setCurrentStep(index)}
-                >
-                  {index < currentStep ? (
-                    <CheckCircle2 className="h-5 w-5" />
-                  ) : (
-                    step.icon
+          {/* Progress Indicator */}
+          <div className="px-6 pb-6">
+            <div className="flex items-center justify-between mb-6">
+              {steps.map((step, index) => (
+                <div key={index} className="flex items-center">
+                  <div className="relative">
+                    <button
+                      onClick={() => index <= currentStep && setCurrentStep(index)}
+                      disabled={index > currentStep}
+                      className={`relative flex items-center justify-center w-12 h-12 rounded-full border-3 transition-all duration-300 transform hover:scale-105 ${
+                        index < currentStep 
+                          ? 'bg-primary border-primary text-white cursor-pointer hover:bg-primary/90 shadow-lg shadow-primary/25' :
+                        index === currentStep 
+                          ? 'bg-primary border-primary text-white shadow-lg shadow-primary/25' :
+                        'bg-card border-gray-300 text-gray-400 cursor-not-allowed hover:scale-100'
+                      }`}
+                    >
+                      {index < currentStep ? (
+                        <CheckCircle2 className="h-6 w-6" />
+                      ) : (
+                        step.icon
+                      )}
+                      {index === currentStep && (
+                        <div className="absolute -inset-2 rounded-full border-2 border-primary/20"></div>
+                      )}
+                    </button>
+                    
+                    {/* Step label */}
+                    <div className="absolute top-16 left-1/2 transform -translate-x-1/2 w-24 text-center">
+                      <div className={`text-xs font-medium transition-colors duration-200 ${
+                        index <= currentStep ? 'text-foreground' : 'text-muted-foreground'
+                      }`}>
+                        {step.title}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {index < steps.length - 1 && (
+                    <div className="flex-1 mx-4 mt-2">
+                      <div className={`h-1 rounded-full transition-all duration-500 ease-in-out ${
+                        index < currentStep 
+                          ? 'bg-primary' 
+                          : 'bg-gray-200'
+                      }`} />
+                    </div>
                   )}
                 </div>
-                {index < steps.length - 1 && (
-                  <div className={`w-12 h-0.5 mx-2 ${
-                    index < currentStep ? 'bg-primary' : 'bg-gray-300'
-                  }`} />
-                )}
+              ))}
+            </div>
+            
+            {/* Enhanced step info */}
+            <div className="text-center mt-8">
+              <p className="text-sm text-gray-600 mb-4">{steps[currentStep].title}</p>
+              
+              {/* Progress bar */}
+              <div className="relative w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                <div 
+                  className="absolute top-0 left-0 h-full bg-primary transition-all duration-500 ease-in-out rounded-full"
+                  style={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}
+                />
+                {/* Add subtle pulsing animation to the end of the progress bar */}
+                <div 
+                  className="absolute top-0 h-full w-4 bg-primary/30 rounded-full transition-all duration-500 ease-in-out animate-pulse"
+                  style={{ 
+                    left: `${Math.max(0, ((currentStep + 1) / steps.length) * 100 - 4)}%`,
+                    opacity: currentStep < steps.length - 1 ? 1 : 0
+                  }}
+                />
               </div>
-            ))}
-          </div>
-
-          {/* Step Content */}
-          <div className="mb-8">
-            <h3 className="text-lg font-semibold mb-4">{steps[currentStep].title}</h3>
-            {steps[currentStep].content}
-          </div>
-
-          {/* Navigation */}
-          <div className="flex justify-between items-center pt-6 border-t">
-            <Button
-              variant="outline"
-              onClick={prevStep}
-              disabled={currentStep === 0}
-            >
-              <ChevronLeft className="h-4 w-4 mr-2" />
-              Previous
-            </Button>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={onClose}>
-                Cancel
-              </Button>
-              {currentStep === steps.length - 1 ? (
-                <Button onClick={handleSubmit} disabled={isSubmitting}>
-                  {isSubmitting ? 'Updating...' : 'Update Property'}
-                </Button>
-              ) : (
-                <Button
-                  onClick={nextStep}
-                  disabled={!canProceed(currentStep)}
-                >
-                  Next Step
-                  <ChevronRight className="h-4 w-4 ml-2" />
-                </Button>
-              )}
+              
+              <div className="flex justify-between text-xs text-gray-500 mt-2">
+                <span>Step {currentStep + 1} of {steps.length}</span>
+                <span>{Math.round(((currentStep + 1) / steps.length) * 100)}% Complete</span>
+              </div>
             </div>
           </div>
         </div>
+
+        {/* Form Content - Scrollable */}
+        <div className="flex-1 overflow-y-auto px-6 py-6">
+          <div className="space-y-6">
+            {steps[currentStep].content}
+          </div>
+        </div>
+
+        {/* Enhanced Navigation with Validation */}
+        <div className="border-t bg-card px-6 py-4 flex-shrink-0 shadow-lg">
+            {/* Validation Status - Full Width on Mobile */}
+            {currentStep < steps.length - 1 && (
+              <div className="mb-4">
+                {!canProceed(currentStep) && (
+                  <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/30 rounded-lg">
+                    <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                    <span className="text-sm text-amber-700 dark:text-amber-300 font-medium">Complete required fields to continue</span>
+                  </div>
+                )}
+                
+                {canProceed(currentStep) && (
+                  <div className="flex items-center gap-2 px-3 py-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/30 rounded-lg">
+                    <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+                    <span className="text-sm text-green-700 dark:text-green-300 font-medium">Step completed</span>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {/* Navigation Buttons */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {currentStep > 0 && (
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={prevStep}
+                    className="flex items-center gap-2"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                    Previous
+                  </Button>
+                )}
+              </div>
+
+              <div className="flex items-center gap-3">
+                <Button type="button" variant="ghost" onClick={handleClose}>
+                  Cancel
+                </Button>
+                
+                {currentStep === steps.length - 1 ? (
+                  <Button 
+                    type="button"
+                    onClick={handleSubmit} 
+                    disabled={isSubmitting || !canProceed(currentStep)}
+                    className="flex items-center gap-2 px-8 py-2.5 font-semibold transition-all duration-200 transform hover:scale-105 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Updating Property...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="h-4 w-4" />
+                        Update Property
+                      </>
+                    )}
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    onClick={nextStep}
+                    disabled={!canProceed(currentStep)}
+                    className="flex items-center gap-2 px-6 py-2.5 font-semibold transition-all duration-200 transform hover:scale-105 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                  >
+                    Next Step
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
       </SheetContent>
+
+      {/* Unsaved Changes Dialog */}
+      <UnsavedChangesDialog
+        isOpen={showUnsavedDialog}
+        onClose={() => setShowUnsavedDialog(false)}
+        onConfirm={handleConfirmClose}
+        title="Unsaved Changes"
+        description="You have unsaved changes that will be lost. Are you sure you want to close?"
+        confirmText="Close Without Saving"
+        cancelText="Continue Editing"
+        variant="warning"
+      />
     </Sheet>
   );
 };

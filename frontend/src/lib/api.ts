@@ -433,7 +433,7 @@ export const propertiesApi = {
     const formData = new FormData();
     formData.append('file', file);
     
-    const response = await fetch(`${API_BASE_URL}/api/upload/image`, {
+    const response = await fetch(`${API_BASE_URL}/api/properties/${propertyId}/images`, {
       method: 'POST',
       headers: {
         ...getAuthHeaders(),
@@ -442,6 +442,32 @@ export const propertiesApi = {
       body: formData,
     });
     return handleResponse(response);
+  },
+
+  generateImageUploadUrl: async (propertyId: string, fileName: string, contentType: string) => {
+    const response = await fetch(`${API_BASE_URL}/api/properties/${propertyId}/upload-url`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ fileName, contentType }),
+    });
+    return handleResponse(response);
+  },
+
+  // Direct upload to R2 using presigned URL
+  uploadImageDirect: async (uploadUrl: string, file: File) => {
+    const response = await fetch(uploadUrl, {
+      method: 'PUT',
+      body: file,
+      headers: {
+        'Content-Type': file.type,
+      },
+    });
+    
+    if (!response.ok) {
+      throw new Error('Upload failed');
+    }
+    
+    return response;
   },
 
   export: async () => {
@@ -1051,6 +1077,48 @@ export const managersApi = {
     });
     return handleResponse(response);
   },
+
+  // Avatar upload functions
+  uploadAvatar: async (managerId: string, file: File) => {
+    const formData = new FormData();
+    formData.append('avatar', file);
+    
+    const response = await fetch(`${API_BASE_URL}/api/managers/${managerId}/avatar`, {
+      method: 'POST',
+      headers: {
+        ...getAuthHeaders(),
+        // Remove Content-Type to let browser set it for FormData
+      },
+      body: formData,
+    });
+    return handleResponse(response);
+  },
+
+  generateAvatarUploadUrl: async (managerId: string, fileName: string, contentType: string) => {
+    const response = await fetch(`${API_BASE_URL}/api/managers/${managerId}/avatar/upload-url`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ fileName, contentType }),
+    });
+    return handleResponse(response);
+  },
+
+  // Direct upload to R2 using presigned URL
+  uploadAvatarDirect: async (uploadUrl: string, file: File) => {
+    const response = await fetch(uploadUrl, {
+      method: 'PUT',
+      body: file,
+      headers: {
+        'Content-Type': file.type,
+      },
+    });
+    
+    if (!response.ok) {
+      throw new Error('Upload failed');
+    }
+    
+    return response;
+  },
 };
 
 // Analytics API
@@ -1249,6 +1317,281 @@ export const reportsApi = {
     if (filters?.months) params.append('months', filters.months.toString());
     
     const response = await fetch(`${API_BASE_URL}/api/reports/lease-expiration?${params}`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+};
+
+// Team Management API
+export const teamApi = {
+  getAll: async () => {
+    const response = await fetch(`${API_BASE_URL}/api/team`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  getById: async (id: string) => {
+    const response = await fetch(`${API_BASE_URL}/api/team/${id}`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  create: async (data: any) => {
+    const response = await fetch(`${API_BASE_URL}/api/team`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+  },
+
+  update: async (id: string, data: any) => {
+    const response = await fetch(`${API_BASE_URL}/api/team/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+  },
+
+  delete: async (id: string) => {
+    const response = await fetch(`${API_BASE_URL}/api/team/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  assignProperties: async (id: string, propertyIds: string[]) => {
+    const response = await fetch(`${API_BASE_URL}/api/team/${id}/assign-properties`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ propertyIds }),
+    });
+    return handleResponse(response);
+  },
+
+  getPerformance: async (id: string) => {
+    const response = await fetch(`${API_BASE_URL}/api/team/${id}/performance`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  uploadAvatar: async (id: string, file: File) => {
+    const formData = new FormData();
+    formData.append('avatar', file);
+    
+    const response = await fetch(`${API_BASE_URL}/api/team/${id}/avatar`, {
+      method: 'POST',
+      headers: {
+        ...getAuthHeaders(),
+        // Don't set Content-Type for FormData
+      },
+      body: formData,
+    });
+    return handleResponse(response);
+  },
+
+  generateAvatarUploadUrl: async (id: string, fileName: string, contentType: string) => {
+    const response = await fetch(`${API_BASE_URL}/api/team/${id}/avatar/upload-url`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ fileName, contentType }),
+    });
+    return handleResponse(response);
+  },
+
+  getMemberStorageAnalytics: async (id: string) => {
+    const response = await fetch(`${API_BASE_URL}/api/team/${id}/storage-analytics`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  // Bulk operations
+  bulkAssignProperties: async (teamMemberIds: string[], propertyIds: string[]) => {
+    const response = await fetch(`${API_BASE_URL}/api/team/bulk/assign-properties`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ teamMemberIds, propertyIds }),
+    });
+    return handleResponse(response);
+  },
+
+  bulkUpdateStatus: async (teamMemberIds: string[], status: string) => {
+    const response = await fetch(`${API_BASE_URL}/api/team/bulk/update-status`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ teamMemberIds, status }),
+    });
+    return handleResponse(response);
+  },
+
+  bulkUpdateRole: async (teamMemberIds: string[], role: string) => {
+    const response = await fetch(`${API_BASE_URL}/api/team/bulk/update-role`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ teamMemberIds, role }),
+    });
+    return handleResponse(response);
+  },
+
+  // Import/Export
+  import: async (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const response = await fetch(`${API_BASE_URL}/api/team/import`, {
+      method: 'POST',
+      headers: {
+        ...getAuthHeaders(),
+        // Don't set Content-Type for FormData
+      },
+      body: formData,
+    });
+    return handleResponse(response);
+  },
+
+  export: async () => {
+    const response = await fetch(`${API_BASE_URL}/api/team/export`, {
+      headers: getAuthHeaders(),
+    });
+    return response.blob();
+  },
+
+  // Analytics
+  getAnalyticsOverview: async () => {
+    const response = await fetch(`${API_BASE_URL}/api/team/analytics/overview`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  getPerformanceAnalytics: async () => {
+    const response = await fetch(`${API_BASE_URL}/api/team/analytics/performance`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  getStorageAnalytics: async () => {
+    const response = await fetch(`${API_BASE_URL}/api/team/analytics/storage`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  // Templates
+  getTemplates: async () => {
+    const response = await fetch(`${API_BASE_URL}/api/team/templates`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  createTemplate: async (data: any) => {
+    const response = await fetch(`${API_BASE_URL}/api/team/templates`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+  },
+
+  updateTemplate: async (id: string, data: any) => {
+    const response = await fetch(`${API_BASE_URL}/api/team/templates/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+  },
+
+  deleteTemplate: async (id: string) => {
+    const response = await fetch(`${API_BASE_URL}/api/team/templates/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+};
+
+// Documents API
+export const documentsApi = {
+  getAll: async () => {
+    const response = await fetch(`${API_BASE_URL}/api/documents`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  getById: async (id: string) => {
+    const response = await fetch(`${API_BASE_URL}/api/documents/${id}`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  create: async (data: any) => {
+    const response = await fetch(`${API_BASE_URL}/api/documents`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+  },
+
+  update: async (id: string, data: any) => {
+    const response = await fetch(`${API_BASE_URL}/api/documents/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+  },
+
+  delete: async (id: string) => {
+    const response = await fetch(`${API_BASE_URL}/api/documents/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  upload: async (file: File, category: string) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('category', category);
+    
+    const response = await fetch(`${API_BASE_URL}/api/documents/upload`, {
+      method: 'POST',
+      headers: {
+        ...getAuthHeaders(),
+        // Don't set Content-Type for FormData
+      },
+      body: formData,
+    });
+    return handleResponse(response);
+  },
+
+  getStorageUsage: async () => {
+    const response = await fetch(`${API_BASE_URL}/api/documents/storage-usage`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  search: async (query: string, filters?: any) => {
+    const params = new URLSearchParams();
+    params.append('q', query);
+    if (filters?.category) params.append('category', filters.category);
+    if (filters?.type) params.append('type', filters.type);
+    
+    const response = await fetch(`${API_BASE_URL}/api/documents/search?${params}`, {
       headers: getAuthHeaders(),
     });
     return handleResponse(response);

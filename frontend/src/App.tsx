@@ -32,7 +32,9 @@ import { Settings } from './pages/Settings';
 // import TenantDashboard from './pages/tenant/TenantDashboard';
 
 // Advanced Features (commented out for now to avoid TypeScript errors)
-// import Managers from './pages/Managers';
+import Managers from './pages/Managers';
+import Team from './pages/Team';
+import Documents from './pages/Documents';
 // import Payments from './pages/Payments';
 // import DocumentManagement from './pages/DocumentManagement';
 // import AdvancedMaintenance from './pages/AdvancedMaintenance';
@@ -80,7 +82,12 @@ function App() {
               <Route path="/settings" element={<ProtectedRoute><DashboardLayout><Settings /></DashboardLayout></ProtectedRoute>} errorElement={<RouteErrorPage />} />
               
               {/* Advanced Features (commented out for now) */}
-              {/* <Route path="/managers" element={<ProtectedRoute><Managers /></ProtectedRoute>} /> */}
+                      <Route path="/managers" element={<ProtectedRoute><DashboardLayout><Managers /></DashboardLayout></ProtectedRoute>} />
+        <Route path="/managers/:managerId" element={<ProtectedRoute><DashboardLayout><Managers /></DashboardLayout></ProtectedRoute>} />
+        <Route path="/team" element={<ProtectedRoute><DashboardLayout><Team /></DashboardLayout></ProtectedRoute>} />
+        <Route path="/team/:teamMemberId" element={<ProtectedRoute><DashboardLayout><Team /></DashboardLayout></ProtectedRoute>} />
+        <Route path="/documents" element={<ProtectedRoute><DashboardLayout><Documents /></DashboardLayout></ProtectedRoute>} />
+        <Route path="/documents/:documentId" element={<ProtectedRoute><DashboardLayout><Documents /></DashboardLayout></ProtectedRoute>} />
               {/* <Route path="/payments" element={<ProtectedRoute><Payments /></ProtectedRoute>} /> */}
               {/* <Route path="/document-management" element={<ProtectedRoute><DocumentManagement /></ProtectedRoute>} /> */}
               {/* <Route path="/advanced-maintenance" element={<ProtectedRoute><AdvancedMaintenance /></ProtectedRoute>} /> */}

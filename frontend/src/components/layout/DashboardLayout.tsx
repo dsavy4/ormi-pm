@@ -15,6 +15,7 @@ import {
   Bell,
   Search,
   Plus,
+  UserPlus,
   ChevronDown,
   LogOut,
   User,
@@ -38,6 +39,7 @@ import {
   Globe,
   Key,
   Fingerprint,
+  FolderOpen,
 } from 'lucide-react';
 
 // UI Components
@@ -177,37 +179,44 @@ const navigation: NavItem[] = [
     description: 'Manage Properties'
   },
   { 
-    name: 'Managers', 
-    href: '/managers', 
+    name: 'Staff', 
+    href: '/team', 
     icon: Users,
-    description: 'Team Management',
-    badge: 5 // Active managers count
+    description: 'Team & Staff Management',
+    badge: 5 // Active team members count
+  },
+  { 
+    name: 'Documents', 
+    href: '/documents', 
+    icon: FolderOpen,
+    description: 'Document Management',
+    badge: 12 // Document count
   },
 
   { 
     name: 'Tenants', 
     href: '/tenants', 
     icon: Users,
-    description: 'Tenant Portal'
+    description: 'Tenant Management'
   },
   { 
     name: 'Payments', 
     href: '/payments', 
     icon: CreditCard,
-    description: 'Payment Processing'
+    description: 'Rent Collection & Billing'
   },
   { 
     name: 'Maintenance', 
     href: '/maintenance', 
     icon: Wrench, 
     badge: 3,
-    description: 'Work Orders'
+    description: 'Work Orders & Repairs'
   },
   { 
     name: 'Reports', 
     href: '/reports', 
     icon: BarChart3,
-    description: 'Analytics & Reports'
+    description: 'Analytics & Insights'
   },
   { 
     name: 'Settings', 
@@ -252,14 +261,48 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isMobile, setIsMobile] = useState(false);
+
   const location = useLocation();
   const { user, logout } = useAuth();
   const { theme } = useTheme();
+
+  // Check if we're on mobile and set initial state
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth < 1024;
+      setIsMobile(mobile);
+      
+      // Only force close on initial load, not on manual opens
+      if (mobile && !sidebarOpen) {
+        setSidebarOpen(false);
+      }
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Close mobile sidebar when route changes
   useEffect(() => {
     setSidebarOpen(false);
   }, [location]);
+
+  // Close mobile sidebar on escape key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && sidebarOpen) {
+        setSidebarOpen(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [sidebarOpen]);
+
+
 
   // Handle window resize
   useEffect(() => {
@@ -318,58 +361,58 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   return (
     <div className="h-screen flex bg-background">
-      {/* Mobile sidebar overlay */}
-      <AnimatePresence>
-        {sidebarOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 lg:hidden"
-              onClick={() => setSidebarOpen(false)}
+      {/* Mobile sidebar overlay - only show when explicitly opened */}
+      {sidebarOpen && isMobile && (
+        <AnimatePresence>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+          {/* Mobile sidebar */}
+          <motion.aside
+            initial={{ x: '-100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '-100%' }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            className="fixed inset-y-0 left-0 z-50 w-72 bg-background border-r border-border/50 shadow-2xl lg:hidden"
+          >
+            <SidebarContent 
+              collapsed={false}
+              onToggle={() => setSidebarOpen(false)}
+              navigation={navigation}
+              location={location}
+              mobile
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
             />
-            {/* Mobile sidebar */}
-            <motion.aside
-              initial={{ x: '-100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '-100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed inset-y-0 left-0 z-50 w-72 bg-background border-r border-border/50 sidebar-premium lg:hidden"
-            >
-              <SidebarContent 
-                collapsed={false}
-                onToggle={() => setSidebarOpen(false)}
-                navigation={navigation}
-                location={location}
-                mobile
-                searchQuery={searchQuery}
-                setSearchQuery={setSearchQuery}
-              />
-            </motion.aside>
-          </>
-        )}
-      </AnimatePresence>
+          </motion.aside>
+        </AnimatePresence>
+      )}
 
-      {/* Desktop sidebar */}
-      <motion.aside
-        variants={sidebarVariants}
-        animate={sidebarCollapsed ? 'collapsed' : 'expanded'}
-        className={`
-          hidden lg:flex fixed left-0 top-0 z-50 h-full bg-background border-r border-border/50 
-          sidebar-premium sidebar-collapse-animation
-          ${sidebarCollapsed ? 'w-20' : 'w-72'}
-        `}
-      >
-        <SidebarContent 
-          collapsed={sidebarCollapsed}
-          onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
-          navigation={navigation}
-          location={location}
-          searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
-        />
-      </motion.aside>
+      {/* Desktop sidebar - hidden on mobile */}
+      {!isMobile && (
+        <motion.aside
+          variants={sidebarVariants}
+          animate={sidebarCollapsed ? 'collapsed' : 'expanded'}
+          className={`
+            hidden lg:flex fixed left-0 top-0 z-50 h-full bg-background border-r border-border/50 
+            sidebar-premium sidebar-collapse-animation
+            ${sidebarCollapsed ? 'w-20' : 'w-72'}
+          `}
+        >
+                  <SidebarContent 
+            collapsed={sidebarCollapsed}
+            onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+            navigation={navigation}
+            location={location}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+          />
+        </motion.aside>
+      )}
 
       {/* Main content */}
       <div className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ease-in-out ${
@@ -410,7 +453,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 <Input
                   type="text"
                   placeholder="Search properties, tenants, units..."
-                  className="w-80 pl-10 pr-4 h-9 bg-muted/50 border-0 focus-visible:ring-1 focus-visible:ring-primary/20"
+                  className="w-80 pl-10 pr-4 h-9 border border-input bg-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
@@ -435,28 +478,76 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               {/* Quick Actions */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button size="sm" className="hidden sm:flex h-9 gap-2">
+                  <Button size="sm" className="flex h-9 gap-2">
                     <Plus className="h-4 w-4" />
-                    Quick Add
+                    <span className="hidden sm:inline">Quick Add</span>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuLabel>Quick Actions</DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => window.location.href = '/properties?action=add'}>
+                  <DropdownMenuItem onClick={() => {
+                    window.location.href = '/properties';
+                    // Trigger add property after navigation
+                    setTimeout(() => {
+                      const event = new CustomEvent('openAddProperty');
+                      window.dispatchEvent(event);
+                    }, 100);
+                  }}>
                     <Building2 className="h-4 w-4 mr-2" />
                     Add Property
                   </DropdownMenuItem>
 
-                  <DropdownMenuItem onClick={() => window.location.href = '/tenants?action=add'}>
+                  <DropdownMenuItem onClick={() => {
+                    console.log('🎯 Quick Add Manager clicked!');
+                    window.location.href = '/team';
+                    // Trigger add manager after navigation
+                    setTimeout(() => {
+                      console.log('🎯 Dispatching openAddManager event');
+                      const event = new CustomEvent('openAddManager');
+                      window.dispatchEvent(event);
+                      console.log('🎯 openAddManager event dispatched');
+                    }, 100);
+                  }}>
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Add Manager
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem onClick={() => {
+                    console.log('🎯 Quick Add Tenant clicked!');
+                    window.location.href = '/tenants';
+                    // Trigger add tenant after navigation
+                    setTimeout(() => {
+                      console.log('🎯 Dispatching openAddTenant event');
+                      const event = new CustomEvent('openAddTenant');
+                      window.dispatchEvent(event);
+                      console.log('🎯 openAddTenant event dispatched');
+                    }, 100);
+                  }}>
                     <Users className="h-4 w-4 mr-2" />
                     Add Tenant
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => window.location.href = '/payments?action=add'}>
+
+                  <DropdownMenuItem onClick={() => {
+                    window.location.href = '/payments';
+                    // Trigger add payment after navigation
+                    setTimeout(() => {
+                      const event = new CustomEvent('openAddPayment');
+                      window.dispatchEvent(event);
+                    }, 100);
+                  }}>
                     <CreditCard className="h-4 w-4 mr-2" />
                     Record Payment
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => window.location.href = '/maintenance?action=add'}>
+
+                  <DropdownMenuItem onClick={() => {
+                    window.location.href = '/maintenance';
+                    // Trigger add maintenance after navigation
+                    setTimeout(() => {
+                      const event = new CustomEvent('openAddMaintenance');
+                      window.dispatchEvent(event);
+                    }, 100);
+                  }}>
                     <Wrench className="h-4 w-4 mr-2" />
                     Maintenance Request
                   </DropdownMenuItem>
@@ -561,8 +652,8 @@ function SidebarContent({
           <Logo size="xxl" showText={!collapsed} collapsed={collapsed} />
         </Link>
         {mobile && (
-          <Button variant="ghost" size="sm" onClick={onToggle} className="h-9 w-9 p-0">
-            <X className="h-5 w-5" />
+          <Button variant="ghost" size="sm" onClick={onToggle} className="h-10 w-10 p-0 rounded-lg bg-background/80 backdrop-blur-sm border border-border/50 shadow-sm hover:shadow-md hover:bg-background/90 transition-all duration-200 hover:scale-105">
+            <X className="h-5 w-5 text-foreground/80 hover:text-foreground transition-colors" />
           </Button>
         )}
       </div>

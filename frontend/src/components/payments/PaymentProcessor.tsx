@@ -58,6 +58,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { DatePicker } from '@/components/ui/date-picker';
+import { ProCheckbox } from '@/components/ui/pro-checkbox';
 import {
   Dialog,
   DialogContent,
@@ -602,22 +604,20 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ amount, propertyId, unitId, o
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Schedule Date</label>
-                  <Input
-                    type="date"
-                    value={scheduleDate}
-                    onChange={(e) => setScheduleDate(e.target.value)}
-                    min={new Date().toISOString().split('T')[0]}
+                  <DatePicker
+                    date={scheduleDate ? new Date(scheduleDate) : undefined}
+                    onDateChange={(date) => setScheduleDate(date ? date.toISOString().split('T')[0] : '')}
+                    placeholder="Select schedule date"
                   />
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Recurring Payment</label>
                   <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={isRecurring}
-                      onChange={(e) => setIsRecurring(e.target.checked)}
-                      className="rounded"
-                    />
+                                  <ProCheckbox
+                checked={isRecurring}
+                onCheckedChange={(checked) => setIsRecurring(!!checked)}
+                size="sm"
+              />
                     <span className="text-sm">Make this a recurring payment</span>
                   </div>
                 </div>

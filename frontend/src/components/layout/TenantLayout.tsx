@@ -145,9 +145,9 @@ export function TenantLayout({ children }: TenantLayoutProps) {
               variant="ghost"
               size="sm"
               onClick={() => setSidebarOpen(false)}
-              className="lg:hidden"
+              className="lg:hidden h-10 w-10 p-0 rounded-lg bg-background/80 backdrop-blur-sm border border-border/50 shadow-sm hover:shadow-md hover:bg-background/90 transition-all duration-200 hover:scale-105"
             >
-              <X className="h-4 w-4" />
+              <X className="h-5 w-5 text-foreground/80 hover:text-foreground transition-colors" />
             </Button>
           </div>
 

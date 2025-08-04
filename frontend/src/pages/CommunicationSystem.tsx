@@ -64,6 +64,7 @@ import {
   Mic as MicIcon,
   Paperclip as PaperclipIcon,
   Smile as SmileIcon,
+  X,
 } from 'lucide-react';
 
 // UI Components
@@ -857,9 +858,31 @@ export function CommunicationSystem() {
 
       {/* Message Details Dialog */}
       <Dialog open={!!selectedMessage} onOpenChange={() => setSelectedMessage(null)}>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>Message Details</DialogTitle>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader className="sticky top-0 bg-white z-10 pb-4 border-b">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-gradient-to-r from-green-600/20 to-blue-600/20 rounded-lg border border-green-500/30">
+                  <MessageSquare className="h-6 w-6 text-green-600" />
+                </div>
+                <div>
+                  <DialogTitle className="text-xl font-bold">Message Details</DialogTitle>
+                  {selectedMessage && (
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {selectedMessage.subject}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSelectedMessage(null)}
+                className="h-10 w-10 p-0 rounded-lg bg-background/80 backdrop-blur-sm border border-border/50 shadow-sm hover:shadow-md hover:bg-background/90 transition-all duration-200 hover:scale-105"
+              >
+                <X className="h-5 w-5 text-foreground/80 hover:text-foreground transition-colors" />
+              </Button>
+            </div>
           </DialogHeader>
           {selectedMessage && (
             <div className="space-y-6">

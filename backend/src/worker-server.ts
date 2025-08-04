@@ -487,6 +487,146 @@ app.get('/api/units', authMiddleware, async (c) => {
   }
 });
 
+// Unit image upload endpoints
+app.post('/api/units/:id/images/upload-url', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== UNIT IMAGE UPLOAD URL ENDPOINT CALLED =====');
+  try {
+    const unitId = c.req.param('id');
+    const user = c.get('user');
+    const body = await c.req.json();
+    const { fileName, fileType } = body;
+
+    if (!fileName || !fileType) {
+      return c.json({ error: 'fileName and fileType are required' }, 400);
+    }
+
+    // Verify unit exists and user has access
+    const supabase = getSupabaseClient(c.env);
+    const { data: unit, error: unitError } = await supabase
+      .from('units')
+      .select(`
+        id,
+        property:properties!units_property_id_fkey (
+          id,
+          owner_id
+        )
+      `)
+      .eq('id', unitId)
+      .single();
+
+    if (unitError || !unit) {
+      return c.json({ error: 'Unit not found' }, 404);
+    }
+
+    // Type assertion for the property relationship
+    const unitWithProperty = unit as any;
+    if (!unitWithProperty.property || unitWithProperty.property.owner_id !== user.userId) {
+      return c.json({ error: 'Access denied' }, 403);
+    }
+
+    // Import storage service
+    const { storageService } = await import('./utils/storage');
+
+    // Generate presigned URL
+    const result = await storageService.generatePresignedUrl(fileName, fileType, `units/${unitId}/images`);
+
+    return c.json({
+      success: true,
+      data: {
+        uploadUrl: result.uploadUrl,
+        fileName: result.key,
+        publicUrl: result.publicUrl
+      }
+    });
+  } catch (error) {
+    console.error('[DEBUG] Unit image upload URL generation error:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+app.post('/api/units/:id/images', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== UNIT IMAGE UPLOAD ENDPOINT CALLED =====');
+  try {
+    const unitId = c.req.param('id');
+    const user = c.get('user');
+
+    // Verify unit exists and user has access
+    const supabase = getSupabaseClient(c.env);
+    const { data: unit, error: unitError } = await supabase
+      .from('units')
+      .select(`
+        id,
+        images,
+        property:properties!units_property_id_fkey (
+          id,
+          owner_id
+        )
+      `)
+      .eq('id', unitId)
+      .single();
+
+    if (unitError || !unit) {
+      return c.json({ error: 'Unit not found' }, 404);
+    }
+
+    // Type assertion for the property relationship  
+    const unitWithPropertyImg = unit as any;
+    if (!unitWithPropertyImg.property || unitWithPropertyImg.property.owner_id !== user.userId) {
+      return c.json({ error: 'Access denied' }, 403);
+    }
+
+    const formData = await c.req.formData();
+    const files = formData.getAll('images') as File[];
+
+    if (!files || files.length === 0) {
+      return c.json({ error: 'No images provided' }, 400);
+    }
+
+    // Import storage service
+    const { storageService } = await import('./utils/storage');
+    const uploadedImages = [];
+
+    for (const file of files) {
+      if (file && file.size > 0) {
+        // Upload to R2
+        const buffer = await file.arrayBuffer();
+        const uploadResult = await storageService.uploadFile(Buffer.from(buffer), file.name, file.type, `units/${unitId}/images`);
+
+        uploadedImages.push(uploadResult.url);
+      }
+    }
+
+    // Update unit with new images
+    const existingImages = unitWithPropertyImg.images || [];
+    const allImages = [...existingImages, ...uploadedImages];
+
+    const { error: updateError } = await supabase
+      .from('units')
+      .update({ 
+        images: allImages,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', unitId);
+
+    if (updateError) {
+      console.error('[DEBUG] Unit image update error:', updateError);
+      return c.json({ error: 'Failed to update unit images' }, 500);
+    }
+
+    console.log('[DEBUG] ===== UNIT IMAGES UPLOADED SUCCESSFULLY =====');
+    return c.json({
+      success: true,
+      data: {
+        images: allImages,
+        uploadedCount: uploadedImages.length
+      }
+    });
+  } catch (error) {
+    console.error('[DEBUG] Unit image upload error:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
 // Tenants endpoint
 app.get('/api/tenants', authMiddleware, async (c) => {
   console.log('[DEBUG] ===== TENANTS ENDPOINT CALLED =====');
@@ -1029,39 +1169,39 @@ app.get('/api/maintenance', authMiddleware, async (c) => {
   }
 });
 
-// 6. MANAGER MANAGEMENT ENDPOINTS
-app.get('/api/managers', authMiddleware, async (c) => {
-  console.log('[DEBUG] ===== GET MANAGERS ENDPOINT CALLED =====');
+// 6. TEAM MANAGEMENT ENDPOINTS
+app.get('/api/team', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== GET TEAM MEMBERS ENDPOINT CALLED =====');
   try {
     const supabase = getSupabaseClient(c.env);
     
-    const { data: managers, error } = await supabase
+    const { data: teamMembers, error } = await supabase
       .from('users')
       .select('*')
-      .in('role', ['MANAGER', 'ADMIN']);
+      .in('role', ['PROPERTY_MANAGER', 'ASSISTANT_MANAGER', 'MAINTENANCE_STAFF', 'ACCOUNTING_STAFF', 'LEASING_AGENT', 'REGIONAL_MANAGER', 'SENIOR_MANAGER']);
     
     if (error) {
-      console.log('[DEBUG] Managers query error:', error);
-      return c.json({ error: 'Failed to fetch managers', details: error.message }, 500);
+      console.log('[DEBUG] Team members query error:', error);
+      return c.json({ error: 'Failed to fetch team members', details: error.message }, 500);
     }
     
-    console.log('[DEBUG] ===== MANAGERS FETCHED SUCCESSFULLY =====');
-    return c.json({ success: true, data: managers || [] });
+    console.log('[DEBUG] ===== TEAM MEMBERS FETCHED SUCCESSFULLY =====');
+    return c.json({ success: true, data: teamMembers || [] });
   } catch (error) {
-    console.error('[DEBUG] ===== MANAGERS FETCH ERROR =====');
+    console.error('[DEBUG] ===== TEAM MEMBERS FETCH ERROR =====');
     console.error('[DEBUG] Error details:', error);
     return c.json({ error: 'Internal server error' }, 500);
   }
 });
 
-app.post('/api/managers', authMiddleware, async (c) => {
-  console.log('[DEBUG] ===== CREATE MANAGER ENDPOINT CALLED =====');
+app.post('/api/team', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== CREATE TEAM MEMBER ENDPOINT CALLED =====');
   try {
     const body = await c.req.json();
     
     const supabase = getSupabaseClient(c.env);
     
-    const { data: manager, error } = await supabase
+    const { data: teamMember, error } = await supabase
       .from('users')
       .insert({
         email: body.email,
@@ -1069,24 +1209,858 @@ app.post('/api/managers', authMiddleware, async (c) => {
         lastName: body.lastName,
         phoneNumber: body.phoneNumber,
         password: body.password || 'defaultpassword123',
-        role: body.role || 'MANAGER',
+        role: body.role || 'PROPERTY_MANAGER',
         isActive: true,
         emailVerified: false,
+        bio: body.bio,
+        department: body.department,
+        hireDate: body.hireDate,
+        salary: body.salary,
+        employmentStatus: body.employmentStatus,
+        accessLevel: body.accessLevel || 'Basic',
+        canManageProperties: body.canManageProperties || false,
+        canManageTenants: body.canManageTenants || false,
+        canManageMaintenance: body.canManageMaintenance || false,
+        canViewReports: body.canViewReports || false,
       })
       .select()
       .single();
     
     if (error) {
-      console.log('[DEBUG] Manager creation error:', error);
-      return c.json({ error: 'Failed to create manager', details: error.message }, 500);
+      console.log('[DEBUG] Team member creation error:', error);
+      return c.json({ error: 'Failed to create team member', details: error.message }, 500);
     }
     
-    console.log('[DEBUG] ===== MANAGER CREATED SUCCESSFULLY =====');
-    return c.json({ success: true, data: manager });
+    console.log('[DEBUG] ===== TEAM MEMBER CREATED SUCCESSFULLY =====');
+    return c.json({ success: true, data: teamMember });
   } catch (error) {
-    console.error('[DEBUG] ===== MANAGER CREATION ERROR =====');
+    console.error('[DEBUG] ===== TEAM MEMBER CREATION ERROR =====');
     console.error('[DEBUG] Error details:', error);
     return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+// Keep legacy managers endpoint for backward compatibility
+app.get('/api/managers', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== LEGACY MANAGERS ENDPOINT CALLED =====');
+  // Redirect to team endpoint
+  return c.redirect('/api/team');
+});
+
+// Additional team management endpoints
+app.get('/api/team/:id', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== GET TEAM MEMBER BY ID ENDPOINT CALLED =====');
+  try {
+    const supabase = getSupabaseClient(c.env);
+    const teamMemberId = c.req.param('id');
+    
+    const { data: teamMember, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', teamMemberId)
+      .single();
+    
+    if (error || !teamMember) {
+      return c.json({ error: 'Team member not found' }, 404);
+    }
+    
+    return c.json({ success: true, data: teamMember });
+  } catch (error) {
+    console.error('[DEBUG] Team member fetch error:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+app.put('/api/team/:id', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== UPDATE TEAM MEMBER ENDPOINT CALLED =====');
+  try {
+    const supabase = getSupabaseClient(c.env);
+    const teamMemberId = c.req.param('id');
+    const body = await c.req.json();
+    
+    const { data: teamMember, error } = await supabase
+      .from('users')
+      .update({
+        first_name: body.firstName,
+        last_name: body.lastName,
+        phone_number: body.phoneNumber,
+        role: body.role,
+        is_active: body.isActive,
+        bio: body.bio,
+        department: body.department,
+        hire_date: body.hireDate,
+        salary: body.salary,
+        employment_status: body.employmentStatus,
+        access_level: body.accessLevel,
+        can_manage_properties: body.canManageProperties,
+        can_manage_tenants: body.canManageTenants,
+        can_manage_maintenance: body.canManageMaintenance,
+        can_view_reports: body.canViewReports,
+      })
+      .eq('id', teamMemberId)
+      .select()
+      .single();
+    
+    if (error) {
+      console.log('[DEBUG] Team member update error:', error);
+      return c.json({ error: 'Failed to update team member', details: error.message }, 500);
+    }
+    
+    return c.json({ success: true, data: teamMember });
+  } catch (error) {
+    console.error('[DEBUG] Team member update error:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+app.delete('/api/team/:id', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== DELETE TEAM MEMBER ENDPOINT CALLED =====');
+  try {
+    const supabase = getSupabaseClient(c.env);
+    const teamMemberId = c.req.param('id');
+    
+    const { data: teamMember, error } = await supabase
+      .from('users')
+      .update({ is_active: false })
+      .eq('id', teamMemberId)
+      .select()
+      .single();
+    
+    if (error) {
+      console.log('[DEBUG] Team member deletion error:', error);
+      return c.json({ error: 'Failed to delete team member', details: error.message }, 500);
+    }
+    
+    return c.json({ success: true, data: teamMember });
+  } catch (error) {
+    console.error('[DEBUG] Team member deletion error:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+app.post('/api/team/:id/assign-properties', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== ASSIGN PROPERTIES TO TEAM MEMBER ENDPOINT CALLED =====');
+  try {
+    const supabase = getSupabaseClient(c.env);
+    const teamMemberId = c.req.param('id');
+    const body = await c.req.json();
+    
+    if (!body.propertyIds || !Array.isArray(body.propertyIds)) {
+      return c.json({ error: 'Property IDs array is required' }, 400);
+    }
+    
+    const { error } = await supabase
+      .from('properties')
+      .update({ manager_id: teamMemberId })
+      .in('id', body.propertyIds);
+    
+    if (error) {
+      console.log('[DEBUG] Property assignment error:', error);
+      return c.json({ error: 'Failed to assign properties', details: error.message }, 500);
+    }
+    
+    return c.json({ success: true, message: 'Properties assigned successfully' });
+  } catch (error) {
+    console.error('[DEBUG] Property assignment error:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+app.get('/api/team/:id/performance', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== GET TEAM MEMBER PERFORMANCE ENDPOINT CALLED =====');
+  try {
+    const supabase = getSupabaseClient(c.env);
+    const teamMemberId = c.req.param('id');
+    
+    const { data: properties, error } = await supabase
+      .from('properties')
+      .select(`
+        id,
+        name,
+        units (
+          id,
+          lease_status,
+          monthly_rent
+        ),
+        maintenance_requests (
+          id,
+          status,
+          created_at,
+          updated_at
+        )
+      `)
+      .eq('manager_id', teamMemberId);
+    
+    if (error) {
+      console.log('[DEBUG] Performance fetch error:', error);
+      return c.json({ error: 'Failed to fetch performance data', details: error.message }, 500);
+    }
+    
+    // Calculate performance metrics
+    const totalUnits = properties?.reduce((sum: number, prop: any) => sum + (prop.units?.length || 0), 0) || 0;
+    const occupiedUnits = properties?.reduce((sum: number, prop: any) => 
+      sum + (prop.units?.filter((unit: any) => unit.lease_status === 'LEASED').length || 0), 0) || 0;
+    const occupancyRate = totalUnits > 0 ? (occupiedUnits / totalUnits) * 100 : 0;
+    
+    const performanceMetrics = {
+      totalProperties: properties?.length || 0,
+      totalUnits,
+      occupiedUnits,
+      occupancyRate: Math.round(occupancyRate * 100) / 100,
+    };
+    
+    return c.json({ success: true, data: performanceMetrics });
+  } catch (error) {
+    console.error('[DEBUG] Performance fetch error:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+app.post('/api/team/:id/avatar', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== UPLOAD TEAM MEMBER AVATAR ENDPOINT CALLED =====');
+  try {
+    const teamMemberId = c.req.param('id');
+    const formData = await c.req.formData();
+    const file = formData.get('file') as File;
+    
+    if (!file) {
+      return c.json({ error: 'No file provided' }, 400);
+    }
+    
+    // For now, return a mock URL - in production, upload to Cloudflare R2
+    const mockUrl = `https://images.unsplash.com/photo-${Math.random().toString(36).substring(7)}?w=800`;
+    
+    // Update team member's avatar URL
+    const supabase = getSupabaseClient(c.env);
+    const { error } = await supabase
+      .from('users')
+      .update({ avatar: mockUrl })
+      .eq('id', teamMemberId);
+    
+    if (error) {
+      console.log('[DEBUG] Avatar update error:', error);
+      return c.json({ error: 'Failed to update avatar', details: error.message }, 500);
+    }
+    
+    return c.json({ 
+      success: true, 
+      data: { 
+        url: mockUrl,
+        filename: file.name,
+        size: file.size,
+        type: file.type
+      } 
+    });
+  } catch (error) {
+    console.error('[DEBUG] Avatar upload error:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+app.post('/api/team/:id/avatar/upload-url', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== GENERATE TEAM MEMBER AVATAR UPLOAD URL ENDPOINT CALLED =====');
+  try {
+    const teamMemberId = c.req.param('id');
+    const body = await c.req.json();
+    
+    if (!body.fileName || !body.contentType) {
+      return c.json({ error: 'File name and content type are required' }, 400);
+    }
+    
+    // For now, return a mock upload URL - in production, generate R2 presigned URL
+    const mockUploadUrl = `https://api.ormi.com/upload/mock-${teamMemberId}-${Date.now()}`;
+    const mockPublicUrl = `https://images.ormi.com/team-avatars/${teamMemberId}/${body.fileName}`;
+    
+    return c.json({ 
+      success: true, 
+      data: { 
+        uploadUrl: mockUploadUrl,
+        key: `team-avatars/${teamMemberId}/${body.fileName}`,
+        publicUrl: mockPublicUrl
+      } 
+    });
+  } catch (error) {
+    console.error('[DEBUG] Upload URL generation error:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+// TEAM MEMBER STORAGE ANALYTICS
+app.get('/api/team/:id/storage-analytics', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== GET TEAM MEMBER STORAGE ANALYTICS ENDPOINT CALLED =====');
+  try {
+    const teamMemberId = c.req.param('id');
+    const user = c.get('user');
+    
+    console.log('[DEBUG] Team member ID:', teamMemberId);
+    console.log('[DEBUG] User ID:', user.userId);
+    
+    // Mock storage analytics for now - in production, calculate from R2
+    const storageAnalytics = {
+      accountId: user.userId,
+      teamMemberId,
+      totalStorage: 1024 * 1024 * 5, // 5MB
+      storageBreakdown: {
+        avatars: 1024 * 1024 * 1, // 1MB
+        documents: 1024 * 1024 * 3, // 3MB
+        media: 1024 * 1024 * 1, // 1MB
+      },
+      fileCounts: {
+        total: 15,
+        byType: {
+          'image/jpeg': 5,
+          'image/png': 3,
+          'application/pdf': 7,
+        },
+      },
+      lastUpdated: new Date().toISOString(),
+    };
+    
+    console.log('[DEBUG] ===== TEAM MEMBER STORAGE ANALYTICS FETCHED SUCCESSFULLY =====');
+    return c.json({ 
+      success: true, 
+      data: storageAnalytics 
+    });
+  } catch (error) {
+    console.error('[DEBUG] ===== TEAM MEMBER STORAGE ANALYTICS ERROR =====');
+    console.error('[DEBUG] Error:', error);
+    return c.json({ error: 'Failed to fetch team member storage analytics' }, 500);
+  }
+});
+
+// BULK TEAM OPERATIONS
+app.post('/api/team/bulk/assign-properties', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== BULK ASSIGN PROPERTIES TO TEAM MEMBERS ENDPOINT CALLED =====');
+  try {
+    const { teamMemberIds, propertyIds } = await c.req.json();
+    const user = c.get('user');
+    
+    console.log('[DEBUG] Team member IDs:', teamMemberIds);
+    console.log('[DEBUG] Property IDs:', propertyIds);
+    console.log('[DEBUG] User ID:', user.userId);
+    
+    // Mock bulk assignment for now
+    const results = teamMemberIds.map((teamMemberId: string) => ({
+      teamMemberId,
+      assignedProperties: propertyIds,
+      success: true,
+      message: `Assigned ${propertyIds.length} properties to team member ${teamMemberId}`
+    }));
+    
+    console.log('[DEBUG] ===== BULK PROPERTY ASSIGNMENT COMPLETED SUCCESSFULLY =====');
+    return c.json({ 
+      success: true, 
+      data: { results, message: `Assigned ${propertyIds.length} properties to ${teamMemberIds.length} team members` }
+    });
+  } catch (error) {
+    console.error('[DEBUG] ===== BULK PROPERTY ASSIGNMENT ERROR =====');
+    console.error('[DEBUG] Error:', error);
+    return c.json({ error: 'Failed to bulk assign properties' }, 500);
+  }
+});
+
+app.post('/api/team/bulk/update-status', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== BULK UPDATE TEAM MEMBER STATUS ENDPOINT CALLED =====');
+  try {
+    const { teamMemberIds, status } = await c.req.json();
+    const user = c.get('user');
+    
+    console.log('[DEBUG] Team member IDs:', teamMemberIds);
+    console.log('[DEBUG] Status:', status);
+    console.log('[DEBUG] User ID:', user.userId);
+    
+    // Mock bulk status update for now
+    const results = teamMemberIds.map((teamMemberId: string) => ({
+      teamMemberId,
+      status,
+      success: true,
+      message: `Updated status to ${status} for team member ${teamMemberId}`
+    }));
+    
+    console.log('[DEBUG] ===== BULK STATUS UPDATE COMPLETED SUCCESSFULLY =====');
+    return c.json({ 
+      success: true, 
+      data: { results, message: `Updated status for ${teamMemberIds.length} team members` }
+    });
+  } catch (error) {
+    console.error('[DEBUG] ===== BULK STATUS UPDATE ERROR =====');
+    console.error('[DEBUG] Error:', error);
+    return c.json({ error: 'Failed to bulk update status' }, 500);
+  }
+});
+
+app.post('/api/team/bulk/update-role', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== BULK UPDATE TEAM MEMBER ROLE ENDPOINT CALLED =====');
+  try {
+    const { teamMemberIds, role } = await c.req.json();
+    const { user } = c.get('user');
+    
+    console.log('[DEBUG] Team member IDs:', teamMemberIds);
+    console.log('[DEBUG] Role:', role);
+    console.log('[DEBUG] User ID:', user.userId);
+    
+    // Mock bulk role update for now
+    const results = teamMemberIds.map((teamMemberId: string) => ({
+      teamMemberId,
+      role,
+      success: true,
+      message: `Updated role to ${role} for team member ${teamMemberId}`
+    }));
+    
+    console.log('[DEBUG] ===== BULK ROLE UPDATE COMPLETED SUCCESSFULLY =====');
+    return c.json({ 
+      success: true, 
+      data: { results, message: `Updated role for ${teamMemberIds.length} team members` }
+    });
+  } catch (error) {
+    console.error('[DEBUG] ===== BULK ROLE UPDATE ERROR =====');
+    console.error('[DEBUG] Error:', error);
+    return c.json({ error: 'Failed to bulk update role' }, 500);
+  }
+});
+
+// TEAM IMPORT/EXPORT
+app.post('/api/team/import', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== IMPORT TEAM MEMBERS ENDPOINT CALLED =====');
+  try {
+    const { user } = c.get('user');
+    const formData = await c.req.formData();
+    const file = formData.get('file') as File;
+    
+    console.log('[DEBUG] File name:', file?.name);
+    console.log('[DEBUG] File size:', file?.size);
+    console.log('[DEBUG] User ID:', user.userId);
+    
+    if (!file) {
+      return c.json({ error: 'No file provided' }, 400);
+    }
+    
+    // Mock import for now
+    const mockResults = [
+      { firstName: 'John', lastName: 'Doe', email: 'john.doe@example.com', success: true },
+      { firstName: 'Jane', lastName: 'Smith', email: 'jane.smith@example.com', success: true },
+    ];
+    
+    console.log('[DEBUG] ===== TEAM MEMBERS IMPORTED SUCCESSFULLY =====');
+    return c.json({ 
+      success: true, 
+      data: { 
+        results: mockResults, 
+        message: `Imported ${mockResults.length} team members`,
+        summary: {
+          total: mockResults.length,
+          successful: mockResults.filter(r => r.success).length,
+          failed: mockResults.filter(r => !r.success).length
+        }
+      }
+    });
+  } catch (error) {
+    console.error('[DEBUG] ===== TEAM MEMBERS IMPORT ERROR =====');
+    console.error('[DEBUG] Error:', error);
+    return c.json({ error: 'Failed to import team members' }, 500);
+  }
+});
+
+app.get('/api/team/export', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== EXPORT TEAM MEMBERS ENDPOINT CALLED =====');
+  try {
+    const { user } = c.get('user');
+    
+    console.log('[DEBUG] User ID:', user.userId);
+    
+    // Mock team members data for export
+    const teamMembersData = [
+      {
+        firstName: 'John',
+        lastName: 'Doe',
+        email: 'john.doe@example.com',
+        role: 'PROPERTY_MANAGER',
+        status: 'active',
+        department: 'Property Management',
+        hireDate: '2023-01-15',
+        salary: 75000,
+        employmentStatus: 'Full-time',
+        accessLevel: 'Standard',
+        canManageProperties: true,
+        canManageTenants: true,
+        canManageMaintenance: true,
+        canViewReports: true
+      },
+      {
+        firstName: 'Jane',
+        lastName: 'Smith',
+        email: 'jane.smith@example.com',
+        role: 'ASSISTANT_MANAGER',
+        status: 'active',
+        department: 'Property Management',
+        hireDate: '2023-03-20',
+        salary: 60000,
+        employmentStatus: 'Full-time',
+        accessLevel: 'Basic',
+        canManageProperties: false,
+        canManageTenants: true,
+        canManageMaintenance: false,
+        canViewReports: false
+      }
+    ];
+    
+    // Generate CSV content
+    const headers = [
+      'firstName', 'lastName', 'email', 'role', 'status',
+      'department', 'hireDate', 'salary', 'employmentStatus', 'accessLevel',
+      'canManageProperties', 'canManageTenants', 'canManageMaintenance', 'canViewReports'
+    ];
+    
+    const csvContent = [
+      headers.join(','),
+      ...teamMembersData.map((member: any) => 
+        headers.map(header => member[header] || '').join(',')
+      )
+    ].join('\n');
+    
+    console.log('[DEBUG] ===== TEAM MEMBERS EXPORTED SUCCESSFULLY =====');
+    return new Response(csvContent, {
+      headers: {
+        'Content-Type': 'text/csv',
+        'Content-Disposition': 'attachment; filename="team-members.csv"'
+      }
+    });
+  } catch (error) {
+    console.error('[DEBUG] ===== TEAM MEMBERS EXPORT ERROR =====');
+    console.error('[DEBUG] Error:', error);
+    return c.json({ error: 'Failed to export team members' }, 500);
+  }
+});
+
+// TEAM ANALYTICS
+app.get('/api/team/analytics/overview', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== GET TEAM ANALYTICS OVERVIEW ENDPOINT CALLED =====');
+  try {
+    const { user } = c.get('user');
+    
+    console.log('[DEBUG] User ID:', user.userId);
+    
+    // Mock team analytics overview
+    const analytics = {
+      totalTeamMembers: 12,
+      activeTeamMembers: 10,
+      inactiveTeamMembers: 2,
+      averagePerformanceScore: 85.5,
+      totalPropertiesAssigned: 45,
+      averagePropertiesPerMember: 3.75,
+      roleDistribution: {
+        PROPERTY_MANAGER: 3,
+        ASSISTANT_MANAGER: 2,
+        MAINTENANCE_STAFF: 2,
+        ACCOUNTING_STAFF: 2,
+        LEASING_AGENT: 2,
+        REGIONAL_MANAGER: 1,
+        SENIOR_MANAGER: 0
+      },
+      departmentDistribution: {
+        'Property Management': 5,
+        'Maintenance': 2,
+        'Accounting': 2,
+        'Leasing': 2,
+        'Administration': 1
+      },
+      recentHires: 3,
+      upcomingReviews: 2,
+      trainingNeeded: 1
+    };
+    
+    console.log('[DEBUG] ===== TEAM ANALYTICS OVERVIEW FETCHED SUCCESSFULLY =====');
+    return c.json({ 
+      success: true, 
+      data: analytics 
+    });
+  } catch (error) {
+    console.error('[DEBUG] ===== TEAM ANALYTICS OVERVIEW ERROR =====');
+    console.error('[DEBUG] Error:', error);
+    return c.json({ error: 'Failed to fetch team analytics overview' }, 500);
+  }
+});
+
+app.get('/api/team/analytics/performance', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== GET TEAM PERFORMANCE ANALYTICS ENDPOINT CALLED =====');
+  try {
+    const { user } = c.get('user');
+    
+    console.log('[DEBUG] User ID:', user.userId);
+    
+    // Mock team performance analytics
+    const analytics = {
+      performanceMetrics: {
+        averageOccupancyRate: 92.5,
+        averageMaintenanceResponseTime: 2.3, // days
+        averageTenantSatisfaction: 4.2, // out of 5
+        averageCollectionRate: 96.8,
+        averagePropertyValueGrowth: 5.2, // percentage
+        averageLeaseRenewalRate: 78.5
+      },
+      topPerformers: [
+        { id: '1', name: 'John Doe', performanceScore: 95, propertiesManaged: 8 },
+        { id: '2', name: 'Jane Smith', performanceScore: 92, propertiesManaged: 6 },
+        { id: '3', name: 'Mike Johnson', performanceScore: 89, propertiesManaged: 7 }
+      ],
+      performanceTrends: {
+        monthly: [
+          { month: 'Jan', averageScore: 82 },
+          { month: 'Feb', averageScore: 84 },
+          { month: 'Mar', averageScore: 86 },
+          { month: 'Apr', averageScore: 88 },
+          { month: 'May', averageScore: 90 },
+          { month: 'Jun', averageScore: 92 }
+        ]
+      },
+      goalAchievement: {
+        occupancyGoal: 90,
+        currentOccupancy: 92.5,
+        maintenanceGoal: 3, // days
+        currentMaintenance: 2.3,
+        satisfactionGoal: 4.0,
+        currentSatisfaction: 4.2
+      }
+    };
+    
+    console.log('[DEBUG] ===== TEAM PERFORMANCE ANALYTICS FETCHED SUCCESSFULLY =====');
+    return c.json({ 
+      success: true, 
+      data: analytics 
+    });
+  } catch (error) {
+    console.error('[DEBUG] ===== TEAM PERFORMANCE ANALYTICS ERROR =====');
+    console.error('[DEBUG] Error:', error);
+    return c.json({ error: 'Failed to fetch team performance analytics' }, 500);
+  }
+});
+
+app.get('/api/team/analytics/storage', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== GET TEAM STORAGE ANALYTICS ENDPOINT CALLED =====');
+  try {
+    const { user } = c.get('user');
+    
+    console.log('[DEBUG] User ID:', user.userId);
+    
+    // Mock team storage analytics
+    const storageAnalytics = {
+      accountId: user.userId,
+      totalStorage: 1024 * 1024 * 1024 * 2.5, // 2.5GB
+      storageBreakdown: {
+        teamMembers: 1024 * 1024 * 1024 * 0.5, // 500MB
+        properties: 1024 * 1024 * 1024 * 1.2, // 1.2GB
+        tenants: 1024 * 1024 * 1024 * 0.3, // 300MB
+        maintenance: 1024 * 1024 * 1024 * 0.2, // 200MB
+        financial: 1024 * 1024 * 1024 * 0.1, // 100MB
+        marketing: 1024 * 1024 * 1024 * 0.1, // 100MB
+        legal: 1024 * 1024 * 1024 * 0.05, // 50MB
+        templates: 1024 * 1024 * 1024 * 0.03, // 30MB
+        shared: 1024 * 1024 * 1024 * 0.02, // 20MB
+      },
+      fileCounts: {
+        total: 1250,
+        byType: {
+          'image/jpeg': 450,
+          'image/png': 200,
+          'application/pdf': 400,
+          'application/msword': 100,
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 50,
+          'text/csv': 30,
+          'application/vnd.ms-excel': 20
+        },
+        byCategory: {
+          teamMembers: 150,
+          properties: 600,
+          tenants: 200,
+          maintenance: 150,
+          financial: 50,
+          marketing: 30,
+          legal: 40,
+          templates: 20,
+          shared: 10
+        }
+      },
+      usageTrends: {
+        daily: Array.from({ length: 30 }, (_, i) => ({
+          date: new Date(Date.now() - (29 - i) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          storageUsed: 1024 * 1024 * 1024 * (2.5 + Math.random() * 0.1),
+          filesAdded: Math.floor(Math.random() * 10) + 1,
+          filesDeleted: Math.floor(Math.random() * 3)
+        })),
+        monthly: Array.from({ length: 12 }, (_, i) => ({
+          date: new Date(2024, i, 1).toISOString().split('T')[0],
+          storageUsed: 1024 * 1024 * 1024 * (2.0 + Math.random() * 0.5),
+          filesAdded: Math.floor(Math.random() * 100) + 50,
+          filesDeleted: Math.floor(Math.random() * 20) + 10
+        })),
+        yearly: Array.from({ length: 3 }, (_, i) => ({
+          date: new Date(2022 + i, 0, 1).toISOString().split('T')[0],
+          storageUsed: 1024 * 1024 * 1024 * (1.5 + Math.random() * 1.0),
+          filesAdded: Math.floor(Math.random() * 500) + 200,
+          filesDeleted: Math.floor(Math.random() * 100) + 50
+        }))
+      },
+      billingTier: 'professional',
+      storageLimit: 1024 * 1024 * 1024 * 100, // 100GB
+      overageAmount: 0,
+      estimatedCost: 25.50
+    };
+    
+    console.log('[DEBUG] ===== TEAM STORAGE ANALYTICS FETCHED SUCCESSFULLY =====');
+    return c.json({ 
+      success: true, 
+      data: storageAnalytics 
+    });
+  } catch (error) {
+    console.error('[DEBUG] ===== TEAM STORAGE ANALYTICS ERROR =====');
+    console.error('[DEBUG] Error:', error);
+    return c.json({ error: 'Failed to fetch team storage analytics' }, 500);
+  }
+});
+
+// TEAM TEMPLATES
+app.get('/api/team/templates', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== GET TEAM TEMPLATES ENDPOINT CALLED =====');
+  try {
+    const { user } = c.get('user');
+    
+    console.log('[DEBUG] User ID:', user.userId);
+    
+    // Mock team templates
+    const templates = [
+      {
+        id: '1',
+        name: 'Property Manager Template',
+        description: 'Standard template for property managers',
+        role: 'PROPERTY_MANAGER',
+        permissions: {
+          canManageProperties: true,
+          canManageTenants: true,
+          canManageMaintenance: true,
+          canViewReports: true
+        },
+        accessLevel: 'Standard',
+        createdBy: user.userId,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      },
+      {
+        id: '2',
+        name: 'Leasing Agent Template',
+        description: 'Template for leasing agents',
+        role: 'LEASING_AGENT',
+        permissions: {
+          canManageProperties: false,
+          canManageTenants: true,
+          canManageMaintenance: false,
+          canViewReports: false
+        },
+        accessLevel: 'Basic',
+        createdBy: user.userId,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }
+    ];
+    
+    console.log('[DEBUG] ===== TEAM TEMPLATES FETCHED SUCCESSFULLY =====');
+    return c.json({ 
+      success: true, 
+      data: templates 
+    });
+  } catch (error) {
+    console.error('[DEBUG] ===== TEAM TEMPLATES ERROR =====');
+    console.error('[DEBUG] Error:', error);
+    return c.json({ error: 'Failed to fetch team templates' }, 500);
+  }
+});
+
+app.post('/api/team/templates', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== CREATE TEAM TEMPLATE ENDPOINT CALLED =====');
+  try {
+    const { user } = c.get('user');
+    const templateData = await c.req.json();
+    
+    console.log('[DEBUG] Template data:', templateData);
+    console.log('[DEBUG] User ID:', user.userId);
+    
+    // Mock template creation
+    const template = {
+      id: Date.now().toString(),
+      ...templateData,
+      createdBy: user.userId,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    
+    console.log('[DEBUG] ===== TEAM TEMPLATE CREATED SUCCESSFULLY =====');
+    return c.json({ 
+      success: true, 
+      data: template 
+    });
+  } catch (error) {
+    console.error('[DEBUG] ===== TEAM TEMPLATE CREATION ERROR =====');
+    console.error('[DEBUG] Error:', error);
+    return c.json({ error: 'Failed to create team template' }, 500);
+  }
+});
+
+app.put('/api/team/templates/:id', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== UPDATE TEAM TEMPLATE ENDPOINT CALLED =====');
+  try {
+    const templateId = c.req.param('id');
+    const { user } = c.get('user');
+    const templateData = await c.req.json();
+    
+    console.log('[DEBUG] Template ID:', templateId);
+    console.log('[DEBUG] Template data:', templateData);
+    console.log('[DEBUG] User ID:', user.userId);
+    
+    // Mock template update
+    const template = {
+      id: templateId,
+      ...templateData,
+      updatedBy: user.userId,
+      updatedAt: new Date().toISOString()
+    };
+    
+    console.log('[DEBUG] ===== TEAM TEMPLATE UPDATED SUCCESSFULLY =====');
+    return c.json({ 
+      success: true, 
+      data: template 
+    });
+  } catch (error) {
+    console.error('[DEBUG] ===== TEAM TEMPLATE UPDATE ERROR =====');
+    console.error('[DEBUG] Error:', error);
+    return c.json({ error: 'Failed to update team template' }, 500);
+  }
+});
+
+app.delete('/api/team/templates/:id', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== DELETE TEAM TEMPLATE ENDPOINT CALLED =====');
+  try {
+    const templateId = c.req.param('id');
+    const { user } = c.get('user');
+    
+    console.log('[DEBUG] Template ID:', templateId);
+    console.log('[DEBUG] User ID:', user.userId);
+    
+    // Mock template deletion
+    const result = {
+      id: templateId,
+      deleted: true,
+      deletedBy: user.userId,
+      deletedAt: new Date().toISOString()
+    };
+    
+    console.log('[DEBUG] ===== TEAM TEMPLATE DELETED SUCCESSFULLY =====');
+    return c.json({ 
+      success: true, 
+      data: result 
+    });
+  } catch (error) {
+    console.error('[DEBUG] ===== TEAM TEMPLATE DELETE ERROR =====');
+    console.error('[DEBUG] Error:', error);
+    return c.json({ error: 'Failed to delete team template' }, 500);
   }
 });
 

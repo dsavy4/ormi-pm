@@ -31,6 +31,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Checkbox } from '@/components/ui/checkbox';
 
 // API
 import { tenantApi } from '@/lib/api';
@@ -266,11 +267,10 @@ export function PaymentForm({ amount, dueDate, onSuccess, onCancel }: PaymentFor
 
             {/* Save Payment Method */}
             <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
+              <Checkbox
                 id="savePaymentMethod"
-                {...register('savePaymentMethod')}
-                className="rounded border-gray-300"
+                checked={watch('savePaymentMethod')}
+                onCheckedChange={(checked) => setValue('savePaymentMethod', !!checked)}
               />
               <Label htmlFor="savePaymentMethod" className="text-sm">
                 Save payment method for future use

@@ -301,12 +301,19 @@ export function Settings() {
                         Change Password
                       </Button>
                     </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Change Password</DialogTitle>
-                        <DialogDescription>
-                          Enter your current password and choose a new one.
-                        </DialogDescription>
+                    <DialogContent className="max-w-lg">
+                      <DialogHeader className="pb-4 border-b">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-gradient-to-r from-orange-600/20 to-red-600/20 rounded-lg border border-orange-500/30">
+                            <Key className="h-6 w-6 text-orange-600" />
+                          </div>
+                          <div>
+                            <DialogTitle className="text-xl font-bold">Change Password</DialogTitle>
+                            <DialogDescription className="text-sm text-muted-foreground mt-1">
+                              Enter your current password and choose a new one.
+                            </DialogDescription>
+                          </div>
+                        </div>
                       </DialogHeader>
                       <div className="space-y-4">
                         <div className="space-y-2">

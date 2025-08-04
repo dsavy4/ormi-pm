@@ -306,7 +306,7 @@ export function Reports() {
       <motion.div variants={itemVariants} className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-gray-900">Reports & Analytics</h1>
+            <h1 className="text-2xl font-bold text-gray-700 dark:text-gray-200">Reports & Analytics</h1>
             <Badge variant="outline" className="bg-gradient-to-r from-blue-50 to-indigo-50">
               <Crown className="h-3 w-3 mr-1" />
               Business Intelligence
