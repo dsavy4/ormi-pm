@@ -12,15 +12,15 @@ export interface StorageConfig {
   publicUrl?: string;
 }
 
-// Default R2 configuration
+// Default R2 configuration - will be overridden with actual env vars
 const defaultConfig: StorageConfig = {
   provider: 'r2',
-  bucket: process.env.R2_BUCKET_NAME || 'ormi-property-images',
-  region: process.env.R2_REGION || 'auto',
-  accessKeyId: process.env.R2_ACCESS_KEY_ID || '',
-  secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || '',
-  endpoint: process.env.R2_ENDPOINT || 'https://your-account-id.r2.cloudflarestorage.com',
-  publicUrl: process.env.R2_PUBLIC_URL || 'https://your-public-domain.com',
+  bucket: 'ormi-storage',
+  region: 'auto',
+  accessKeyId: '',
+  secretAccessKey: '',
+  endpoint: 'https://475a121e52d9057d0e99c52062f3b6e5.r2.cloudflarestorage.com',
+  publicUrl: 'https://data.ormi.com',
 };
 
 class StorageService {
@@ -41,16 +41,16 @@ class StorageService {
   }
 
   /**
-   * Upload a file to storage
+   * Upload a file to storage with account-based path
    */
   async uploadFile(
     file: Buffer,
     fileName: string,
     contentType: string,
-    folder: string = 'uploads'
+    accountPath: string
   ): Promise<{ url: string; key: string }> {
     try {
-      const key = `${folder}/${Date.now()}-${fileName}`;
+      const key = `${accountPath}/${Date.now()}-${fileName}`;
       
       const command = new PutObjectCommand({
         Bucket: this.config.bucket,
@@ -77,16 +77,17 @@ class StorageService {
   }
 
   /**
-   * Upload team member avatar to storage
+   * Upload team member avatar to storage with account-based path
    */
   async uploadTeamMemberAvatar(
     file: Buffer,
     fileName: string,
     contentType: string,
+    accountId: string,
     teamMemberId: string
   ): Promise<{ url: string; key: string }> {
     try {
-      const key = `team-avatars/${teamMemberId}/${Date.now()}-${fileName}`;
+      const key = `${accountId}/team/avatars/${teamMemberId}/${Date.now()}-${fileName}`;
       
       const command = new PutObjectCommand({
         Bucket: this.config.bucket,
@@ -228,6 +229,22 @@ class StorageService {
 }
 
 // Create singleton instance
+// Create storage service with Cloudflare Worker environment variables
+export function createStorageService(env: any): StorageService {
+  const config: StorageConfig = {
+    provider: 'r2',
+    bucket: env.R2_BUCKET_NAME || 'ormi-storage',
+    region: env.R2_REGION || 'auto',
+    accessKeyId: env.R2_ACCESS_KEY_ID || '',
+    secretAccessKey: env.R2_SECRET_ACCESS_KEY || '',
+    endpoint: env.R2_ENDPOINT || 'https://475a121e52d9057d0e99c52062f3b6e5.r2.cloudflarestorage.com',
+    publicUrl: env.R2_PUBLIC_URL || 'https://data.ormi.com',
+  };
+  
+  return new StorageService(config);
+}
+
+// Default instance (for backward compatibility, but won't work in Workers)
 export const storageService = new StorageService();
 
 // Export for easy configuration changes

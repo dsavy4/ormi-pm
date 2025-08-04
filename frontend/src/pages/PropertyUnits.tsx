@@ -117,13 +117,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from '@/components/ui/sheet';
-import {
-  GrippableSheet,
-  GrippableSheetContent,
-  GrippableSheetHeader,
-  GrippableSheetTitle,
-  GrippableSheetDescription,
-} from '@/components/ui/grippable-sheet';
+
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -1185,8 +1179,8 @@ function UnitDetailsSheet({ isOpen, onClose, unit, onUpdate }: {
   if (!unit) return null;
 
   return (
-    <GrippableSheet open={isOpen} onOpenChange={onClose}>
-      <GrippableSheetContent showGrip={true} className="overflow-y-auto">
+    <Sheet open={isOpen} onOpenChange={onClose}>
+      <SheetContent className="overflow-y-auto">
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
             <Building2 className="h-5 w-5" />
@@ -1502,8 +1496,8 @@ function UnitDetailsSheet({ isOpen, onClose, unit, onUpdate }: {
             </Button>
           </div>
         </div>
-      </GrippableSheetContent>
-    </GrippableSheet>
+      </SheetContent>
+    </Sheet>
   );
 }
 
@@ -1529,8 +1523,8 @@ function BulkActionsSheet({ isOpen, onClose, selectedUnits, onSuccess }: {
   };
 
   return (
-    <GrippableSheet open={isOpen} onOpenChange={onClose}>
-      <GrippableSheetContent showGrip={true}>
+    <Sheet open={isOpen} onOpenChange={onClose}>
+      <SheetContent>
         <SheetHeader>
           <SheetTitle>Bulk Actions</SheetTitle>
           <SheetDescription>
@@ -1572,7 +1566,7 @@ function BulkActionsSheet({ isOpen, onClose, selectedUnits, onSuccess }: {
             </Button>
           </div>
         </div>
-      </GrippableSheetContent>
-    </GrippableSheet>
+      </SheetContent>
+    </Sheet>
   );
 } 

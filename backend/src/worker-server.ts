@@ -406,6 +406,57 @@ app.get('/api/properties', authMiddleware, async (c) => {
   }
 });
 
+// Get individual property by ID
+app.get('/api/properties/:id', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== GET PROPERTY BY ID ENDPOINT CALLED =====');
+  try {
+    const user = c.get('user');
+    const propertyId = c.req.param('id');
+    
+    console.log('[DEBUG] User ID:', user.userId);
+    console.log('[DEBUG] Property ID:', propertyId);
+    
+    const supabase = getSupabaseClient(c.env);
+    
+    // Get property with related data
+    const { data: property, error } = await supabase
+      .from('properties')
+      .select(`
+        *,
+        units:units(*),
+        manager:users!properties_property_manager_id_fkey(
+          id,
+          firstName,
+          lastName,
+          email,
+          avatar
+        )
+      `)
+      .eq('id', propertyId)
+      .single();
+    
+    if (error) {
+      console.error('[DEBUG] Property fetch error:', error);
+      return c.json({ error: 'Property not found' }, 404);
+    }
+    
+    if (!property) {
+      console.error('[DEBUG] Property not found for ID:', propertyId);
+      return c.json({ error: 'Property not found' }, 404);
+    }
+    
+    console.log('[DEBUG] ===== PROPERTY FETCHED SUCCESSFULLY =====');
+    return c.json({
+      success: true,
+      data: property
+    });
+  } catch (error) {
+    console.error('[DEBUG] ===== GET PROPERTY BY ID ERROR =====');
+    console.error('[DEBUG] Error details:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
 // Properties insights endpoint
 app.get('/api/properties/insights', authMiddleware, async (c) => {
   console.log('[DEBUG] ===== PROPERTIES INSIGHTS ENDPOINT CALLED =====');
@@ -525,7 +576,8 @@ app.post('/api/units/:id/images/upload-url', authMiddleware, async (c) => {
     }
 
     // Import storage service
-    const { storageService } = await import('./utils/storage');
+    const { createStorageService } = await import('./utils/storage');
+    const storageService = createStorageService(c.env);
 
     // Generate presigned URL
     const result = await storageService.generatePresignedUrl(fileName, fileType, `units/${unitId}/images`);
@@ -583,16 +635,40 @@ app.post('/api/units/:id/images', authMiddleware, async (c) => {
     }
 
     // Import storage service
-    const { storageService } = await import('./utils/storage');
+    const { createStorageService } = await import('./utils/storage');
+    const storageService = createStorageService(c.env);
     const uploadedImages = [];
 
     for (const file of files) {
       if (file && file.size > 0) {
-        // Upload to R2
+        // Upload to R2 with account-based path
         const buffer = await file.arrayBuffer();
-        const uploadResult = await storageService.uploadFile(Buffer.from(buffer), file.name, file.type, `units/${unitId}/images`);
+        const user = c.get('user');
+        const filePath = `${user.userId}/property/units/${unitId}/images`;
+        const uploadResult = await storageService.uploadFile(Buffer.from(buffer), file.name, file.type, filePath);
 
         uploadedImages.push(uploadResult.url);
+        
+        // Create document record for tracking
+        const documentData = {
+          fileName: file.name,
+          fileUrl: uploadResult.url,
+          fileType: file.type,
+          fileSize: file.size,
+          category: 'property',
+          accountId: user.userId,
+          uploadedBy: user.userId,
+          propertyId: unitWithPropertyImg.propertyId,
+          unitId: unitId,
+          tags: ['unit', 'image', 'property'],
+          description: `Unit image for unit ${unitId}`,
+          isPublic: false,
+          uploadedAt: new Date().toISOString(),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        
+        await supabase.from('documents').insert(documentData);
       }
     }
 
@@ -712,18 +788,42 @@ app.post('/api/properties', authMiddleware, async (c) => {
     
     const supabase = getSupabaseClient(c.env);
     
+    // Generate a unique ID
+    const propertyId = `prop_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
     const { data: property, error } = await supabase
       .from('properties')
       .insert({
+        id: propertyId,
         name: body.name,
         address: body.address,
         city: body.city,
         state: body.state,
         zipCode: body.zipCode,
+        propertyType: body.propertyType || 'APARTMENT',
+        totalUnits: body.totalUnits || 1,
+        occupiedUnits: body.occupiedUnits || 0,
+        monthlyRent: parseFloat(body.monthlyRent || 1000.00).toFixed(2),
         description: body.description,
         notes: body.notes,
+        images: body.images || [], // These will be processed with account-based paths
+        amenities: body.amenities || [],
+        tags: body.tags || [],
+        yearBuilt: body.yearBuilt,
+        sqft: body.sqft,
+        lotSize: body.lotSize,
+        unitSuite: body.unitSuite,
+        country: body.country || 'United States',
+        ownershipType: body.ownershipType,
+        rentDueDay: body.rentDueDay || 1,
+        allowOnlinePayments: body.allowOnlinePayments || false,
+        enableMaintenanceRequests: body.enableMaintenanceRequests || true,
+        status: body.status || 'ACTIVE',
+        isActive: body.isActive !== undefined ? body.isActive : true,
         ownerId: user.userId,
-        managerId: body.managerId || null,
+        propertyManagerId: body.propertyManager || body.managerId || null,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       })
       .select()
       .single();
@@ -1419,6 +1519,7 @@ app.get('/api/team/:id/performance', authMiddleware, async (c) => {
 app.post('/api/team/:id/avatar', authMiddleware, async (c) => {
   console.log('[DEBUG] ===== UPLOAD TEAM MEMBER AVATAR ENDPOINT CALLED =====');
   try {
+    const user = c.get('user');
     const teamMemberId = c.req.param('id');
     const formData = await c.req.formData();
     const file = formData.get('file') as File;
@@ -1427,8 +1528,13 @@ app.post('/api/team/:id/avatar', authMiddleware, async (c) => {
       return c.json({ error: 'No file provided' }, 400);
     }
     
+    // Generate account-based file path
+    const fileName = `${Date.now()}-${file.name}`;
+    const filePath = `${user.userId}/team/avatars/${teamMemberId}/${fileName}`;
+    const publicUrl = `https://data.ormi.com/${filePath}`;
+    
     // For now, return a mock URL - in production, upload to Cloudflare R2
-    const mockUrl = `https://images.unsplash.com/photo-${Math.random().toString(36).substring(7)}?w=800`;
+    const mockUrl = publicUrl;
     
     // Update team member's avatar URL
     const supabase = getSupabaseClient(c.env);
@@ -1442,13 +1548,33 @@ app.post('/api/team/:id/avatar', authMiddleware, async (c) => {
       return c.json({ error: 'Failed to update avatar', details: error.message }, 500);
     }
     
+    // Create document record for tracking
+    const documentData = {
+      fileName: file.name,
+      fileUrl: mockUrl,
+      fileType: file.type,
+      fileSize: file.size,
+      category: 'team',
+      accountId: user.userId,
+      uploadedBy: user.userId,
+      tags: ['avatar', 'team-member'],
+      description: `Avatar for team member ${teamMemberId}`,
+      isPublic: false,
+      uploadedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    
+    await supabase.from('documents').insert(documentData);
+    
     return c.json({ 
       success: true, 
       data: { 
         url: mockUrl,
         filename: file.name,
         size: file.size,
-        type: file.type
+        type: file.type,
+        filePath
       } 
     });
   } catch (error) {
@@ -1460,6 +1586,7 @@ app.post('/api/team/:id/avatar', authMiddleware, async (c) => {
 app.post('/api/team/:id/avatar/upload-url', authMiddleware, async (c) => {
   console.log('[DEBUG] ===== GENERATE TEAM MEMBER AVATAR UPLOAD URL ENDPOINT CALLED =====');
   try {
+    const user = c.get('user');
     const teamMemberId = c.req.param('id');
     const body = await c.req.json();
     
@@ -1467,16 +1594,20 @@ app.post('/api/team/:id/avatar/upload-url', authMiddleware, async (c) => {
       return c.json({ error: 'File name and content type are required' }, 400);
     }
     
+    // Generate account-based file path
+    const fileName = `${Date.now()}-${body.fileName}`;
+    const filePath = `${user.userId}/team/avatars/${teamMemberId}/${fileName}`;
+    const publicUrl = `https://data.ormi.com/${filePath}`;
+    
     // For now, return a mock upload URL - in production, generate R2 presigned URL
     const mockUploadUrl = `https://api.ormi.com/upload/mock-${teamMemberId}-${Date.now()}`;
-    const mockPublicUrl = `https://images.ormi.com/team-avatars/${teamMemberId}/${body.fileName}`;
     
     return c.json({ 
       success: true, 
       data: { 
         uploadUrl: mockUploadUrl,
-        key: `team-avatars/${teamMemberId}/${body.fileName}`,
-        publicUrl: mockPublicUrl
+        key: filePath,
+        publicUrl: publicUrl
       } 
     });
   } catch (error) {
@@ -1838,72 +1969,128 @@ app.get('/api/team/analytics/performance', authMiddleware, async (c) => {
 app.get('/api/team/analytics/storage', authMiddleware, async (c) => {
   console.log('[DEBUG] ===== GET TEAM STORAGE ANALYTICS ENDPOINT CALLED =====');
   try {
-    const { user } = c.get('user');
+    const user = c.get('user');
+    const supabase = getSupabaseClient(c.env);
     
     console.log('[DEBUG] User ID:', user.userId);
     
-    // Mock team storage analytics
+    // Get all documents from database
+    const { data: documents, error: documentsError } = await supabase
+      .from('documents')
+      .select('*');
+    
+    if (documentsError) {
+      console.error('[DEBUG] Documents query error:', documentsError);
+      return c.json({ error: 'Failed to fetch documents' }, 500);
+    }
+    
+    // Calculate storage analytics from real data
+    const totalStorage = documents?.reduce((sum, doc) => sum + (doc.fileSize || 0), 0) || 0;
+    
+    // Group by file type
+    const byType: Record<string, number> = {};
+    const byTypeCount: Record<string, number> = {};
+    documents?.forEach(doc => {
+      const type = doc.fileType || 'unknown';
+      byType[type] = (byType[type] || 0) + (doc.fileSize || 0);
+      byTypeCount[type] = (byTypeCount[type] || 0) + 1;
+    });
+    
+    // Get team members (users with manager roles)
+    const { data: teamMembers, error: teamError } = await supabase
+      .from('users')
+      .select('id, avatar')
+      .in('role', ['PROPERTY_MANAGER', 'ASSISTANT_MANAGER', 'MAINTENANCE_STAFF', 'ACCOUNTING_STAFF', 'LEASING_AGENT', 'REGIONAL_MANAGER', 'SENIOR_MANAGER']);
+    
+    if (teamError) {
+      console.error('[DEBUG] Team members query error:', teamError);
+    }
+    
+    // Calculate team member storage (avatars)
+    const teamMemberStorage = teamMembers?.reduce((sum, member) => {
+      // Estimate avatar size (typically 50KB-200KB)
+      return sum + (member.avatar ? 100 * 1024 : 0);
+    }, 0) || 0;
+    
+    // Get properties with images
+    const { data: properties, error: propertiesError } = await supabase
+      .from('properties')
+      .select('id, images');
+    
+    if (propertiesError) {
+      console.error('[DEBUG] Properties query error:', propertiesError);
+    }
+    
+    // Calculate property storage (images)
+    const propertyStorage = properties?.reduce((sum, property) => {
+      const imageCount = property.images?.length || 0;
+      // Estimate image size (typically 500KB-2MB)
+      return sum + (imageCount * 1024 * 1024);
+    }, 0) || 0;
+    
+    // Get maintenance requests with images
+    const { data: maintenanceRequests, error: maintenanceError } = await supabase
+      .from('maintenance_requests')
+      .select('id, images');
+    
+    if (maintenanceError) {
+      console.error('[DEBUG] Maintenance requests query error:', maintenanceError);
+    }
+    
+    // Calculate maintenance storage (images)
+    const maintenanceStorage = maintenanceRequests?.reduce((sum, request) => {
+      const imageCount = request.images?.length || 0;
+      // Estimate image size (typically 500KB-2MB)
+      return sum + (imageCount * 1024 * 1024);
+    }, 0) || 0;
+    
+    // Calculate storage breakdown
+    const storageBreakdown = {
+      teamMembers: teamMemberStorage,
+      properties: propertyStorage,
+      tenants: totalStorage, // Documents are primarily tenant-related
+      maintenance: maintenanceStorage,
+      financial: 0, // Would need financial documents table
+      marketing: 0, // Would need marketing materials table
+      legal: 0, // Would need legal documents table
+      templates: 0, // Would need templates table
+      shared: 0, // Would need shared documents table
+    };
+    
+    // Calculate file counts
+    const fileCounts = {
+      total: documents?.length || 0,
+      byType: byTypeCount,
+      byCategory: {
+        teamMembers: teamMembers?.length || 0,
+        properties: properties?.length || 0,
+        tenants: documents?.length || 0,
+        maintenance: maintenanceRequests?.length || 0,
+        financial: 0,
+        marketing: 0,
+        legal: 0,
+        templates: 0,
+        shared: 0,
+      }
+    };
+    
+    // Calculate billing tier based on storage usage
+    const storageLimit = 1024 * 1024 * 1024 * 100; // 100GB
+    const billingTier = totalStorage > 1024 * 1024 * 1024 * 50 ? 'enterprise' : 
+                       totalStorage > 1024 * 1024 * 1024 * 10 ? 'professional' : 'basic';
+    const overageAmount = Math.max(0, totalStorage - storageLimit);
+    const estimatedCost = billingTier === 'enterprise' ? 99.99 : 
+                         billingTier === 'professional' ? 29.99 : 9.99;
+    
     const storageAnalytics = {
       accountId: user.userId,
-      totalStorage: 1024 * 1024 * 1024 * 2.5, // 2.5GB
-      storageBreakdown: {
-        teamMembers: 1024 * 1024 * 1024 * 0.5, // 500MB
-        properties: 1024 * 1024 * 1024 * 1.2, // 1.2GB
-        tenants: 1024 * 1024 * 1024 * 0.3, // 300MB
-        maintenance: 1024 * 1024 * 1024 * 0.2, // 200MB
-        financial: 1024 * 1024 * 1024 * 0.1, // 100MB
-        marketing: 1024 * 1024 * 1024 * 0.1, // 100MB
-        legal: 1024 * 1024 * 1024 * 0.05, // 50MB
-        templates: 1024 * 1024 * 1024 * 0.03, // 30MB
-        shared: 1024 * 1024 * 1024 * 0.02, // 20MB
-      },
-      fileCounts: {
-        total: 1250,
-        byType: {
-          'image/jpeg': 450,
-          'image/png': 200,
-          'application/pdf': 400,
-          'application/msword': 100,
-          'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 50,
-          'text/csv': 30,
-          'application/vnd.ms-excel': 20
-        },
-        byCategory: {
-          teamMembers: 150,
-          properties: 600,
-          tenants: 200,
-          maintenance: 150,
-          financial: 50,
-          marketing: 30,
-          legal: 40,
-          templates: 20,
-          shared: 10
-        }
-      },
-      usageTrends: {
-        daily: Array.from({ length: 30 }, (_, i) => ({
-          date: new Date(Date.now() - (29 - i) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          storageUsed: 1024 * 1024 * 1024 * (2.5 + Math.random() * 0.1),
-          filesAdded: Math.floor(Math.random() * 10) + 1,
-          filesDeleted: Math.floor(Math.random() * 3)
-        })),
-        monthly: Array.from({ length: 12 }, (_, i) => ({
-          date: new Date(2024, i, 1).toISOString().split('T')[0],
-          storageUsed: 1024 * 1024 * 1024 * (2.0 + Math.random() * 0.5),
-          filesAdded: Math.floor(Math.random() * 100) + 50,
-          filesDeleted: Math.floor(Math.random() * 20) + 10
-        })),
-        yearly: Array.from({ length: 3 }, (_, i) => ({
-          date: new Date(2022 + i, 0, 1).toISOString().split('T')[0],
-          storageUsed: 1024 * 1024 * 1024 * (1.5 + Math.random() * 1.0),
-          filesAdded: Math.floor(Math.random() * 500) + 200,
-          filesDeleted: Math.floor(Math.random() * 100) + 50
-        }))
-      },
-      billingTier: 'professional',
-      storageLimit: 1024 * 1024 * 1024 * 100, // 100GB
-      overageAmount: 0,
-      estimatedCost: 25.50
+      totalStorage,
+      storageBreakdown,
+      fileCounts,
+      billingTier,
+      storageLimit,
+      overageAmount,
+      estimatedCost,
     };
     
     console.log('[DEBUG] ===== TEAM STORAGE ANALYTICS FETCHED SUCCESSFULLY =====');
@@ -2064,7 +2251,182 @@ app.delete('/api/team/templates/:id', authMiddleware, async (c) => {
   }
 });
 
-// 7. ANALYTICS ENDPOINTS
+// 7. DOCUMENTS ENDPOINTS
+app.get('/api/documents', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== GET DOCUMENTS ENDPOINT CALLED =====');
+  try {
+    const user = c.get('user');
+    const supabase = getSupabaseClient(c.env);
+    
+    // Get query parameters for filtering
+    const category = c.req.query('category');
+    const accountId = c.req.query('accountId') || user.userId; // Default to user's account
+    
+    let query = supabase
+      .from('documents')
+      .select('*')
+      .eq('accountId', accountId);
+    
+    // Filter by category if specified
+    if (category && category !== 'all') {
+      query = query.eq('category', category);
+    }
+    
+    const { data: documents, error } = await query.order('uploadedAt', { ascending: false });
+    
+    if (error) {
+      console.error('[DEBUG] Documents query error:', error);
+      return c.json({ error: 'Failed to fetch documents' }, 500);
+    }
+    
+    console.log('[DEBUG] ===== DOCUMENTS FETCHED SUCCESSFULLY =====');
+    return c.json({ 
+      success: true, 
+      data: documents || [] 
+    });
+  } catch (error) {
+    console.error('[DEBUG] ===== DOCUMENTS FETCH ERROR =====');
+    console.error('[DEBUG] Error:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+app.get('/api/documents/storage-usage', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== GET DOCUMENTS STORAGE USAGE ENDPOINT CALLED =====');
+  try {
+    const user = c.get('user');
+    const supabase = getSupabaseClient(c.env);
+    
+    // Get account ID from query or default to user's account
+    const accountId = c.req.query('accountId') || user.userId;
+    
+    // Get all documents for this account
+    const { data: documents, error: documentsError } = await supabase
+      .from('documents')
+      .select('*')
+      .eq('accountId', accountId);
+    
+    if (documentsError) {
+      console.error('[DEBUG] Documents query error:', documentsError);
+      return c.json({ error: 'Failed to fetch documents' }, 500);
+    }
+    
+    // Calculate storage usage
+    const totalStorage = documents?.reduce((sum, doc) => sum + (doc.fileSize || 0), 0) || 0;
+    const storageLimit = 1024 * 1024 * 1024 * 10; // 10GB
+    
+    // Group by file type
+    const usageByType: Record<string, number> = {};
+    const fileCounts: Record<string, number> = {};
+    documents?.forEach(doc => {
+      const type = doc.fileType || 'unknown';
+      usageByType[type] = (usageByType[type] || 0) + (doc.fileSize || 0);
+      fileCounts[type] = (fileCounts[type] || 0) + 1;
+    });
+    
+    // Group by category using the new category field
+    const storageBreakdown: Record<string, number> = {
+      team: 0,
+      property: 0,
+      tenant: 0,
+      maintenance: 0,
+      financial: 0,
+      legal: 0,
+      marketing: 0,
+      templates: 0,
+      shared: 0,
+    };
+    
+    const fileCountsByCategory: Record<string, number> = {};
+    
+    documents?.forEach(doc => {
+      const category = doc.category || 'shared';
+      storageBreakdown[category] = (storageBreakdown[category] || 0) + (doc.fileSize || 0);
+      fileCountsByCategory[category] = (fileCountsByCategory[category] || 0) + 1;
+    });
+    
+    // Calculate billing
+    const overageAmount = Math.max(0, totalStorage - storageLimit);
+    const estimatedCost = (totalStorage / (1024 * 1024 * 1024)) * 0.02; // $0.02 per GB
+    
+    const storageUsage = {
+      accountId,
+      totalStorage,
+      storageBreakdown,
+      fileCounts: {
+        total: documents?.length || 0,
+        byType: fileCounts,
+        byCategory: fileCountsByCategory
+      },
+      billingTier: 'professional',
+      storageLimit,
+      overageAmount,
+      estimatedCost
+    };
+    
+    console.log('[DEBUG] ===== DOCUMENTS STORAGE USAGE FETCHED SUCCESSFULLY =====');
+    return c.json({ 
+      success: true, 
+      data: storageUsage 
+    });
+  } catch (error) {
+    console.error('[DEBUG] ===== DOCUMENTS STORAGE USAGE ERROR =====');
+    console.error('[DEBUG] Error:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+app.post('/api/documents', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== CREATE DOCUMENT ENDPOINT CALLED =====');
+  try {
+    const user = c.get('user');
+    const body = await c.req.json();
+    const supabase = getSupabaseClient(c.env);
+    
+    // Add account-based categorization
+    const documentData = {
+      fileName: body.fileName,
+      fileUrl: body.fileUrl,
+      fileType: body.fileType,
+      fileSize: body.fileSize,
+      category: body.category || 'shared',
+      accountId: body.accountId || user.userId,
+      uploadedBy: user.userId,
+      tenantId: body.tenantId,
+      propertyId: body.propertyId,
+      unitId: body.unitId,
+      tags: body.tags || [],
+      description: body.description,
+      isPublic: body.isPublic || false,
+      uploadedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    
+    const { data: document, error } = await supabase
+      .from('documents')
+      .insert(documentData)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('[DEBUG] Document creation error:', error);
+      return c.json({ error: 'Failed to create document' }, 500);
+    }
+    
+    console.log('[DEBUG] ===== DOCUMENT CREATED SUCCESSFULLY =====');
+    return c.json({ 
+      success: true, 
+      data: document 
+    });
+  } catch (error) {
+    console.error('[DEBUG] ===== DOCUMENT CREATION ERROR =====');
+    console.error('[DEBUG] Error:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+// 8. ANALYTICS ENDPOINTS
 app.get('/api/analytics/overview', authMiddleware, async (c) => {
   console.log('[DEBUG] ===== GET ANALYTICS OVERVIEW ENDPOINT CALLED =====');
   try {
@@ -2113,15 +2475,43 @@ app.get('/api/analytics/overview', authMiddleware, async (c) => {
 app.post('/api/upload/image', authMiddleware, async (c) => {
   console.log('[DEBUG] ===== UPLOAD IMAGE ENDPOINT CALLED =====');
   try {
+    const user = c.get('user');
     const formData = await c.req.formData();
     const file = formData.get('file') as File;
+    const category = formData.get('category') as string || 'shared';
+    const context = formData.get('context') as string || 'general';
     
     if (!file) {
       return c.json({ error: 'No file provided' }, 400);
     }
     
+    // Generate account-based file path
+    const fileName = `${Date.now()}-${file.name}`;
+    const filePath = `${user.userId}/${category}/${context}/${fileName}`;
+    const publicUrl = `https://data.ormi.com/${filePath}`;
+    
     // For now, return a mock URL - in production, upload to Cloudflare R2
-    const mockUrl = `https://images.unsplash.com/photo-${Math.random().toString(36).substring(7)}?w=800`;
+    const mockUrl = publicUrl;
+    
+    // Create document record for tracking
+    const supabase = getSupabaseClient(c.env);
+    const documentData = {
+      fileName: file.name,
+      fileUrl: mockUrl,
+      fileType: file.type,
+      fileSize: file.size,
+      category: category,
+      accountId: user.userId,
+      uploadedBy: user.userId,
+      tags: [context, 'image'],
+      description: `Image uploaded via ${context}`,
+      isPublic: false,
+      uploadedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    
+    await supabase.from('documents').insert(documentData);
     
     console.log('[DEBUG] ===== IMAGE UPLOAD SUCCESSFUL =====');
     return c.json({ 
@@ -2130,7 +2520,8 @@ app.post('/api/upload/image', authMiddleware, async (c) => {
         url: mockUrl,
         filename: file.name,
         size: file.size,
-        type: file.type
+        type: file.type,
+        filePath
       } 
     });
   } catch (error) {
@@ -2140,27 +2531,178 @@ app.post('/api/upload/image', authMiddleware, async (c) => {
   }
 });
 
+app.post('/api/properties/:id/images', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== UPLOAD PROPERTY IMAGES ENDPOINT CALLED =====');
+  try {
+    const user = c.get('user');
+    const propertyId = c.req.param('id');
+    console.log('[DEBUG] User ID:', user.userId);
+    console.log('[DEBUG] Property ID:', propertyId);
+    
+    const formData = await c.req.formData();
+    const files = formData.getAll('files') as File[];
+    console.log('[DEBUG] Number of files received:', files.length);
+    
+    if (!files || files.length === 0) {
+      return c.json({ error: 'No images provided' }, 400);
+    }
+    
+    const supabase = getSupabaseClient(c.env);
+    
+    // Check if property exists first
+    const { data: existingProperty, error: propertyError } = await supabase
+      .from('properties')
+      .select('id, images')
+      .eq('id', propertyId)
+      .single();
+    
+    if (propertyError || !existingProperty) {
+      console.error('[DEBUG] Property not found:', propertyError);
+      return c.json({ error: 'Property not found' }, 404);
+    }
+    
+    console.log('[DEBUG] Property found, existing images:', existingProperty.images?.length || 0);
+    
+    const uploadedImages = [];
+    
+    // Import storage service
+    const { createStorageService } = await import('./utils/storage');
+    const storageService = createStorageService(c.env);
+    console.log('[DEBUG] Storage service created with env vars');
+    
+    for (const file of files) {
+      if (file && file.size > 0) {
+        try {
+          console.log('[DEBUG] Processing file:', file.name, 'Size:', file.size);
+          
+          // Upload to R2 with account-based path
+          const buffer = await file.arrayBuffer();
+          const fileName = `${Date.now()}-${file.name}`;
+          const filePath = `${user.userId}/property/properties/${propertyId}/images`;
+          console.log('[DEBUG] Uploading to path:', filePath);
+          
+          const uploadResult = await storageService.uploadFile(Buffer.from(buffer), fileName, file.type, filePath);
+          console.log('[DEBUG] Upload successful, URL:', uploadResult.url);
+          
+          uploadedImages.push(uploadResult.url);
+          
+          // Create document record for tracking
+          const documentData = {
+            fileName: file.name,
+            fileUrl: uploadResult.url,
+            fileType: file.type,
+            fileSize: file.size,
+            category: 'property',
+            accountId: user.userId,
+            uploadedBy: user.userId,
+            propertyId: propertyId,
+            tags: ['property', 'image'],
+            description: `Property image for property ${propertyId}`,
+            isPublic: false,
+            uploadedAt: new Date().toISOString(),
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          };
+          
+          const { error: docError } = await supabase.from('documents').insert(documentData);
+          if (docError) {
+            console.error('[DEBUG] Document creation error:', docError);
+          } else {
+            console.log('[DEBUG] Document record created successfully');
+          }
+        } catch (fileError) {
+          console.error('[DEBUG] Error processing file:', file.name, fileError);
+          throw fileError;
+        }
+      }
+    }
+    
+    // Update property with new images
+    const existingImages = existingProperty.images || [];
+    const allImages = [...existingImages, ...uploadedImages];
+    
+    console.log('[DEBUG] Updating property with', uploadedImages.length, 'new images');
+    console.log('[DEBUG] Total images after update:', allImages.length);
+    
+    const { error: updateError } = await supabase
+      .from('properties')
+      .update({ 
+        images: allImages,
+        updatedAt: new Date().toISOString()
+      })
+      .eq('id', propertyId);
+    
+    if (updateError) {
+      console.error('[DEBUG] Property image update error:', updateError);
+      return c.json({ error: 'Failed to update property images' }, 500);
+    }
+    
+    console.log('[DEBUG] ===== PROPERTY IMAGES UPLOADED SUCCESSFULLY =====');
+    return c.json({
+      success: true,
+      data: {
+        images: allImages,
+        uploadedCount: uploadedImages.length
+      }
+    });
+  } catch (error) {
+    console.error('[DEBUG] Property image upload error:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
 app.post('/api/upload/document', authMiddleware, async (c) => {
   console.log('[DEBUG] ===== UPLOAD DOCUMENT ENDPOINT CALLED =====');
   try {
+    const user = c.get('user');
     const formData = await c.req.formData();
     const file = formData.get('file') as File;
+    const category = formData.get('category') as string || 'shared';
+    const context = formData.get('context') as string || 'general';
     
     if (!file) {
       return c.json({ error: 'No file provided' }, 400);
     }
     
-    // For now, return a mock URL - in production, upload to Cloudflare R2
-    const mockUrl = `https://docs.example.com/document-${Math.random().toString(36).substring(7)}.pdf`;
+    // Import storage service
+    const { createStorageService } = await import('./utils/storage');
+    const storageService = createStorageService(c.env);
+    
+    // Upload to R2 with account-based path
+    const buffer = await file.arrayBuffer();
+    const fileName = `${Date.now()}-${file.name}`;
+    const filePath = `${user.userId}/${category}/${context}`;
+    const uploadResult = await storageService.uploadFile(Buffer.from(buffer), fileName, file.type, filePath);
+    
+    // Create document record for tracking
+    const supabase = getSupabaseClient(c.env);
+    const documentData = {
+      fileName: file.name,
+      fileUrl: uploadResult.url,
+      fileType: file.type,
+      fileSize: file.size,
+      category: category,
+      accountId: user.userId,
+      uploadedBy: user.userId,
+      tags: [context, 'document'],
+      description: `Document uploaded via ${context}`,
+      isPublic: false,
+      uploadedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    
+    await supabase.from('documents').insert(documentData);
     
     console.log('[DEBUG] ===== DOCUMENT UPLOAD SUCCESSFUL =====');
     return c.json({ 
       success: true, 
       data: { 
-        url: mockUrl,
+        url: uploadResult.url,
         filename: file.name,
         size: file.size,
-        type: file.type
+        type: file.type,
+        filePath: uploadResult.key
       } 
     });
   } catch (error) {
@@ -2580,7 +3122,7 @@ app.post('/api/tenants/documents/upload', authMiddleware, async (c) => {
     
     // Upload to Cloudflare R2 (mock for now, will implement real R2)
     const fileName = `${Date.now()}-${file.name}`;
-    const fileUrl = `https://r2.ormi.com/documents/${fileName}`;
+            const fileUrl = `https://data.ormi.com/documents/${fileName}`;
     
     const supabase = getSupabaseClient(c.env);
     

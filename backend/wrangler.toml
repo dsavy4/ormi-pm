@@ -30,6 +30,19 @@ command = "npm run build"
 pattern = "api.ormi.com/*"
 zone_name = "ormi.com"
 
+# R2 Storage configuration
+[[r2_buckets]]
+binding = "R2_BUCKET"
+bucket_name = "ormi-storage"
+preview_bucket_name = "ormi-storage-dev"
+
+# R2 Public URL configuration
+[[routes]]
+pattern = "data.ormi.com/*"
+zone_name = "ormi.com"
+
+
+
 # Environment-specific settings
 [env.production]
 name = "ormi-api"

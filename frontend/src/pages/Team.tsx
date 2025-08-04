@@ -581,7 +581,7 @@ const teamMemberFormSchema = z.object({
   emergencyContactName: z.string().optional(),
   emergencyContactPhone: z.string().optional(),
   address: z.string().optional(),
-  assignedProperties: z.array(z.string()).min(1),
+  assignedProperties: z.array(z.string()).optional(),
   avatar: z.any().optional(),
 });
 
@@ -832,6 +832,7 @@ export default function Team() {
             setShowAddSheet(false);
             queryClient.invalidateQueries({ queryKey: ['team-members'] });
           }}
+          createTeamMemberMutation={createTeamMemberMutation}
         />
 
         {/* Import Dialog */}
@@ -994,6 +995,7 @@ export default function Team() {
           setShowAddSheet(false);
           queryClient.invalidateQueries({ queryKey: ['team-members'] });
         }}
+        createTeamMemberMutation={createTeamMemberMutation}
       />
 
       {/* Storage Analytics Dialog */}
@@ -1157,9 +1159,10 @@ interface AddTeamMemberSheetProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  createTeamMemberMutation: any;
 }
 
-const AddTeamMemberSheet: React.FC<AddTeamMemberSheetProps> = ({ isOpen, onClose, onSuccess }) => {
+const AddTeamMemberSheet: React.FC<AddTeamMemberSheetProps> = ({ isOpen, onClose, onSuccess, createTeamMemberMutation }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string>('');
@@ -2261,18 +2264,30 @@ const Step3RolePermissions: React.FC<StepProps> = ({ form, formErrors, formValue
       return [];
     }
     
-    const roleDef = ROLE_DEFINITIONS[selectedRole as keyof typeof ROLE_DEFINITIONS];
-    const visiblePermissions: string[] = [];
+    // Show ALL permissions for transparency and flexibility
+    // This allows users to see the complete permission system
+    const allPermissions = [
+      'canManageProperties',
+      'canManageTenants', 
+      'canManageMaintenance',
+      'canManageVendors',
+      'canManageFinancials',
+      'canViewReports',
+      'canViewAnalytics',
+      'canViewAuditLogs',
+      'canManageTeam',
+      'canAssignProperties',
+      'canManageSettings',
+      'canManageIntegrations',
+      'canManageLeases',
+      'canManageMarketing',
+      'canManageLegal',
+      'canManageTemplates',
+      'canExportData',
+      'canImportData'
+    ];
     
-    // Only show permissions that are relevant to this role
-    Object.entries(roleDef.permissions).forEach(([key, value]) => {
-      // Show permissions that are either enabled OR are commonly needed for this role type
-      if (value || isPermissionRelevantForRole(selectedRole, key)) {
-        visiblePermissions.push(key);
-      }
-    });
-    
-    return visiblePermissions;
+    return allPermissions;
   };
 
   // Determine if a permission is relevant for a role (even if not enabled by default)
@@ -2580,69 +2595,95 @@ const Step3RolePermissions: React.FC<StepProps> = ({ form, formErrors, formValue
               permissionGroups[category].push(permission);
             });
 
-            return Object.entries(permissionGroups).map(([category, permissions]) => (
-              <div key={category} className="space-y-4">
-                <h4 className="font-medium text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">
-                  {category}
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {permissions.map(permission => {
-                    const permissionLabels: Record<string, { label: string; description: string }> = {
-                      canManageProperties: { label: 'Manage Properties', description: 'Property creation, editing, and deletion' },
-                      canManageTenants: { label: 'Manage Tenants', description: 'Tenant management and operations' },
-                      canManageMaintenance: { label: 'Manage Maintenance', description: 'Maintenance requests and scheduling' },
-                      canManageVendors: { label: 'Manage Vendors', description: 'Vendor management and contracts' },
-                      canManageFinancials: { label: 'Financial Access', description: 'Financial data and accounting features' },
-                      canViewReports: { label: 'View Reports', description: 'Analytics and reporting features' },
-                      canViewAnalytics: { label: 'Advanced Analytics', description: 'Advanced analytics and insights' },
-                      canViewAuditLogs: { label: 'View Audit Logs', description: 'System audit and activity logs' },
-                      canManageTeam: { label: 'Team Management', description: 'Manage other team members' },
-                      canAssignProperties: { label: 'Assign Properties', description: 'Assign properties to team members' },
-                      canManageSettings: { label: 'System Settings', description: 'System configuration and settings' },
-                      canManageIntegrations: { label: 'Manage Integrations', description: 'Third-party integrations and APIs' },
-                      canManageLeases: { label: 'Manage Leases', description: 'Lease agreements and contracts' },
-                      canManageMarketing: { label: 'Manage Marketing', description: 'Marketing campaigns and materials' },
-                      canManageLegal: { label: 'Manage Legal', description: 'Legal documents and compliance' },
-                      canManageTemplates: { label: 'Manage Templates', description: 'Document and email templates' },
-                      canExportData: { label: 'Export Data', description: 'Export data and reports' },
-                      canImportData: { label: 'Import Data', description: 'Import data and bulk operations' },
-                    };
+            return Object.entries(permissionGroups).map(([category, permissions]) => {
+              // Count permissions in this category that are relevant to the selected role
+              const relevantPermissions = permissions.filter(permission => 
+                isPermissionRelevantForRole(selectedRole, permission)
+              );
+              const hasRelevantPermissions = relevantPermissions.length > 0;
+              
+              return (
+                <div key={category} className="space-y-4">
+                  <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-2">
+                    <h4 className="font-medium text-gray-900 dark:text-white">{category}</h4>
+                    {hasRelevantPermissions && (
+                      <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 rounded-full">
+                        {relevantPermissions.length} relevant
+                      </span>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {permissions.map(permission => {
+                      const permissionLabels: Record<string, { label: string; description: string }> = {
+                        canManageProperties: { label: 'Manage Properties', description: 'Property creation, editing, and deletion' },
+                        canManageTenants: { label: 'Manage Tenants', description: 'Tenant management and operations' },
+                        canManageMaintenance: { label: 'Manage Maintenance', description: 'Maintenance requests and scheduling' },
+                        canManageVendors: { label: 'Manage Vendors', description: 'Vendor management and contracts' },
+                        canManageFinancials: { label: 'Financial Access', description: 'Financial data and accounting features' },
+                        canViewReports: { label: 'View Reports', description: 'Analytics and reporting features' },
+                        canViewAnalytics: { label: 'Advanced Analytics', description: 'Advanced analytics and insights' },
+                        canViewAuditLogs: { label: 'View Audit Logs', description: 'System audit and activity logs' },
+                        canManageTeam: { label: 'Team Management', description: 'Manage other team members' },
+                        canAssignProperties: { label: 'Assign Properties', description: 'Assign properties to team members' },
+                        canManageSettings: { label: 'System Settings', description: 'System configuration and settings' },
+                        canManageIntegrations: { label: 'Manage Integrations', description: 'Third-party integrations and APIs' },
+                        canManageLeases: { label: 'Manage Leases', description: 'Lease agreements and contracts' },
+                        canManageMarketing: { label: 'Manage Marketing', description: 'Marketing campaigns and materials' },
+                        canManageLegal: { label: 'Manage Legal', description: 'Legal documents and compliance' },
+                        canManageTemplates: { label: 'Manage Templates', description: 'Document and email templates' },
+                        canExportData: { label: 'Export Data', description: 'Export data and reports' },
+                        canImportData: { label: 'Import Data', description: 'Import data and bulk operations' },
+                      };
 
-                    const { label, description } = permissionLabels[permission] || { label: permission, description: 'Permission' };
-                    const isEnabled = form.watch(permission as any);
-                    const isDefaultEnabled = roleDefinition?.permissions[permission as keyof typeof roleDefinition.permissions];
+                      const { label, description } = permissionLabels[permission] || { label: permission, description: 'Permission' };
+                      const isEnabled = form.watch(permission as any);
+                      const isDefaultEnabled = roleDefinition?.permissions[permission as keyof typeof roleDefinition.permissions];
+                      const isRelevant = isPermissionRelevantForRole(selectedRole, permission);
 
-                    return (
-                      <div 
-                        key={permission} 
-                        className={`flex items-start space-x-3 p-3 rounded-lg border transition-colors ${
-                          isEnabled 
-                            ? 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20' 
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                      >
-                        <Checkbox
-                          id={permission}
-                          checked={isEnabled}
-                          onCheckedChange={(checked) => form.setValue(permission as any, checked)}
-                        />
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <Label htmlFor={permission} className="text-sm font-medium">{label}</Label>
-                            {isDefaultEnabled && (
-                              <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 rounded-full">
-                                Default
-                              </span>
-                            )}
+                      return (
+                        <div 
+                          key={permission} 
+                          className={`flex items-start space-x-3 p-3 rounded-lg border transition-colors ${
+                            isEnabled 
+                              ? 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20' 
+                              : isRelevant
+                                ? 'border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20'
+                                : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                        >
+                          <Checkbox
+                            id={permission}
+                            checked={isEnabled}
+                            onCheckedChange={(checked) => form.setValue(permission as any, checked)}
+                          />
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <Label htmlFor={permission} className="text-sm font-medium">{label}</Label>
+                              {isDefaultEnabled && (
+                                <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 rounded-full">
+                                  Default
+                                </span>
+                              )}
+                              {!isDefaultEnabled && isRelevant && (
+                                <span className="px-2 py-1 text-xs bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 rounded-full">
+                                  Optional
+                                </span>
+                              )}
+                              {!isRelevant && (
+                                <span className="px-2 py-1 text-xs bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 rounded-full">
+                                  Advanced
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-gray-600 mt-1">{description}</p>
                           </div>
-                          <p className="text-xs text-gray-600 mt-1">{description}</p>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            ));
+              );
+            });
           })()}
         </div>
       </div>

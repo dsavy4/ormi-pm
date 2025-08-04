@@ -73,8 +73,8 @@ async function main() {
       propertyManagerId: manager.id,
       ownerId: admin.id, // Add ownerId
       images: [
-        'https://r2.ormi.com/properties/sunset-apts-1.jpg',
-        'https://r2.ormi.com/properties/sunset-apts-2.jpg'
+        'https://data.ormi.com/admin/property/properties/sunset-apts-1.jpg',
+        'https://data.ormi.com/admin/property/properties/sunset-apts-2.jpg'
       ],
       description: 'Modern apartment complex with great amenities',
       amenities: ['Pool', 'Gym', 'Parking', 'Laundry'],
@@ -96,7 +96,7 @@ async function main() {
       propertyManagerId: manager.id,
       ownerId: admin.id, // Add ownerId
       images: [
-        'https://r2.ormi.com/properties/downtown-lofts-1.jpg'
+        'https://data.ormi.com/admin/property/properties/downtown-lofts-1.jpg'
       ],
       description: 'Luxury lofts in the heart of downtown',
       amenities: ['Rooftop Deck', 'Concierge', 'Parking', 'Security'],
@@ -116,8 +116,8 @@ async function main() {
       monthlyRent: 2500.00,
       status: 'OCCUPIED',
       images: [
-        'https://r2.ormi.com/units/unit-101-1.jpg',
-        'https://r2.ormi.com/units/unit-101-2.jpg'
+        'https://data.ormi.com/units/unit-101-1.jpg',
+        'https://data.ormi.com/units/unit-101-2.jpg'
       ],
       amenities: ['Balcony', 'Walk-in Closet', 'Dishwasher'],
       isActive: true,
@@ -135,7 +135,7 @@ async function main() {
       monthlyRent: 2000.00,
       status: 'OCCUPIED',
       images: [
-        'https://r2.ormi.com/units/unit-102-1.jpg'
+        'https://data.ormi.com/units/unit-102-1.jpg'
       ],
       amenities: ['Balcony', 'Dishwasher'],
       isActive: true,
@@ -152,7 +152,7 @@ async function main() {
       monthlyRent: 3200.00,
       status: 'VACANT',
       images: [
-        'https://r2.ormi.com/units/unit-201-1.jpg'
+        'https://data.ormi.com/units/unit-201-1.jpg'
       ],
       amenities: ['Balcony', 'Walk-in Closet', 'Dishwasher', 'Fireplace'],
       isActive: true,
@@ -214,10 +214,11 @@ async function main() {
       status: 'IN_PROGRESS',
       unitId: unit1.id,
       tenantId: tenant1.id,
+      propertyId: property1.id,
       assignedTo: manager.id,
       estimatedCost: 150.00,
       images: [
-        'https://r2.ormi.com/maintenance/leaky-faucet-1.jpg'
+        'https://data.ormi.com/admin/maintenance/leaky-faucet-1.jpg'
       ],
     },
   });
@@ -230,6 +231,7 @@ async function main() {
       status: 'SUBMITTED',
       unitId: unit2.id,
       tenantId: tenant2.id,
+      propertyId: property2.id,
       estimatedCost: 300.00,
     },
   });
@@ -238,20 +240,32 @@ async function main() {
   const document1 = await prisma.document.create({
     data: {
       fileName: 'Lease_Agreement_Unit_101.pdf',
-      fileUrl: 'https://r2.ormi.com/documents/lease-unit-101.pdf',
+      fileUrl: 'https://data.ormi.com/admin/tenant/documents/lease-unit-101.pdf',
       fileType: 'LEASE',
       fileSize: 1024000,
+      category: 'tenant',
+      accountId: admin.id,
+      uploadedBy: admin.id,
       tenantId: tenant1.id,
+      tags: ['lease', 'tenant'],
+      description: 'Lease agreement for Unit 101',
+      isPublic: false,
     },
   });
 
   const document2 = await prisma.document.create({
     data: {
       fileName: 'Rent_Receipt_January_2024.pdf',
-      fileUrl: 'https://r2.ormi.com/documents/receipt-jan-2024.pdf',
+      fileUrl: 'https://data.ormi.com/admin/financial/documents/receipt-jan-2024.pdf',
       fileType: 'RECEIPT',
       fileSize: 512000,
+      category: 'financial',
+      accountId: admin.id,
+      uploadedBy: admin.id,
       tenantId: tenant1.id,
+      tags: ['receipt', 'financial'],
+      description: 'Rent receipt for January 2024',
+      isPublic: false,
     },
   });
 

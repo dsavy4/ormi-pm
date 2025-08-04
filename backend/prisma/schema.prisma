@@ -173,13 +173,21 @@ model Document {
   fileUrl     String
   fileType    String   // LEASE, RECEIPT, INVOICE, OTHER
   fileSize    Int
-  tenantId    String
+  category    String   // team, property, tenant, maintenance, financial, legal, marketing, templates, shared
+  accountId   String   // Account identifier for multi-tenant support
+  uploadedBy  String   // User ID who uploaded the file
+  tenantId    String?
+  propertyId  String?
+  unitId      String?
+  tags        String[] // Array of tags for better organization
+  description String?
+  isPublic    Boolean  @default(false) // Whether the document is publicly accessible
   uploadedAt  DateTime @default(now())
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   // Relations
-  tenant User @relation("DocumentTenant", fields: [tenantId], references: [id])
+  tenant User? @relation("DocumentTenant", fields: [tenantId], references: [id])
 
   @@map("documents")
 }

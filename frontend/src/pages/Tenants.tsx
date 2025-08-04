@@ -110,13 +110,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
-import {
-  GrippableSheet,
-  GrippableSheetContent,
-  GrippableSheetHeader,
-  GrippableSheetTitle,
-  GrippableSheetDescription,
-} from '@/components/ui/grippable-sheet';
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 // Tenant Wizard Step Schemas
@@ -1153,8 +1147,8 @@ function AddTenantSheet({ isOpen, onClose, onSubmit, isLoading }: any) {
   const isLastStep = currentStep === TENANT_WIZARD_STEPS.length;
 
   return (
-    <GrippableSheet open={isOpen} onOpenChange={handleClose}>
-      <GrippableSheetContent side="right" showGrip={true} className="flex flex-col h-full p-0 gap-0">
+    <Sheet open={isOpen} onOpenChange={handleClose}>
+      <SheetContent side="right" className="flex flex-col h-full p-0 gap-0">
         {/* Header with Progress */}
         <div className="border-b bg-card">
           {/* Header */}
@@ -1382,7 +1376,7 @@ function AddTenantSheet({ isOpen, onClose, onSubmit, isLoading }: any) {
           </div>
           </div>
         </div>
-      </GrippableSheetContent>
+      </SheetContent>
 
       {/* Unsaved Changes Dialog */}
       <UnsavedChangesDialog
@@ -1395,7 +1389,7 @@ function AddTenantSheet({ isOpen, onClose, onSubmit, isLoading }: any) {
         cancelText="Continue Editing"
         variant="warning"
       />
-    </GrippableSheet>
+    </Sheet>
   );
 }
 
@@ -1881,8 +1875,8 @@ export function Tenants() {
       </motion.div>
 
       {/* Tenant Detail Sheet */}
-      <GrippableSheet open={!!selectedTenant} onOpenChange={() => setSelectedTenant(null)}>
-        <GrippableSheetContent showGrip={true} className="overflow-y-auto">
+      <Sheet open={!!selectedTenant} onOpenChange={() => setSelectedTenant(null)}>
+        <SheetContent className="overflow-y-auto">
           {selectedTenant && (
             <>
               <SheetHeader className="sticky top-0 bg-white z-10 pb-6 border-b">
@@ -2098,8 +2092,8 @@ export function Tenants() {
               </Tabs>
             </>
           )}
-        </GrippableSheetContent>
-      </GrippableSheet>
+        </SheetContent>
+      </Sheet>
 
       {/* Add Tenant Wizard Sheet */}
       <AddTenantSheet

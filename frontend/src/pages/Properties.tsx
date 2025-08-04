@@ -105,13 +105,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
-import {
-  GrippableSheet,
-  GrippableSheetContent,
-  GrippableSheetHeader,
-  GrippableSheetTitle,
-  GrippableSheetDescription,
-} from '@/components/ui/grippable-sheet';
+
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Slider } from '@/components/ui/slider';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
@@ -2566,13 +2560,20 @@ const AddPropertySheet: React.FC<AddPropertySheetProps> = ({ isOpen, onClose, on
       };
 
       // Create property
-      const property = await propertiesApi.create(propertyData);
+      const response = await propertiesApi.create(propertyData);
+      const property = response.data; // Extract the property from the response
 
       // Upload images if any
       if (data.images && data.images.length > 0) {
-        await Promise.all(
-          data.images.map(file => propertiesApi.uploadImage(property.id, file))
-        );
+        try {
+          console.log('[DEBUG] Uploading', data.images.length, 'images for property:', property.id);
+          await propertiesApi.uploadPropertyImages(property.id, data.images);
+          console.log('[DEBUG] Image upload successful');
+        } catch (uploadError) {
+          console.error('[DEBUG] Image upload failed:', uploadError);
+          // Don't fail the entire property creation if image upload fails
+          toast.error('Property created but image upload failed. You can add images later.');
+        }
       }
 
       // Success handling
@@ -4294,8 +4295,8 @@ const ManagerAssignmentSheet: React.FC<ManagerAssignmentSheetProps> = ({
             </Button>
           </div>
         </div>
-      </SheetContent>
-    </Sheet>
+              </SheetContent>
+      </Sheet>
   );
 };
 

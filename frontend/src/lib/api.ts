@@ -431,7 +431,7 @@ export const propertiesApi = {
 
   uploadImage: async (propertyId: string, file: File) => {
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('files', file);
     
     const response = await fetch(`${API_BASE_URL}/api/properties/${propertyId}/images`, {
       method: 'POST',
@@ -522,6 +522,24 @@ export const propertiesApi = {
   exportIncomeData: async (format: string, months: number) => {
     const response = await fetch(`${API_BASE_URL}/api/properties/export-income?format=${format}&months=${months}`, {
       headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  // Property image upload
+  uploadPropertyImages: async (propertyId: string, files: File[]) => {
+    const formData = new FormData();
+    files.forEach(file => {
+      formData.append('files', file);
+    });
+    
+    const response = await fetch(`${API_BASE_URL}/api/properties/${propertyId}/images`, {
+      method: 'POST',
+      headers: {
+        ...getAuthHeaders(),
+        // Don't set Content-Type for FormData
+      },
+      body: formData,
     });
     return handleResponse(response);
   },
@@ -1522,8 +1540,12 @@ export const teamApi = {
 
 // Documents API
 export const documentsApi = {
-  getAll: async () => {
-    const response = await fetch(`${API_BASE_URL}/api/documents`, {
+  getAll: async (params?: { category?: string; accountId?: string }) => {
+    const url = new URL(`${API_BASE_URL}/api/documents`);
+    if (params?.category) url.searchParams.append('category', params.category);
+    if (params?.accountId) url.searchParams.append('accountId', params.accountId);
+    
+    const response = await fetch(url.toString(), {
       headers: getAuthHeaders(),
     });
     return handleResponse(response);
@@ -1562,10 +1584,11 @@ export const documentsApi = {
     return handleResponse(response);
   },
 
-  upload: async (file: File, category: string) => {
+  upload: async (file: File, category: string, context: string = 'general') => {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('category', category);
+    formData.append('context', context);
     
     const response = await fetch(`${API_BASE_URL}/api/documents/upload`, {
       method: 'POST',
@@ -1578,8 +1601,11 @@ export const documentsApi = {
     return handleResponse(response);
   },
 
-  getStorageUsage: async () => {
-    const response = await fetch(`${API_BASE_URL}/api/documents/storage-usage`, {
+  getStorageUsage: async (accountId?: string) => {
+    const url = new URL(`${API_BASE_URL}/api/documents/storage-usage`);
+    if (accountId) url.searchParams.append('accountId', accountId);
+    
+    const response = await fetch(url.toString(), {
       headers: getAuthHeaders(),
     });
     return handleResponse(response);
@@ -1593,6 +1619,42 @@ export const documentsApi = {
     
     const response = await fetch(`${API_BASE_URL}/api/documents/search?${params}`, {
       headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  // Property image upload
+  uploadPropertyImages: async (propertyId: string, files: File[]) => {
+    const formData = new FormData();
+    files.forEach(file => {
+      formData.append('files', file);
+    });
+    
+    const response = await fetch(`${API_BASE_URL}/api/properties/${propertyId}/images`, {
+      method: 'POST',
+      headers: {
+        ...getAuthHeaders(),
+        // Don't set Content-Type for FormData
+      },
+      body: formData,
+    });
+    return handleResponse(response);
+  },
+
+  // Unit image upload
+  uploadUnitImages: async (unitId: string, files: File[]) => {
+    const formData = new FormData();
+    files.forEach(file => {
+      formData.append('files', file);
+    });
+    
+    const response = await fetch(`${API_BASE_URL}/api/units/${unitId}/images`, {
+      method: 'POST',
+      headers: {
+        ...getAuthHeaders(),
+        // Don't set Content-Type for FormData
+      },
+      body: formData,
     });
     return handleResponse(response);
   },

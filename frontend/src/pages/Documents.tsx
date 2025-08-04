@@ -26,6 +26,8 @@ import {
   Filter,
   Calendar,
   User,
+  Users,
+  Building,
   Tag,
   Trash2,
   Share2,
@@ -34,6 +36,8 @@ import {
   Star,
   Clock as TimeIcon,
   Grid3X3,
+  Megaphone,
+  FileSpreadsheet,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -115,12 +119,36 @@ type ViewMode = 'grid' | 'list' | 'timeline';
 // Document Categories
 const DOCUMENT_CATEGORIES = [
   {
-    id: 'leases',
-    name: 'Leases & Contracts',
-    icon: FileText,
+    id: 'all',
+    name: 'All Documents',
+    icon: FolderOpen,
     color: 'blue',
-    allowedTypes: ['pdf', 'doc', 'docx'],
-    maxFileSize: 10 * 1024 * 1024, // 10MB
+    allowedTypes: ['*'],
+    maxFileSize: 100 * 1024 * 1024, // 100MB
+  },
+  {
+    id: 'team',
+    name: 'Team Documents',
+    icon: Users,
+    color: 'blue',
+    allowedTypes: ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'],
+    maxFileSize: 25 * 1024 * 1024, // 25MB
+  },
+  {
+    id: 'property',
+    name: 'Property Files',
+    icon: Building,
+    color: 'purple',
+    allowedTypes: ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png', 'xlsx'],
+    maxFileSize: 50 * 1024 * 1024, // 50MB
+  },
+  {
+    id: 'tenant',
+    name: 'Tenant Documents',
+    icon: User,
+    color: 'green',
+    allowedTypes: ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'],
+    maxFileSize: 20 * 1024 * 1024, // 20MB
   },
   {
     id: 'maintenance',
@@ -139,20 +167,36 @@ const DOCUMENT_CATEGORIES = [
     maxFileSize: 5 * 1024 * 1024, // 5MB
   },
   {
-    id: 'photos',
-    name: 'Photos & Media',
-    icon: Camera,
-    color: 'purple',
-    allowedTypes: ['jpg', 'jpeg', 'png', 'gif', 'mp4', 'mov'],
-    maxFileSize: 50 * 1024 * 1024, // 50MB
-  },
-  {
     id: 'legal',
     name: 'Legal Documents',
     icon: Scale,
     color: 'red',
     allowedTypes: ['pdf', 'doc', 'docx'],
     maxFileSize: 15 * 1024 * 1024, // 15MB
+  },
+  {
+    id: 'marketing',
+    name: 'Marketing Materials',
+    icon: Megaphone,
+    color: 'pink',
+    allowedTypes: ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'mp4', 'mov'],
+    maxFileSize: 50 * 1024 * 1024, // 50MB
+  },
+  {
+    id: 'templates',
+    name: 'Templates',
+    icon: FileSpreadsheet,
+    color: 'gray',
+    allowedTypes: ['pdf', 'doc', 'docx', 'xlsx', 'csv'],
+    maxFileSize: 10 * 1024 * 1024, // 10MB
+  },
+  {
+    id: 'shared',
+    name: 'Shared Files',
+    icon: Share2,
+    color: 'indigo',
+    allowedTypes: ['*'],
+    maxFileSize: 100 * 1024 * 1024, // 100MB
   },
 ];
 
@@ -171,13 +215,17 @@ export default function Documents() {
 
   // Queries
   const { data: documents = [], isLoading } = useQuery({
-    queryKey: ['documents'],
-    queryFn: () => documentsApi.getAll().then((res: any) => res.data),
+    queryKey: ['documents', selectedCategory],
+    queryFn: () => documentsApi.getAll({ 
+      category: selectedCategory !== 'all' ? selectedCategory : undefined 
+    }).then((res: any) => res.data),
   });
 
   const { data: storageAnalytics } = useQuery({
     queryKey: ['storage-analytics'],
     queryFn: () => documentsApi.getStorageUsage().then((res: any) => res.data),
+    retry: 1,
+    retryDelay: 1000,
   });
 
   // Mutations
@@ -277,10 +325,11 @@ export default function Documents() {
         });
       }, 200);
       
-      // Upload file
+      // Upload file with account-based categorization
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('category', selectedCategory);
+      formData.append('category', selectedCategory !== 'all' ? selectedCategory : 'shared');
+      formData.append('context', 'documents-page');
       
       uploadDocumentMutation.mutate(formData);
     });
@@ -710,7 +759,7 @@ function StorageAnalyticsDialog({
               <CardContent>
                 <div className="text-2xl font-bold">{analytics.fileCounts.total.toLocaleString()}</div>
                 <p className="text-xs text-muted-foreground">
-                  Across {Object.keys(analytics.storageBreakdown).length} categories
+                  Across {analytics?.storageBreakdown ? Object.keys(analytics.storageBreakdown).length : 0} categories
                 </p>
               </CardContent>
             </Card>
@@ -720,9 +769,9 @@ function StorageAnalyticsDialog({
                 <CardTitle className="text-sm font-medium">Estimated Cost</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">${analytics.estimatedCost.toFixed(2)}</div>
+                <div className="text-2xl font-bold">${analytics?.estimatedCost?.toFixed(2) || '0.00'}</div>
                 <p className="text-xs text-muted-foreground">
-                  {analytics.overageAmount > 0 ? `+$${analytics.overageAmount.toFixed(2)} overage` : 'Within limit'}
+                  {analytics?.overageAmount && analytics.overageAmount > 0 ? `+$${analytics.overageAmount.toFixed(2)} overage` : 'Within limit'}
                 </p>
               </CardContent>
             </Card>
@@ -735,7 +784,7 @@ function StorageAnalyticsDialog({
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {Object.entries(analytics.storageBreakdown).map(([category, size]) => (
+                {analytics?.storageBreakdown ? Object.entries(analytics.storageBreakdown).map(([category, size]) => (
                   <div key={category} className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-3 rounded-full bg-primary" />
@@ -745,7 +794,7 @@ function StorageAnalyticsDialog({
                       <div className="w-32 bg-gray-200 rounded-full h-2">
                         <div 
                           className="bg-primary h-2 rounded-full transition-all duration-300"
-                          style={{ width: `${(size / analytics.totalStorage) * 100}%` }}
+                          style={{ width: `${analytics?.totalStorage ? (size / analytics.totalStorage) * 100 : 0}%` }}
                         />
                       </div>
                       <span className="text-sm text-muted-foreground w-16 text-right">
@@ -753,7 +802,11 @@ function StorageAnalyticsDialog({
                       </span>
                     </div>
                   </div>
-                ))}
+                )) : (
+                  <div className="text-center py-4 text-muted-foreground">
+                    No storage data available
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -767,21 +820,21 @@ function StorageAnalyticsDialog({
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <span>Current Plan</span>
-                  <Badge variant="outline">{analytics.billingTier}</Badge>
+                  <Badge variant="outline">{analytics?.billingTier || 'basic'}</Badge>
                 </div>
                 <div className="flex justify-between items-center">
                   <span>Storage Limit</span>
-                  <span>{formatBytes(analytics.storageLimit)}</span>
+                  <span>{formatBytes(analytics?.storageLimit || 0)}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span>Used Storage</span>
-                  <span>{formatBytes(analytics.totalStorage)}</span>
+                  <span>{formatBytes(analytics?.totalStorage || 0)}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span>Available</span>
-                  <span>{formatBytes(analytics.storageLimit - analytics.totalStorage)}</span>
+                  <span>{formatBytes((analytics?.storageLimit || 0) - (analytics?.totalStorage || 0))}</span>
                 </div>
-                {analytics.overageAmount > 0 && (
+                {analytics?.overageAmount && analytics.overageAmount > 0 && (
                   <div className="flex justify-between items-center text-red-600">
                     <span>Overage Cost</span>
                     <span>+${analytics.overageAmount.toFixed(2)}</span>
