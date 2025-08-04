@@ -72,7 +72,16 @@ class StorageService {
       };
     } catch (error) {
       console.error('Storage upload error:', error);
-      throw new Error('Failed to upload file to storage');
+      console.error('Storage config:', {
+        bucket: this.config.bucket,
+        region: this.config.region,
+        endpoint: this.config.endpoint,
+        publicUrl: this.config.publicUrl,
+        hasAccessKey: !!this.config.accessKeyId,
+        hasSecretKey: !!this.config.secretAccessKey
+      });
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Failed to upload file to storage: ${errorMessage}`);
     }
   }
 
