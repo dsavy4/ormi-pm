@@ -5177,66 +5177,112 @@ const PropertyEditSheet: React.FC<PropertyEditSheetProps> = ({
   property,
   onPropertyUpdated 
 }) => {
-  const [currentStep, setCurrentStep] = useState(0);
-  const [formData, setFormData] = useState({
-    name: '',
-    type: '',
-    address: '',
-    city: '',
-    state: '',
-    zipCode: '',
-    country: 'United States',
-    yearBuilt: '',
-    squareFootage: '',
-    totalUnits: '',
-    description: '',
-    notes: '',
-    tags: [] as string[],
-    managerId: '',
-    ownershipType: '',
-    images: [] as string[],
-    amenities: [] as string[],
-    neighborhood: '',
-    marketValue: '',
-    purchasePrice: '',
-    purchaseDate: '',
-    expenses: ''
-  });
+  const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [managers, setManagers] = useState<PropertyManager[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [isDirty, setIsDirty] = useState(false);
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
+  const [managers, setManagers] = useState<PropertyManager[]>([]);
+
+  // Enhanced form with React Hook Form and Zod validation
+  const form = useForm<PropertyFormData>({
+    resolver: zodResolver(propertyFormSchema),
+    mode: 'onBlur',
+    defaultValues: {
+      name: '',
+      propertyType: 'Multi-Family',
+      ownershipType: 'Owned',
+      tags: [],
+      address: '',
+      unitSuite: '',
+      city: '',
+      state: '',
+      zipCode: '',
+      country: 'United States',
+      totalUnits: 1,
+      yearBuilt: undefined,
+      sqft: undefined,
+      lotSize: undefined,
+      description: '',
+      propertyManager: '',
+      rentDueDay: 1,
+      allowOnlinePayments: true,
+      enableMaintenanceRequests: true,
+      images: [],
+      amenities: [],
+      neighborhood: '',
+      marketValue: undefined,
+      purchasePrice: undefined,
+      purchaseDate: '',
+      expenses: undefined,
+      notes: '',
+    },
+  });
+
+  const formValues = form.watch();
+  const formErrors = form.formState.errors;
+
+  // Check if current step is valid (same as Add Property)
+  const isCurrentStepValid = useMemo(() => {
+    const currentStepConfig = WIZARD_STEPS.find(step => step.id === currentStep);
+    if (!currentStepConfig) return false;
+
+    try {
+      currentStepConfig.schema.parse(formValues);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }, [currentStep, formValues]);
+
+  // Track form dirty state
+  useEffect(() => {
+    const subscription = form.watch((value, { name }) => {
+      if (name) {
+        setIsDirty(true);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [form]);
 
   // Pre-populate form when property changes
   useEffect(() => {
     if (property) {
-      setFormData({
+      form.reset({
         name: property.name || '',
-        type: property.propertyType || '',
+        propertyType: (property.propertyType as any) || 'Multi-Family',
+        ownershipType: 'Owned',
+        tags: property.tags || [],
         address: property.address || '',
+        unitSuite: '',
         city: property.city || '',
         state: property.state || '',
         zipCode: property.zipCode || '',
         country: 'United States',
-        yearBuilt: property.yearBuilt ? String(property.yearBuilt) : '',
-        squareFootage: '',
-        totalUnits: property.totalUnits ? String(property.totalUnits) : '',
+        totalUnits: property.totalUnits || 1,
+        yearBuilt: property.yearBuilt,
+        sqft: undefined,
+        lotSize: undefined,
         description: property.description || '',
-        notes: property.notes || '',
-        tags: property.tags || [],
-        managerId: typeof property.manager === 'string' ? property.manager : property.manager?.id || '',
-        ownershipType: '',
+        propertyManager: typeof property.manager === 'string' ? property.manager : property.manager?.id || '',
+        rentDueDay: property.rentDueDay || 1,
+        allowOnlinePayments: property.allowOnlinePayments ?? true,
+        enableMaintenanceRequests: property.enableMaintenanceRequests ?? true,
         images: property.images || [],
-        amenities: property.amenities || [],
         neighborhood: property.neighborhood || '',
-        marketValue: property.marketValue ? String(property.marketValue) : '',
-        purchasePrice: property.purchasePrice ? String(property.purchasePrice) : '',
+        marketValue: property.marketValue,
+        purchasePrice: property.purchasePrice,
         purchaseDate: property.purchaseDate || '',
-        expenses: property.expenses ? String(property.expenses) : ''
+        expenses: property.expenses,
+        notes: property.notes || '',
       });
-      setCurrentStep(0);
+      
+      // Set image previews for existing images
+      setImagePreviews(property.images || []);
+      setCurrentStep(1);
+      setIsDirty(false);
     }
-  }, [property]);
+  }, [property, form]);
 
   // Fetch managers when sheet opens
   useEffect(() => {
@@ -5245,10 +5291,93 @@ const PropertyEditSheet: React.FC<PropertyEditSheetProps> = ({
     }
   }, [isOpen]);
 
-  // Helper function to update form data and track dirty state
-  const updateFormData = (updates: Partial<typeof formData>) => {
-    setFormData(prev => ({ ...prev, ...updates }));
+  // Image upload handlers (same as Add Property)
+  const onImageDrop = useCallback((acceptedFiles: File[]) => {
+    const currentImages = form.getValues('images') || [];
+    const newImages = [...currentImages, ...acceptedFiles].slice(0, 10);
+    form.setValue('images', newImages);
+    
+    const newPreviews = acceptedFiles.map(file => URL.createObjectURL(file));
+    setImagePreviews(prev => [...prev, ...newPreviews].slice(0, 10));
+    
     setIsDirty(true);
+  }, [form]);
+
+  const {
+    getRootProps: getImageRootProps,
+    getInputProps: getImageInputProps,
+    isDragActive: isImageDragActive,
+  } = useDropzone({
+    onDrop: onImageDrop,
+    accept: {
+      'image/*': ['.png', '.jpg', '.jpeg', '.gif'],
+    },
+    maxFiles: 10,
+    maxSize: 10 * 1024 * 1024, // 10MB
+  });
+
+  const removeImage = (index: number) => {
+    const images = form.getValues('images') || [];
+    const newImages = images.filter((_, i) => i !== index);
+    form.setValue('images', newImages);
+    
+    const newPreviews = imagePreviews.filter((_, i) => i !== index);
+    setImagePreviews(newPreviews);
+    setIsDirty(true);
+  };
+
+  const reorderImages = (fromIndex: number, toIndex: number) => {
+    const images = form.getValues('images') || [];
+    const newImages = [...images];
+    const [removed] = newImages.splice(fromIndex, 1);
+    newImages.splice(toIndex, 0, removed);
+    form.setValue('images', newImages);
+
+    const newPreviews = [...imagePreviews];
+    const [removedPreview] = newPreviews.splice(fromIndex, 1);
+    newPreviews.splice(toIndex, 0, removedPreview);
+    setImagePreviews(newPreviews);
+    setIsDirty(true);
+  };
+
+  // Navigation handlers (same as Add Property)
+  const handleNext = () => {
+    if (currentStep < WIZARD_STEPS.length && isCurrentStepValid) {
+      setCurrentStep(prev => prev + 1);
+      // Smooth scroll to top of form content
+      setTimeout(() => {
+        const formContent = document.querySelector('.overflow-y-auto');
+        if (formContent) {
+          formContent.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      }, 100);
+    }
+  };
+
+  const handleBack = () => {
+    if (currentStep > 1) {
+      setCurrentStep(prev => prev - 1);
+      // Smooth scroll to top of form content
+      setTimeout(() => {
+        const formContent = document.querySelector('.overflow-y-auto');
+        if (formContent) {
+          formContent.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      }, 100);
+    }
+  };
+
+  const handleStepClick = (stepId: number) => {
+    if (stepId <= currentStep) {
+      setCurrentStep(stepId);
+      // Smooth scroll to top of form content
+      setTimeout(() => {
+        const formContent = document.querySelector('.overflow-y-auto');
+        if (formContent) {
+          formContent.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      }, 100);
+    }
   };
 
   // Handle close with unsaved changes check
@@ -5262,7 +5391,7 @@ const PropertyEditSheet: React.FC<PropertyEditSheetProps> = ({
 
   const handleConfirmClose = () => {
     setIsDirty(false);
-    setCurrentStep(0);
+    setCurrentStep(1);
     onClose();
   };
 
@@ -5293,11 +5422,40 @@ const PropertyEditSheet: React.FC<PropertyEditSheetProps> = ({
     ]);
   };
 
-  const handleSubmit = async () => {
+  // Form submission handler (enhanced version)
+  const onSubmit = async (data: PropertyFormData) => {
     if (!property) return;
 
     setIsSubmitting(true);
     try {
+      // Handle image uploads first
+      const imageUrls = [...(property.images || [])]; // Keep existing images
+      
+      // Upload new images
+      const newImages = data.images.filter(img => img instanceof File);
+      for (const image of newImages) {
+        try {
+          const formData = new FormData();
+          formData.append('files', image);
+          
+          const uploadResponse = await fetch(`/api/properties/${property.id}/images`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: formData
+          });
+
+          if (uploadResponse.ok) {
+            const uploadResult = await uploadResponse.json();
+            imageUrls.push(uploadResult.url);
+          }
+        } catch (error) {
+          console.error('Error uploading image:', error);
+        }
+      }
+
+      // Update property data
       const response = await fetch(`/api/properties/${property.id}`, {
         method: 'PUT',
         headers: {
@@ -5305,10 +5463,14 @@ const PropertyEditSheet: React.FC<PropertyEditSheetProps> = ({
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
         body: JSON.stringify({
-          ...formData,
-          yearBuilt: formData.yearBuilt ? parseInt(formData.yearBuilt) : null,
-          squareFootage: formData.squareFootage ? parseInt(formData.squareFootage) : null,
-          totalUnits: formData.totalUnits ? parseInt(formData.totalUnits) : null
+          ...data,
+          images: imageUrls,
+          yearBuilt: data.yearBuilt || null,
+          sqft: data.sqft || null,
+          lotSize: data.lotSize || null,
+          marketValue: data.marketValue || null,
+          purchasePrice: data.purchasePrice || null,
+          expenses: data.expenses || null,
         })
       });
 
@@ -5328,237 +5490,9 @@ const PropertyEditSheet: React.FC<PropertyEditSheetProps> = ({
     }
   };
 
-  const steps = [
-    {
-      title: "Basic Information",
-      icon: <Building className="h-5 w-5" />,
-      content: (
-        <div className="space-y-4">
-          <div>
-            <label className="text-sm font-medium">Property Name</label>
-            <Input
-              placeholder="Enter property name"
-              value={formData.name}
-                              onChange={(e) => updateFormData({ name: e.target.value })}
-              className="mt-1"
-            />
-          </div>
-          <div>
-            <label className="text-sm font-medium">Property Type</label>
-                          <Select value={formData.type} onValueChange={(value) => updateFormData({ type: value })}>
-              <SelectTrigger className="mt-1">
-                <SelectValue placeholder="Select property type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Multi-Family">Multi-Family</SelectItem>
-                <SelectItem value="Single-Family">Single-Family</SelectItem>
-                <SelectItem value="Condo">Condo</SelectItem>
-                <SelectItem value="Commercial">Commercial</SelectItem>
-                <SelectItem value="Office">Office</SelectItem>
-                <SelectItem value="Mixed Use">Mixed Use</SelectItem>
-                <SelectItem value="Duplex">Duplex</SelectItem>
-                <SelectItem value="Storage">Storage</SelectItem>
-                <SelectItem value="Land">Land</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <label className="text-sm font-medium">Assigned Manager</label>
-            <Select value={formData.managerId} onValueChange={(value) => setFormData({ ...formData, managerId: value })}>
-              <SelectTrigger className="mt-1">
-                <SelectValue placeholder="Select manager" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="unassigned">Unassigned</SelectItem>
-                {managers.map((manager) => (
-                  <SelectItem key={manager.id} value={manager.id}>
-                    <div className="flex items-center gap-2">
-                      <Avatar className="h-5 w-5">
-                        <AvatarImage src={manager.avatar} />
-                        <AvatarFallback className="text-xs">
-                          {manager.name.split(' ').map(n => n[0]).join('')}
-                        </AvatarFallback>
-                      </Avatar>
-                      {manager.name}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <label className="text-sm font-medium">Ownership Type</label>
-            <Select value={formData.ownershipType} onValueChange={(value) => setFormData({ ...formData, ownershipType: value })}>
-              <SelectTrigger className="mt-1">
-                <SelectValue placeholder="Select ownership type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Owned">Owned</SelectItem>
-                <SelectItem value="Managed">Managed</SelectItem>
-                <SelectItem value="Third-Party">Third-Party</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      )
-    },
-    {
-      title: "Location",
-      icon: <MapPin className="h-5 w-5" />,
-      content: (
-        <div className="space-y-4">
-          <div>
-            <label className="text-sm font-medium">Street Address</label>
-            <Input
-              placeholder="Enter street address"
-              value={formData.address}
-                              onChange={(e) => updateFormData({ address: e.target.value })}
-              className="mt-1"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium">City</label>
-              <Input
-                placeholder="Enter city"
-                value={formData.city}
-                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                className="mt-1"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">State</label>
-              <Input
-                placeholder="Enter state"
-                value={formData.state}
-                onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                className="mt-1"
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium">ZIP Code</label>
-              <Input
-                placeholder="Enter ZIP code"
-                value={formData.zipCode}
-                onChange={(e) => setFormData({ ...formData, zipCode: e.target.value })}
-                className="mt-1"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Country</label>
-              <Input
-                placeholder="Enter country"
-                value={formData.country}
-                onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                className="mt-1"
-              />
-            </div>
-          </div>
-        </div>
-      )
-    },
-    {
-      title: "Details",
-      icon: <Info className="h-5 w-5" />,
-      content: (
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium">Year Built</label>
-              <Input
-                type="number"
-                placeholder="e.g., 1995"
-                value={formData.yearBuilt}
-                onChange={(e) => setFormData({ ...formData, yearBuilt: e.target.value })}
-                className="mt-1"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Square Footage</label>
-              <Input
-                type="number"
-                placeholder="e.g., 2500"
-                value={formData.squareFootage}
-                onChange={(e) => setFormData({ ...formData, squareFootage: e.target.value })}
-                className="mt-1"
-              />
-            </div>
-          </div>
-          <div>
-            <label className="text-sm font-medium">Total Units</label>
-            <Input
-              type="number"
-              placeholder="e.g., 12"
-              value={formData.totalUnits}
-              onChange={(e) => setFormData({ ...formData, totalUnits: e.target.value })}
-              className="mt-1"
-            />
-          </div>
-          <div>
-            <label className="text-sm font-medium">Description</label>
-            <textarea
-              placeholder="Enter property description..."
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="mt-1 w-full min-h-[100px] p-3 border rounded-md resize-none"
-            />
-          </div>
-        </div>
-      )
-    },
-    {
-      title: "Review",
-      icon: <CheckCircle2 className="h-5 w-5" />,
-      content: (
-        <div className="space-y-4">
-          <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
-            <h4 className="font-medium mb-2">Property Summary</h4>
-            <div className="space-y-2 text-sm">
-              <p><strong>Name:</strong> {formData.name}</p>
-              <p><strong>Type:</strong> {formData.type}</p>
-              <p><strong>Address:</strong> {formData.address}, {formData.city}, {formData.state} {formData.zipCode}</p>
-              <p><strong>Manager:</strong> {
-                managers.find(m => m.id === formData.managerId)?.name || 'Unassigned'
-              }</p>
-              <p><strong>Ownership:</strong> {formData.ownershipType}</p>
-              {formData.yearBuilt && <p><strong>Year Built:</strong> {formData.yearBuilt}</p>}
-              {formData.squareFootage && <p><strong>Square Footage:</strong> {formData.squareFootage}</p>}
-              {formData.totalUnits && <p><strong>Total Units:</strong> {formData.totalUnits}</p>}
-            </div>
-          </div>
-        </div>
-      )
-    }
-  ];
-
-  const canProceed = (step: number) => {
-    switch (step) {
-      case 0:
-        return formData.name && formData.type;
-      case 1:
-        return formData.address && formData.city && formData.state;
-      case 2:
-        return true; // Details are optional
-      case 3:
-        return true; // Review step
-      default:
-        return false;
-    }
-  };
-
-  const nextStep = () => {
-    if (currentStep < steps.length - 1) {
-      setCurrentStep(currentStep + 1);
-    }
-  };
-
-  const prevStep = () => {
-    if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
-    }
-  };
+  // Get current step configuration
+  const currentStepConfig = WIZARD_STEPS.find(step => step.id === currentStep);
+  const isLastStep = currentStep === WIZARD_STEPS.length;
 
   return (
     <Sheet open={isOpen} onOpenChange={handleClose}>
@@ -5572,33 +5506,33 @@ const PropertyEditSheet: React.FC<PropertyEditSheetProps> = ({
               Edit Property
             </SheetTitle>
             <SheetDescription>
-              Step {currentStep + 1} of {steps.length}: {steps[currentStep].title}
+              Step {currentStep} of {WIZARD_STEPS.length}: {currentStepConfig?.description}
             </SheetDescription>
           </SheetHeader>
 
           {/* Progress Indicator */}
           <div className="px-6 pb-6">
             <div className="flex items-center justify-between mb-6">
-              {steps.map((step, index) => (
+              {WIZARD_STEPS.map((step, index) => (
                 <div key={index} className="flex items-center">
                   <div className="relative">
                     <button
-                      onClick={() => index <= currentStep && setCurrentStep(index)}
-                      disabled={index > currentStep}
+                      onClick={() => handleStepClick(step.id)}
+                      disabled={step.id > currentStep}
                       className={`relative flex items-center justify-center w-12 h-12 rounded-full border-3 transition-all duration-300 transform hover:scale-105 ${
-                        index < currentStep 
-                          ? 'bg-primary border-primary text-white cursor-pointer hover:bg-primary/90 shadow-lg shadow-primary/25' :
-                        index === currentStep 
-                          ? 'bg-primary border-primary text-white shadow-lg shadow-primary/25' :
+                        step.id < currentStep 
+                          ? 'bg-gradient-to-br from-primary to-primary/80 border-primary text-white cursor-pointer hover:from-primary/90 hover:to-primary/70 shadow-lg shadow-primary/25' :
+                        step.id === currentStep 
+                          ? 'bg-gradient-to-br from-primary to-primary/80 border-primary text-white shadow-lg shadow-primary/25' :
                         'bg-card border-gray-300 text-gray-400 cursor-not-allowed hover:scale-100'
                       }`}
                     >
-                      {index < currentStep ? (
+                      {step.id < currentStep ? (
                         <CheckCircle2 className="h-6 w-6" />
                       ) : (
-                        step.icon
+                        <step.icon className="h-5 w-5" />
                       )}
-                      {index === currentStep && (
+                      {step.id === currentStep && (
                         <div className="absolute -inset-2 rounded-full border-2 border-primary/20"></div>
                       )}
                     </button>
@@ -5606,18 +5540,18 @@ const PropertyEditSheet: React.FC<PropertyEditSheetProps> = ({
                     {/* Step label */}
                     <div className="absolute top-16 left-1/2 transform -translate-x-1/2 w-24 text-center">
                       <div className={`text-xs font-medium transition-colors duration-200 ${
-                        index <= currentStep ? 'text-foreground' : 'text-muted-foreground'
+                        step.id <= currentStep ? 'text-foreground' : 'text-muted-foreground'
                       }`}>
                         {step.title}
                       </div>
                     </div>
                   </div>
                   
-                  {index < steps.length - 1 && (
+                  {index < WIZARD_STEPS.length - 1 && (
                     <div className="flex-1 mx-4 mt-2">
                       <div className={`h-1 rounded-full transition-all duration-500 ease-in-out ${
-                        index < currentStep 
-                          ? 'bg-primary' 
+                        step.id < currentStep 
+                          ? 'bg-gradient-to-r from-primary to-primary/80' 
                           : 'bg-gray-200'
                       }`} />
                     </div>
@@ -5628,27 +5562,27 @@ const PropertyEditSheet: React.FC<PropertyEditSheetProps> = ({
             
             {/* Enhanced step info */}
             <div className="text-center mt-8">
-              <p className="text-sm text-gray-600 mb-4">{steps[currentStep].title}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">{currentStepConfig?.title}</p>
               
               {/* Progress bar */}
-              <div className="relative w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+              <div className="relative w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
                 <div 
-                  className="absolute top-0 left-0 h-full bg-primary transition-all duration-500 ease-in-out rounded-full"
-                  style={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}
+                  className="absolute top-0 left-0 h-full bg-gradient-to-r from-primary to-primary/80 transition-all duration-500 ease-in-out rounded-full"
+                  style={{ width: `${(currentStep / WIZARD_STEPS.length) * 100}%` }}
                 />
                 {/* Add subtle pulsing animation to the end of the progress bar */}
                 <div 
                   className="absolute top-0 h-full w-4 bg-primary/30 rounded-full transition-all duration-500 ease-in-out animate-pulse"
                   style={{ 
-                    left: `${Math.max(0, ((currentStep + 1) / steps.length) * 100 - 4)}%`,
-                    opacity: currentStep < steps.length - 1 ? 1 : 0
+                    left: `${Math.max(0, (currentStep / WIZARD_STEPS.length) * 100 - 4)}%`,
+                    opacity: currentStep < WIZARD_STEPS.length ? 1 : 0
                   }}
                 />
               </div>
               
-              <div className="flex justify-between text-xs text-gray-500 mt-2">
-                <span>Step {currentStep + 1} of {steps.length}</span>
-                <span>{Math.round(((currentStep + 1) / steps.length) * 100)}% Complete</span>
+              <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-2">
+                <span>Step {currentStep} of {WIZARD_STEPS.length}</span>
+                <span>{Math.round((currentStep / WIZARD_STEPS.length) * 100)}% Complete</span>
               </div>
             </div>
           </div>
@@ -5656,24 +5590,52 @@ const PropertyEditSheet: React.FC<PropertyEditSheetProps> = ({
 
         {/* Form Content - Scrollable */}
         <div className="flex-1 overflow-y-auto px-6 py-6">
-          <div className="space-y-6">
-            {steps[currentStep].content}
-          </div>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            {currentStep === 1 && (
+              <Step1BasicInfo form={form} formErrors={formErrors} formValues={formValues} />
+            )}
+            {currentStep === 2 && (
+              <Step2Location form={form} formErrors={formErrors} formValues={formValues} />
+            )}
+            {currentStep === 3 && (
+              <Step3PropertyDetails form={form} formErrors={formErrors} formValues={formValues} />
+            )}
+            {currentStep === 4 && (
+              <Step4Media 
+                form={form} 
+                imagePreviews={imagePreviews} 
+                getImageRootProps={getImageRootProps} 
+                getImageInputProps={getImageInputProps} 
+                isImageDragActive={isImageDragActive} 
+                removeImage={removeImage} 
+                reorderImages={reorderImages} 
+              />
+            )}
+            {currentStep === 5 && (
+              <Step5Review 
+                form={form} 
+                formErrors={formErrors} 
+                formValues={formValues} 
+                imagePreviews={imagePreviews} 
+                onEditStep={handleStepClick} 
+              />
+            )}
+          </form>
         </div>
 
         {/* Enhanced Navigation with Validation */}
         <div className="border-t bg-card px-6 py-4 flex-shrink-0 shadow-lg">
             {/* Validation Status - Full Width on Mobile */}
-            {currentStep < steps.length - 1 && (
+            {!isLastStep && (
               <div className="mb-4">
-                {!canProceed(currentStep) && (
+                {!isCurrentStepValid && (
                   <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/30 rounded-lg">
                     <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                     <span className="text-sm text-amber-700 dark:text-amber-300 font-medium">Complete required fields to continue</span>
                   </div>
                 )}
                 
-                {canProceed(currentStep) && (
+                {isCurrentStepValid && (
                   <div className="flex items-center gap-2 px-3 py-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/30 rounded-lg">
                     <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
                     <span className="text-sm text-green-700 dark:text-green-300 font-medium">Step completed</span>
@@ -5685,11 +5647,11 @@ const PropertyEditSheet: React.FC<PropertyEditSheetProps> = ({
             {/* Navigation Buttons */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                {currentStep > 0 && (
+                {currentStep > 1 && (
                   <Button 
                     type="button" 
                     variant="outline" 
-                    onClick={prevStep}
+                    onClick={handleBack}
                     className="flex items-center gap-2"
                   >
                     <ArrowLeft className="h-4 w-4" />
@@ -5703,11 +5665,11 @@ const PropertyEditSheet: React.FC<PropertyEditSheetProps> = ({
                   Cancel
                 </Button>
                 
-                {currentStep === steps.length - 1 ? (
+                {isLastStep ? (
                   <Button 
-                    type="button"
-                    onClick={handleSubmit} 
-                    disabled={isSubmitting || !canProceed(currentStep)}
+                    type="submit"
+                    form="property-form"
+                    disabled={isSubmitting || !isCurrentStepValid}
                     className="flex items-center gap-2 px-8 py-2.5 font-semibold transition-all duration-200 transform hover:scale-105 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                   >
                     {isSubmitting ? (
@@ -5725,8 +5687,8 @@ const PropertyEditSheet: React.FC<PropertyEditSheetProps> = ({
                 ) : (
                   <Button
                     type="button"
-                    onClick={nextStep}
-                    disabled={!canProceed(currentStep)}
+                    onClick={handleNext}
+                    disabled={!isCurrentStepValid}
                     className="flex items-center gap-2 px-6 py-2.5 font-semibold transition-all duration-200 transform hover:scale-105 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                   >
                     Next Step
