@@ -2577,11 +2577,10 @@ app.post('/api/properties/:id/images', authMiddleware, async (c) => {
           
           // Upload to R2 with account-based path
           const buffer = await file.arrayBuffer();
-          const fileName = `${Date.now()}-${file.name}`;
-          const filePath = `${user.userId}/property/properties/${propertyId}/images`;
+          const filePath = `${user.userId}/property/properties/${propertyId}`;
           console.log('[DEBUG] Uploading to path:', filePath);
           
-          const uploadResult = await storageService.uploadFile(Buffer.from(buffer), fileName, file.type, filePath);
+          const uploadResult = await storageService.uploadFile(new Uint8Array(buffer), file.name, file.type, filePath);
           console.log('[DEBUG] Upload successful, URL:', uploadResult.url);
           
           uploadedImages.push(uploadResult.url);
@@ -3703,3 +3702,4 @@ app.post('/api/payments/webhook', async (c) => {
     return c.json({ error: 'Webhook signature verification failed' }, 400);
   }
 }); 
+

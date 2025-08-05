@@ -30,9 +30,9 @@ command = "npm run build"
 pattern = "api.ormi.com/*"
 zone_name = "ormi.com"
 
-# R2 Storage configuration
+# R2 Storage configuration - Fixed binding name
 [[r2_buckets]]
-binding = "R2_BUCKET"
+binding = "R2_BUCKET_NAME"
 bucket_name = "ormi-storage"
 preview_bucket_name = "ormi-storage-dev"
 
@@ -40,8 +40,6 @@ preview_bucket_name = "ormi-storage-dev"
 [[routes]]
 pattern = "data.ormi.com/*"
 zone_name = "ormi.com"
-
-
 
 # Environment-specific settings
 [env.production]

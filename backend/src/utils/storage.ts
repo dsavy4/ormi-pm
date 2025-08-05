@@ -44,7 +44,7 @@ class StorageService {
    * Upload a file to storage with account-based path
    */
   async uploadFile(
-    file: Buffer,
+    file: Uint8Array,
     fileName: string,
     contentType: string,
     accountPath: string
@@ -237,18 +237,41 @@ class StorageService {
   }
 }
 
-// Create singleton instance
 // Create storage service with Cloudflare Worker environment variables
 export function createStorageService(env: any): StorageService {
+  console.log('[DEBUG] Creating storage service with env:', {
+    hasR2BucketName: !!env.R2_BUCKET_NAME,
+    r2BucketNameType: typeof env.R2_BUCKET_NAME,
+    r2BucketNameValue: env.R2_BUCKET_NAME,
+    hasR2AccessKey: !!env.R2_ACCESS_KEY_ID,
+    hasR2SecretKey: !!env.R2_SECRET_ACCESS_KEY,
+    hasR2Endpoint: !!env.R2_ENDPOINT,
+    hasR2PublicUrl: !!env.R2_PUBLIC_URL
+  });
+  
+  // In Cloudflare Workers, R2 bindings are objects, not strings
+  // We need to use the bucket name directly
+  const bucketName = 'ormi-storage'; // Use the actual bucket name
+  
   const config: StorageConfig = {
     provider: 'r2',
-    bucket: env.R2_BUCKET_NAME || 'ormi-storage',
+    bucket: bucketName,
     region: env.R2_REGION || 'auto',
     accessKeyId: env.R2_ACCESS_KEY_ID || '',
     secretAccessKey: env.R2_SECRET_ACCESS_KEY || '',
     endpoint: env.R2_ENDPOINT || 'https://475a121e52d9057d0e99c52062f3b6e5.r2.cloudflarestorage.com',
     publicUrl: env.R2_PUBLIC_URL || 'https://data.ormi.com',
   };
+  
+  console.log('[DEBUG] Storage service config:', {
+    bucket: config.bucket,
+    bucketType: typeof config.bucket,
+    region: config.region,
+    endpoint: config.endpoint,
+    publicUrl: config.publicUrl,
+    hasAccessKey: !!config.accessKeyId,
+    hasSecretKey: !!config.secretAccessKey
+  });
   
   return new StorageService(config);
 }
