@@ -73,6 +73,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ProCheckbox } from '@/components/ui/pro-checkbox';
+import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
@@ -268,6 +269,9 @@ const step3Schema = z.object({
   sqft: z.number().min(0, 'Square footage must be positive').optional(),
   lotSize: z.number().min(0, 'Lot size must be positive').optional(),
   description: z.string().optional(),
+  amenities: z.array(z.string()).default([]),
+  neighborhood: z.string().optional(),
+  notes: z.string().optional(),
 });
 
 const step4Schema = z.object({
@@ -280,6 +284,11 @@ const step5Schema = z.object({
   rentDueDay: z.number().min(1).max(28).default(1),
   allowOnlinePayments: z.boolean().default(true),
   enableMaintenanceRequests: z.boolean().default(true),
+  // Financial data
+  marketValue: z.number().min(0, 'Market value must be positive').optional(),
+  purchasePrice: z.number().min(0, 'Purchase price must be positive').optional(),
+  purchaseDate: z.string().optional(),
+  expenses: z.number().min(0, 'Expenses must be positive').optional(),
 });
 
 // Combined schema for final validation
@@ -328,6 +337,13 @@ const WIZARD_STEPS = [
   },
   {
     id: 5,
+    title: 'Financial',
+    description: '',
+    icon: DollarSign,
+    schema: step5Schema,
+  },
+  {
+    id: 6,
     title: 'Review',
     description: '',
     icon: CheckCircle2,
@@ -2815,8 +2831,17 @@ const AddPropertySheet: React.FC<AddPropertySheetProps> = ({ isOpen, onClose, on
               />
             )}
 
-            {/* Step 5: Review */}
+            {/* Step 5: Financial */}
             {currentStep === 5 && (
+              <Step5Financial 
+                form={form} 
+                formErrors={formErrors} 
+                formValues={formValues}
+              />
+            )}
+
+            {/* Step 6: Review */}
+            {currentStep === 6 && (
               <Step5Review 
                 form={form} 
                 formErrors={formErrors} 
@@ -3777,6 +3802,70 @@ const Step3PropertyDetails: React.FC<Step1Props> = ({ form, formErrors, formValu
           />
           <p className="text-xs text-gray-500 mt-1">Optional: Add details about amenities, recent upgrades, neighborhood, etc.</p>
         </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Neighborhood</label>
+          <Input
+            {...form.register('neighborhood')}
+            placeholder="e.g., Downtown, Westside, Historic District"
+            className={`transition-colors ${formErrors.neighborhood ? 'border-red-500 focus:border-red-500' : 'focus:border-blue-500'}`}
+          />
+          {formErrors.neighborhood && (
+            <p className="text-sm text-red-600 mt-1 flex items-center gap-1">
+              <AlertTriangle className="h-3 w-3" />
+              {formErrors.neighborhood.message}
+            </p>
+          )}
+          <p className="text-xs text-gray-500 mt-1">The neighborhood or area where the property is located</p>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Amenities</label>
+          <div className="space-y-2">
+            <div className="flex flex-wrap gap-2">
+              {AVAILABLE_TAGS.map((amenity) => (
+                <button
+                  key={amenity}
+                  type="button"
+                  onClick={() => {
+                    const currentAmenities = form.getValues('amenities') || [];
+                    const isSelected = currentAmenities.includes(amenity);
+                    if (isSelected) {
+                      form.setValue('amenities', currentAmenities.filter(a => a !== amenity));
+                    } else {
+                      form.setValue('amenities', [...currentAmenities, amenity]);
+                    }
+                  }}
+                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 ${
+                    (formValues.amenities || []).includes(amenity)
+                      ? 'bg-blue-100 text-blue-700 border border-blue-200 hover:bg-blue-200'
+                      : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
+                  }`}
+                >
+                  {amenity}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-gray-500">Select all amenities available at this property</p>
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Property Notes</label>
+          <textarea
+            {...form.register('notes')}
+            placeholder="Add any additional notes, special instructions, or important information about this property..."
+            rows={3}
+            className="w-full p-3 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+          />
+          {formErrors.notes && (
+            <p className="text-sm text-red-600 mt-1 flex items-center gap-1">
+              <AlertTriangle className="h-3 w-3" />
+              {formErrors.notes.message}
+            </p>
+          )}
+          <p className="text-xs text-gray-500 mt-1">Internal notes for property management team</p>
+        </div>
       </div>
     </div>
   );
@@ -3928,7 +4017,189 @@ const Step4Media: React.FC<Step4Props> = ({
   );
 };
 
-// Step 5: Review Component
+// Step 5: Financial Component
+const Step5Financial: React.FC<Step1Props> = ({ form, formErrors, formValues }) => {
+  return (
+    <div className="space-y-8">
+      <div className="text-center">
+        <div className="relative inline-flex">
+          <div className="p-4 bg-gradient-to-r from-green-100 to-green-50 dark:from-green-900/30 dark:to-green-800/30 rounded-full">
+            <DollarSign className="h-16 w-16 text-green-600 dark:text-green-400" />
+          </div>
+          <div className="absolute -top-2 -right-2 w-6 h-6 bg-green-600 dark:bg-green-500 rounded-full flex items-center justify-center">
+            <span className="text-white text-xs font-bold">5</span>
+          </div>
+        </div>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mt-4 mb-2">Financial Information</h2>
+        <p className="text-gray-600 dark:text-gray-300 max-w-md mx-auto">Set up financial details and management settings for your property. This helps with reporting and tenant management.</p>
+      </div>
+
+      <div className="space-y-6">
+        {/* Management Settings */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Management Settings</h3>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Property Manager</label>
+              <Select
+                value={formValues.propertyManager || ''}
+                onValueChange={(value) => form.setValue('propertyManager', value)}
+              >
+                <SelectTrigger className={`transition-colors ${formErrors.propertyManager ? 'border-red-500 focus:border-red-500' : 'focus:border-green-500'}`}>
+                  <SelectValue placeholder="Select a manager" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">No manager assigned</SelectItem>
+                  <SelectItem value="manager_1">John Smith</SelectItem>
+                  <SelectItem value="manager_2">Sarah Johnson</SelectItem>
+                  <SelectItem value="manager_3">Mike Davis</SelectItem>
+                </SelectContent>
+              </Select>
+              {formErrors.propertyManager && (
+                <p className="text-sm text-red-600 mt-1 flex items-center gap-1">
+                  <AlertTriangle className="h-3 w-3" />
+                  {formErrors.propertyManager.message}
+                </p>
+              )}
+              <p className="text-xs text-gray-500 mt-1">Assign a property manager to handle day-to-day operations</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Rent Due Day</label>
+              <Select
+                value={formValues.rentDueDay?.toString() || '1'}
+                onValueChange={(value) => form.setValue('rentDueDay', parseInt(value))}
+              >
+                <SelectTrigger className={`transition-colors ${formErrors.rentDueDay ? 'border-red-500 focus:border-red-500' : 'focus:border-green-500'}`}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: 28 }, (_, i) => i + 1).map((day) => (
+                    <SelectItem key={day} value={day.toString()}>
+                      {day}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {formErrors.rentDueDay && (
+                <p className="text-sm text-red-600 mt-1 flex items-center gap-1">
+                  <AlertTriangle className="h-3 w-3" />
+                  {formErrors.rentDueDay.message}
+                </p>
+              )}
+              <p className="text-xs text-gray-500 mt-1">Day of the month when rent is due</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="allowOnlinePayments"
+                checked={formValues.allowOnlinePayments}
+                onCheckedChange={(checked) => form.setValue('allowOnlinePayments', checked as boolean)}
+              />
+              <label htmlFor="allowOnlinePayments" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Allow Online Payments
+              </label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="enableMaintenanceRequests"
+                checked={formValues.enableMaintenanceRequests}
+                onCheckedChange={(checked) => form.setValue('enableMaintenanceRequests', checked as boolean)}
+              />
+              <label htmlFor="enableMaintenanceRequests" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Enable Maintenance Requests
+              </label>
+            </div>
+          </div>
+        </div>
+
+        {/* Financial Data */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Financial Data</h3>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Market Value</label>
+              <Input
+                type="number"
+                {...form.register('marketValue', { valueAsNumber: true })}
+                placeholder="e.g., 500000"
+                min="0"
+                className={`transition-colors ${formErrors.marketValue ? 'border-red-500 focus:border-red-500' : 'focus:border-green-500'}`}
+              />
+              {formErrors.marketValue && (
+                <p className="text-sm text-red-600 mt-1 flex items-center gap-1">
+                  <AlertTriangle className="h-3 w-3" />
+                  {formErrors.marketValue.message}
+                </p>
+              )}
+              <p className="text-xs text-gray-500 mt-1">Current estimated market value of the property</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Purchase Price</label>
+              <Input
+                type="number"
+                {...form.register('purchasePrice', { valueAsNumber: true })}
+                placeholder="e.g., 450000"
+                min="0"
+                className={`transition-colors ${formErrors.purchasePrice ? 'border-red-500 focus:border-red-500' : 'focus:border-green-500'}`}
+              />
+              {formErrors.purchasePrice && (
+                <p className="text-sm text-red-600 mt-1 flex items-center gap-1">
+                  <AlertTriangle className="h-3 w-3" />
+                  {formErrors.purchasePrice.message}
+                </p>
+              )}
+              <p className="text-xs text-gray-500 mt-1">Original purchase price of the property</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Purchase Date</label>
+              <Input
+                type="date"
+                {...form.register('purchaseDate')}
+                className={`transition-colors ${formErrors.purchaseDate ? 'border-red-500 focus:border-red-500' : 'focus:border-green-500'}`}
+              />
+              {formErrors.purchaseDate && (
+                <p className="text-sm text-red-600 mt-1 flex items-center gap-1">
+                  <AlertTriangle className="h-3 w-3" />
+                  {formErrors.purchaseDate.message}
+                </p>
+              )}
+              <p className="text-xs text-gray-500 mt-1">Date when the property was purchased</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Annual Expenses</label>
+              <Input
+                type="number"
+                {...form.register('expenses', { valueAsNumber: true })}
+                placeholder="e.g., 25000"
+                min="0"
+                className={`transition-colors ${formErrors.expenses ? 'border-red-500 focus:border-red-500' : 'focus:border-green-500'}`}
+              />
+              {formErrors.expenses && (
+                <p className="text-sm text-red-600 mt-1 flex items-center gap-1">
+                  <AlertTriangle className="h-3 w-3" />
+                  {formErrors.expenses.message}
+                </p>
+              )}
+              <p className="text-xs text-gray-500 mt-1">Estimated annual operating expenses</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Step 6: Review Component
 interface Step5Props {
   form: any;
   formErrors: any;
@@ -3942,13 +4213,13 @@ const Step5Review: React.FC<Step5Props> = ({ form, formErrors, formValues, image
     <div className="space-y-6">
       <div className="text-center">
         <CheckCircle2 className="h-12 w-12 text-green-600 mx-auto mb-4" />
-        <h2 className="text-xl font-semibold text-foreground mb-2">Review & Create</h2>
-        <p className="text-sm text-gray-600">Please review all details before creating your property.</p>
+        <h2 className="text-xl font-semibold text-foreground mb-2">Review & Update</h2>
+        <p className="text-sm text-gray-600">Please review all details before updating your property.</p>
       </div>
 
       <div className="space-y-6">
         {/* Basic Info */}
-        <div className="bg-gray-50 rounded-lg p-4">
+        <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-medium text-foreground flex items-center gap-2">
               <Building className="h-4 w-4" />
@@ -3961,15 +4232,15 @@ const Step5Review: React.FC<Step5Props> = ({ form, formErrors, formValues, image
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
             <div>
-              <span className="text-gray-600">Property Name:</span>
+              <span className="text-gray-600 dark:text-gray-400">Property Name:</span>
               <p className="font-medium">{formValues.name || 'Not specified'}</p>
             </div>
             <div>
-              <span className="text-gray-600">Property Type:</span>
+              <span className="text-gray-600 dark:text-gray-400">Property Type:</span>
               <p className="font-medium">{formValues.propertyType}</p>
             </div>
             <div>
-              <span className="text-gray-600">Ownership Type:</span>
+              <span className="text-gray-600 dark:text-gray-400">Ownership Type:</span>
               <p className="font-medium">{formValues.ownershipType}</p>
             </div>
             <div>
@@ -4047,6 +4318,66 @@ const Step5Review: React.FC<Step5Props> = ({ form, formErrors, formValues, image
               <p className="text-sm text-gray-900 mt-1">{formValues.description}</p>
             </div>
           )}
+          {formValues.neighborhood && (
+            <div className="mt-3 pt-3 border-t border-gray-200">
+              <span className="text-gray-600 text-sm">Neighborhood:</span>
+              <p className="text-sm text-gray-900 mt-1">{formValues.neighborhood}</p>
+            </div>
+          )}
+          {formValues.amenities && formValues.amenities.length > 0 && (
+            <div className="mt-3 pt-3 border-t border-gray-200">
+              <span className="text-gray-600 text-sm">Amenities:</span>
+              <div className="flex flex-wrap gap-1 mt-1">
+                {formValues.amenities.map((amenity, index) => (
+                  <Badge key={index} variant="secondary" className="text-xs">{amenity}</Badge>
+                ))}
+              </div>
+            </div>
+          )}
+          {formValues.notes && (
+            <div className="mt-3 pt-3 border-t border-gray-200">
+              <span className="text-gray-600 text-sm">Notes:</span>
+              <p className="text-sm text-gray-900 mt-1">{formValues.notes}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Financial Information */}
+        <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-medium text-foreground flex items-center gap-2">
+              <DollarSign className="h-4 w-4" />
+              Financial Information
+            </h3>
+            <Button variant="ghost" size="sm" onClick={() => onEditStep(5)}>
+              <Edit className="h-3 w-3 mr-1" />
+              Edit
+            </Button>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+            <div>
+              <span className="text-gray-600 dark:text-gray-400">Market Value:</span>
+              <p className="font-medium">
+                {formValues.marketValue ? `$${formValues.marketValue.toLocaleString()}` : 'Not specified'}
+              </p>
+            </div>
+            <div>
+              <span className="text-gray-600 dark:text-gray-400">Purchase Price:</span>
+              <p className="font-medium">
+                {formValues.purchasePrice ? `$${formValues.purchasePrice.toLocaleString()}` : 'Not specified'}
+              </p>
+            </div>
+            <div>
+              <span className="text-gray-600 dark:text-gray-400">Purchase Date:</span>
+              <p className="font-medium">{formValues.purchaseDate || 'Not specified'}</p>
+            </div>
+            <div>
+              <span className="text-gray-600 dark:text-gray-400">Annual Expenses:</span>
+              <p className="font-medium">
+                {formValues.expenses ? `$${formValues.expenses.toLocaleString()}` : 'Not specified'}
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* Images */}
@@ -5265,10 +5596,11 @@ const PropertyEditSheet: React.FC<PropertyEditSheetProps> = ({
         lotSize: undefined,
         description: property.description || '',
         propertyManager: typeof property.manager === 'string' ? property.manager : property.manager?.id || '',
-        rentDueDay: property.rentDueDay || 1,
-        allowOnlinePayments: property.allowOnlinePayments ?? true,
-        enableMaintenanceRequests: property.enableMaintenanceRequests ?? true,
-        images: property.images || [],
+        rentDueDay: 1,
+        allowOnlinePayments: true,
+        enableMaintenanceRequests: true,
+        images: [],
+        amenities: property.amenities || [],
         neighborhood: property.neighborhood || '',
         marketValue: property.marketValue,
         purchasePrice: property.purchasePrice,
@@ -5612,6 +5944,13 @@ const PropertyEditSheet: React.FC<PropertyEditSheetProps> = ({
               />
             )}
             {currentStep === 5 && (
+              <Step5Financial 
+                form={form} 
+                formErrors={formErrors} 
+                formValues={formValues} 
+              />
+            )}
+            {currentStep === 6 && (
               <Step5Review 
                 form={form} 
                 formErrors={formErrors} 
