@@ -222,7 +222,7 @@ interface Tenant {
   phone: string;
   avatar?: string;
   status: 'Active' | 'Late' | 'Notice' | 'Inactive';
-  unit: {
+  unit?: {
     id: string;
     number: string;
     property: {
@@ -231,28 +231,28 @@ interface Tenant {
       address: string;
     };
   };
-  lease: {
+  lease?: {
     startDate: string;
     endDate: string;
     monthlyRent: number;
     securityDeposit: number;
     status: 'Active' | 'Expired' | 'Expiring Soon';
   };
-  balance: number;
-  lastPayment: {
+  balance?: number;
+  lastPayment?: {
     date: string;
     amount: number;
   } | null;
-  moveInDate: string;
+  moveInDate?: string;
   emergencyContact?: {
     name: string;
     phone: string;
     relationship: string;
   };
   notes?: string;
-  rating: number;
-  maintenanceRequests: number;
-  paymentHistory: {
+  rating?: number;
+  maintenanceRequests?: number;
+  paymentHistory?: {
     onTime: number;
     late: number;
     total: number;
@@ -1733,12 +1733,12 @@ export function Tenants() {
                       </TableCell>
                       <TableCell>
                         <div>
-                          <p className="font-medium">{tenant.unit.number}</p>
-                          <p className="text-sm text-gray-500">{tenant.unit.property.name}</p>
+                          <p className="font-medium">{tenant.unit?.number || 'No Unit'}</p>
+                          <p className="text-sm text-gray-500">{tenant.unit?.property?.name || 'No Property'}</p>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <p className="font-medium">${tenant.lease.monthlyRent.toLocaleString()}</p>
+                        <p className="font-medium">${(tenant.lease?.monthlyRent || 0).toLocaleString()}</p>
                       </TableCell>
                       <TableCell>
                         <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(tenant.status)}`}>
@@ -1747,19 +1747,19 @@ export function Tenants() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <p className={`font-medium ${tenant.balance < 0 ? 'text-red-600' : 'text-green-600'}`}>
-                          {tenant.balance === 0 ? '$0' : tenant.balance < 0 ? `-$${Math.abs(tenant.balance)}` : `$${tenant.balance}`}
+                        <p className={`font-medium ${(tenant.balance || 0) < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                          {(tenant.balance || 0) === 0 ? '$0' : (tenant.balance || 0) < 0 ? `-$${Math.abs(tenant.balance || 0)}` : `$${tenant.balance || 0}`}
                         </p>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center space-x-1">
                           <Star className="h-4 w-4 text-yellow-400 fill-current" />
-                          <span className="text-sm font-medium">{tenant.rating}</span>
+                          <span className="text-sm font-medium">{tenant.rating || 0}</span>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <p className="text-sm">{new Date(tenant.lease.endDate).toLocaleDateString()}</p>
-                        {tenant.lease.status === 'Expiring Soon' && (
+                        <p className="text-sm">{tenant.lease?.endDate ? new Date(tenant.lease.endDate).toLocaleDateString() : 'No End Date'}</p>
+                        {tenant.lease?.status === 'Expiring Soon' && (
                           <Badge variant="destructive" className="text-xs mt-1">
                             Expiring Soon
                           </Badge>
@@ -1829,23 +1829,23 @@ export function Tenants() {
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-gray-500">Unit</span>
-                      <span className="font-medium">{tenant.unit.number}</span>
+                      <span className="font-medium">{tenant.unit?.number || 'No Unit'}</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-gray-500">Monthly Rent</span>
-                      <span className="font-medium">${tenant.lease.monthlyRent.toLocaleString()}</span>
+                      <span className="font-medium">${(tenant.lease?.monthlyRent || 0).toLocaleString()}</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-gray-500">Balance</span>
-                      <span className={`font-medium ${tenant.balance < 0 ? 'text-red-600' : 'text-green-600'}`}>
-                        {tenant.balance === 0 ? '$0' : tenant.balance < 0 ? `-$${Math.abs(tenant.balance)}` : `$${tenant.balance}`}
+                      <span className={`font-medium ${(tenant.balance || 0) < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                        {(tenant.balance || 0) === 0 ? '$0' : (tenant.balance || 0) < 0 ? `-$${Math.abs(tenant.balance || 0)}` : `$${tenant.balance || 0}`}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-gray-500">Rating</span>
                       <div className="flex items-center space-x-1">
                         <Star className="h-4 w-4 text-yellow-400 fill-current" />
-                        <span className="font-medium">{tenant.rating}</span>
+                        <span className="font-medium">{tenant.rating || 0}</span>
                       </div>
                     </div>
                   </div>
@@ -1864,7 +1864,7 @@ export function Tenants() {
                         </Button>
                       </div>
                       <p className="text-xs text-gray-500">
-                        Lease ends {new Date(tenant.lease.endDate).toLocaleDateString()}
+                        Lease ends {tenant.lease?.endDate ? new Date(tenant.lease.endDate).toLocaleDateString() : 'No End Date'}
                       </p>
                     </div>
                   </div>
@@ -1897,7 +1897,7 @@ export function Tenants() {
                     </SheetTitle>
                     <SheetDescription className="text-sm text-gray-600 mt-1 flex items-center gap-2">
                       <Home className="h-4 w-4" />
-                      Unit {selectedTenant.unit.number} • {selectedTenant.unit.property.name}
+                      Unit {selectedTenant.unit?.number || 'No Unit'} • {selectedTenant.unit?.property?.name || 'No Property'}
                     </SheetDescription>
                     <div className="flex items-center gap-2 mt-2">
                       <Badge variant={selectedTenant.status === 'Active' ? 'default' : 'secondary'} className="text-xs">
@@ -1960,19 +1960,19 @@ export function Tenants() {
                         <div className="grid grid-cols-2 gap-4">
                           <div>
                             <p className="text-sm text-gray-500">Monthly Rent</p>
-                            <p className="font-semibold text-lg">${selectedTenant.lease.monthlyRent.toLocaleString()}</p>
+                            <p className="font-semibold text-lg">${(selectedTenant.lease?.monthlyRent || 0).toLocaleString()}</p>
                           </div>
                           <div>
                             <p className="text-sm text-gray-500">Security Deposit</p>
-                            <p className="font-medium">${selectedTenant.lease.securityDeposit.toLocaleString()}</p>
+                            <p className="font-medium">${(selectedTenant.lease?.securityDeposit || 0).toLocaleString()}</p>
                           </div>
                           <div>
                             <p className="text-sm text-gray-500">Lease Start</p>
-                            <p className="font-medium">{new Date(selectedTenant.lease.startDate).toLocaleDateString()}</p>
+                            <p className="font-medium">{selectedTenant.lease?.startDate ? new Date(selectedTenant.lease.startDate).toLocaleDateString() : 'No Start Date'}</p>
                           </div>
                           <div>
                             <p className="text-sm text-gray-500">Lease End</p>
-                            <p className="font-medium">{new Date(selectedTenant.lease.endDate).toLocaleDateString()}</p>
+                            <p className="font-medium">{selectedTenant.lease?.endDate ? new Date(selectedTenant.lease.endDate).toLocaleDateString() : 'No End Date'}</p>
                           </div>
                         </div>
                       </CardContent>
@@ -1990,7 +1990,7 @@ export function Tenants() {
                           <div className="flex items-center justify-center w-16 h-16 mx-auto bg-green-100 rounded-full mb-2">
                             <CheckCircle className="h-8 w-8 text-green-600" />
                           </div>
-                          <p className="text-2xl font-bold text-gray-900">{selectedTenant.paymentHistory.onTime}</p>
+                          <p className="text-2xl font-bold text-gray-900">{selectedTenant.paymentHistory?.onTime || 0}</p>
                           <p className="text-sm text-gray-500">On-time Payments</p>
                         </div>
                         <div className="text-center">
@@ -2012,7 +2012,7 @@ export function Tenants() {
                             <Calendar className="h-8 w-8 text-purple-600" />
                           </div>
                           <p className="text-2xl font-bold text-gray-900">
-                            {Math.floor((new Date().getTime() - new Date(selectedTenant.moveInDate).getTime()) / (1000 * 60 * 60 * 24 * 30))}
+                            {selectedTenant.moveInDate ? Math.floor((new Date().getTime() - new Date(selectedTenant.moveInDate).getTime()) / (1000 * 60 * 60 * 24 * 30)) : 0}
                           </p>
                           <p className="text-sm text-gray-500">Months as Tenant</p>
                         </div>
@@ -2043,15 +2043,15 @@ export function Tenants() {
                       <div className="space-y-4">
                         <div className="grid grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
                           <div className="text-center">
-                            <p className="text-2xl font-bold text-green-600">{selectedTenant.paymentHistory.onTime}</p>
+                            <p className="text-2xl font-bold text-green-600">{selectedTenant.paymentHistory?.onTime || 0}</p>
                             <p className="text-sm text-gray-500">On Time</p>
                           </div>
                           <div className="text-center">
-                            <p className="text-2xl font-bold text-red-600">{selectedTenant.paymentHistory.late}</p>
+                            <p className="text-2xl font-bold text-red-600">{selectedTenant.paymentHistory?.late || 0}</p>
                             <p className="text-sm text-gray-500">Late</p>
                           </div>
                           <div className="text-center">
-                            <p className="text-2xl font-bold text-gray-900">{selectedTenant.paymentHistory.total}</p>
+                            <p className="text-2xl font-bold text-gray-900">{selectedTenant.paymentHistory?.total || 0}</p>
                             <p className="text-sm text-gray-500">Total</p>
                           </div>
                         </div>
