@@ -634,6 +634,11 @@ export function Properties() {
     params.append('page', '1');
     params.append('limit', '20');
     
+    // Add cache-busting parameter (only when force refresh is triggered)
+    if (forceRefreshTrigger > 0) {
+      params.append('_t', forceRefreshTrigger.toString());
+    }
+    
     return `/api/properties?${params.toString()}`;
   }, [advancedFilters, debouncedAdvancedSearch]);
 
@@ -650,12 +655,16 @@ export function Properties() {
     error: insightsError, 
     isLoading: insightsLoading,
     mutate: mutateInsights 
-  } = useSWR<PropertyInsights>('/api/properties/insights', () => propertiesApi.getInsights());
+  } = useSWR<PropertyInsights>(`/api/properties/insights?_t=${Date.now()}`, () => propertiesApi.getInsights());
 
   // Force refresh function to clear cache and refetch
   const forceRefresh = () => {
     mutateProperties();
     mutateInsights();
+    // Force clear SWR cache for properties
+    if (typeof window !== 'undefined' && window.swrCache) {
+      window.swrCache.clear();
+    }
   };
 
   // Computed values
