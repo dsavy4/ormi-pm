@@ -635,10 +635,8 @@ export function Properties() {
     params.append('page', '1');
     params.append('limit', '20');
     
-    // Add cache-busting parameter (only when force refresh is triggered)
-    if (forceRefreshTrigger > 0) {
-      params.append('_t', forceRefreshTrigger.toString());
-    }
+    // Add cache-busting parameter to prevent stale data
+    params.append('_t', Date.now().toString());
     
     return `/api/properties?${params.toString()}`;
   }, [advancedFilters, debouncedAdvancedSearch]);
