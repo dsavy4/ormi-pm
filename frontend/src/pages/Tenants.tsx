@@ -1223,7 +1223,7 @@ function AddTenantSheet({ isOpen, onClose, onSubmit, isLoading }: any) {
                 />
                 {/* Add subtle pulsing animation to the end of the progress bar */}
                 <div 
-                  className="absolute top-0 h-full w-4 bg-primary/30 rounded-full transition-all duration-500 ease-in-out animate-pulse"
+                                      className="absolute top-0 h-full w-4 bg-primary/30 rounded-full transition-all duration-500 ease-in-out animate-pulse"
                   style={{ 
                     left: `${Math.max(0, (currentStep / TENANT_WIZARD_STEPS.length) * 100 - 4)}%`,
                     opacity: currentStep < TENANT_WIZARD_STEPS.length ? 1 : 0

@@ -82,8 +82,8 @@ function App() {
               <Route path="/settings" element={<ProtectedRoute><DashboardLayout><Settings /></DashboardLayout></ProtectedRoute>} errorElement={<RouteErrorPage />} />
               
               {/* Advanced Features (commented out for now) */}
-                      <Route path="/managers" element={<ProtectedRoute><DashboardLayout><Managers /></DashboardLayout></ProtectedRoute>} />
-        <Route path="/managers/:managerId" element={<ProtectedRoute><DashboardLayout><Managers /></DashboardLayout></ProtectedRoute>} />
+              <Route path="/managers" element={<ProtectedRoute><DashboardLayout><Managers /></DashboardLayout></ProtectedRoute>} />
+              <Route path="/managers/:managerId" element={<ProtectedRoute><DashboardLayout><Managers /></DashboardLayout></ProtectedRoute>} />
         <Route path="/team" element={<ProtectedRoute><DashboardLayout><Team /></DashboardLayout></ProtectedRoute>} />
         <Route path="/team/:teamMemberId" element={<ProtectedRoute><DashboardLayout><Team /></DashboardLayout></ProtectedRoute>} />
         <Route path="/documents" element={<ProtectedRoute><DashboardLayout><Documents /></DashboardLayout></ProtectedRoute>} />

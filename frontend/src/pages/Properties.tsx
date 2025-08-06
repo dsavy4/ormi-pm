@@ -4671,8 +4671,8 @@ const ManagerAssignmentSheet: React.FC<ManagerAssignmentSheetProps> = ({
             </Button>
           </div>
         </div>
-              </SheetContent>
-      </Sheet>
+      </SheetContent>
+    </Sheet>
   );
 };
 
@@ -5565,31 +5565,31 @@ const PropertyEditSheet: React.FC<PropertyEditSheetProps> = ({
     resolver: zodResolver(propertyFormSchema),
     mode: 'onBlur',
     defaultValues: {
-      name: '',
+    name: '',
       propertyType: 'Multi-Family',
       ownershipType: 'Owned',
       tags: [],
-      address: '',
+    address: '',
       unitSuite: '',
-      city: '',
-      state: '',
-      zipCode: '',
-      country: 'United States',
+    city: '',
+    state: '',
+    zipCode: '',
+    country: 'United States',
       totalUnits: 1,
       yearBuilt: undefined,
       sqft: undefined,
       lotSize: undefined,
-      description: '',
+    description: '',
       propertyManager: '',
       rentDueDay: 1,
       allowOnlinePayments: true,
       enableMaintenanceRequests: true,
       images: [],
       amenities: [],
-      neighborhood: '',
+    neighborhood: '',
       marketValue: undefined,
       purchasePrice: undefined,
-      purchaseDate: '',
+    purchaseDate: '',
       expenses: undefined,
       notes: '',
     },
