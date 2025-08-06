@@ -65,7 +65,13 @@ import {
   FileSpreadsheet,
   Database,
   ChevronDown,
+  ChevronUp,
   RefreshCw,
+  User,
+  Bed,
+  Bath,
+  Wrench,
+  Loader,
 } from 'lucide-react';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -548,6 +554,11 @@ export function Properties() {
     }, 300);
     return () => clearTimeout(timer);
   }, [advancedFilters.search]);
+  
+  // State for inline unit expansion
+  const [expandedUnits, setExpandedUnits] = useState<Set<string>>(new Set());
+  const [unitDetails, setUnitDetails] = useState<Record<string, any>>({});
+  const [loadingUnits, setLoadingUnits] = useState<Set<string>>(new Set());
 
   // Handle Quick Add events
   useEffect(() => {
@@ -1205,6 +1216,62 @@ export function Properties() {
         }
       }
     });
+  };
+
+  // Toggle unit expansion and load details
+  const toggleUnitExpansion = async (unitId: string) => {
+    const newExpanded = new Set(expandedUnits);
+    
+    if (newExpanded.has(unitId)) {
+      // Collapse unit
+      newExpanded.delete(unitId);
+    } else {
+      // Expand unit and load details if not already loaded
+      newExpanded.add(unitId);
+      if (!unitDetails[unitId]) {
+        setLoadingUnits(prev => new Set(prev).add(unitId));
+        try {
+          // TODO: Replace with real API call
+          const details = await mockLoadUnitDetails(unitId);
+          setUnitDetails(prev => ({ ...prev, [unitId]: details }));
+        } catch (error) {
+          toast.error('Failed to load unit details');
+        } finally {
+          setLoadingUnits(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(unitId);
+            return newSet;
+          });
+        }
+      }
+    }
+    
+    setExpandedUnits(newExpanded);
+  };
+
+  // Mock function for loading unit details (replace with real API)
+  const mockLoadUnitDetails = async (unitId: string): Promise<any> => {
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    return {
+      lastPayment: {
+        date: '2024-01-15',
+        amount: 2500
+      },
+      paymentHistory: [
+        { date: '2024-01-15', amount: 2500, status: 'paid' },
+        { date: '2023-12-15', amount: 2500, status: 'paid' }
+      ],
+      maintenanceRequests: [
+        { id: '1', title: 'Leaky faucet', status: 'completed', date: '2024-01-10' }
+      ],
+      lastMaintenance: {
+        date: '2024-01-10',
+        description: 'Fixed leaky faucet in kitchen'
+      },
+      nextInspection: '2024-02-15'
+    };
   };
 
   // Calculate active filters count
@@ -2157,6 +2224,35 @@ interface PropertyImageProps {
   className?: string;
 }
 
+// ExpandableUnitCard Component for inline unit expansion
+interface ExpandableUnitCardProps {
+  unit: {
+    id: string;
+    number: string;
+    bedrooms: number;
+    bathrooms: number;
+    squareFootage: number;
+    floor: number;
+    building?: string;
+    amenities?: string[];
+    monthlyRent: number;
+    securityDeposit: number;
+    status: 'occupied' | 'vacant' | 'maintenance' | 'reserved';
+    tenant?: {
+      id: string;
+      name: string;
+      email: string;
+      phone: string;
+      moveInDate: string;
+    };
+  };
+  isExpanded: boolean;
+  details?: any;
+  isLoading: boolean;
+  onToggle: () => void;
+  onEdit: (unitId: string) => void;
+}
+
 
 
 const PropertyImage: React.FC<PropertyImageProps> = ({ property, className }) => {
@@ -2196,6 +2292,266 @@ const PropertyImage: React.FC<PropertyImageProps> = ({ property, className }) =>
         onLoad={handleImageLoad}
         loading="lazy"
       />
+    </div>
+  );
+};
+
+// ExpandableUnitCard Component with ShadCN styling
+const ExpandableUnitCard: React.FC<ExpandableUnitCardProps> = ({
+  unit,
+  isExpanded,
+  details,
+  isLoading,
+  onToggle,
+  onEdit
+}) => {
+  const getStatusVariant = (status: string) => {
+    switch (status) {
+      case 'occupied': return 'default';
+      case 'vacant': return 'secondary';
+      case 'maintenance': return 'destructive';
+      case 'reserved': return 'outline';
+      default: return 'secondary';
+    }
+  };
+
+  return (
+    <Card className={`transition-all duration-300 ${
+      isExpanded ? 'ring-2 ring-blue-200 shadow-lg' : 'hover:shadow-md'
+    }`}>
+      {/* Collapsed State */}
+      <div className="p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            <div className="flex items-center gap-3">
+              <Home className="h-5 w-5 text-blue-600" />
+              <div>
+                <h3 className="font-semibold text-lg">
+                  Unit {unit.number}
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  {unit.bedrooms}BR/{unit.bathrooms}BA • {unit.squareFootage} sq ft
+                </p>
+              </div>
+            </div>
+            
+            <div className="mt-2 flex items-center gap-4 text-sm">
+              {unit.tenant ? (
+                <>
+                  <div className="flex items-center gap-1">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    <span>{unit.tenant.name}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <DollarSign className="h-4 w-4 text-muted-foreground" />
+                    <span>${unit.monthlyRent}/month</span>
+                  </div>
+                </>
+              ) : (
+                <div className="flex items-center gap-1 text-amber-600">
+                  <User className="h-4 w-4" />
+                  <span>Available</span>
+                </div>
+              )}
+              
+              <Badge variant={getStatusVariant(unit.status)}>
+                {unit.status}
+              </Badge>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onEdit(unit.id)}
+              className="h-8 w-8 p-0"
+            >
+              <Edit className="h-4 w-4" />
+            </Button>
+            
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onToggle}
+              className="h-8 w-8 p-0"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <Loader className="h-4 w-4 animate-spin" />
+              ) : isExpanded ? (
+                <ChevronUp className="h-4 w-4" />
+              ) : (
+                <ChevronDown className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Expanded State */}
+      <AnimatePresence>
+        {isExpanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+            className="overflow-hidden"
+          >
+            <div className="border-t bg-muted/30">
+              {details ? (
+                <UnitExpandedDetails unit={unit} details={details} />
+              ) : (
+                <div className="p-4 flex items-center justify-center">
+                  <Loader className="h-6 w-6 animate-spin" />
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </Card>
+  );
+};
+
+// Unit Expanded Details Component with ShadCN styling
+const UnitExpandedDetails: React.FC<{ unit: any; details: any }> = ({ unit, details }) => {
+  return (
+    <div className="p-4 space-y-6">
+      {/* Unit Information Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Unit Information Section */}
+        <div className="space-y-2">
+          <h4 className="font-medium text-sm text-muted-foreground">Unit Information</h4>
+          <div className="space-y-1 text-sm">
+            <div className="flex justify-between">
+              <span>Square Footage:</span>
+              <span>{unit.squareFootage} sq ft</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Floor:</span>
+              <span>{unit.floor}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Building:</span>
+              <span>{unit.building || 'Main'}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Amenities:</span>
+              <span>{unit.amenities?.join(', ') || 'None'}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Tenant Details Section */}
+        <div className="space-y-2">
+          <h4 className="font-medium text-sm text-muted-foreground">Tenant Details</h4>
+          {unit.tenant ? (
+            <div className="space-y-1 text-sm">
+              <div className="flex justify-between">
+                <span>Name:</span>
+                <span>{unit.tenant.name}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Email:</span>
+                <span>{unit.tenant.email}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Phone:</span>
+                <span>{unit.tenant.phone}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Move-in:</span>
+                <span>{new Date(unit.tenant.moveInDate).toLocaleDateString()}</span>
+              </div>
+            </div>
+          ) : (
+            <div className="text-sm text-amber-600">
+              <User className="h-4 w-4 inline mr-1" />
+              Available for rent
+            </div>
+          )}
+        </div>
+
+        {/* Financial Information Section */}
+        <div className="space-y-2">
+          <h4 className="font-medium text-sm text-muted-foreground">Financial Info</h4>
+          <div className="space-y-1 text-sm">
+            <div className="flex justify-between">
+              <span>Monthly Rent:</span>
+              <span>${unit.monthlyRent}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Security Deposit:</span>
+              <span>${unit.securityDeposit}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Last Payment:</span>
+              <span>{details.lastPayment ? new Date(details.lastPayment.date).toLocaleDateString() : 'N/A'}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Payment History:</span>
+              <span>{details.paymentHistory?.length || 0} payments</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Maintenance Section */}
+        <div className="space-y-2">
+          <h4 className="font-medium text-sm text-muted-foreground">Maintenance</h4>
+          <div className="space-y-1 text-sm">
+            <div className="flex justify-between">
+              <span>Open Requests:</span>
+              <span>{details.maintenanceRequests?.filter((r: any) => r.status === 'open').length || 0}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Last Service:</span>
+              <span>{details.lastMaintenance ? new Date(details.lastMaintenance.date).toLocaleDateString() : 'N/A'}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Next Inspection:</span>
+              <span>{details.nextInspection ? new Date(details.nextInspection).toLocaleDateString() : 'Due'}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Action Buttons */}
+      <div className="flex items-center justify-between pt-4 border-t">
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm">
+            <Edit className="h-4 w-4 mr-2" />
+            Edit Unit
+          </Button>
+          {!unit.tenant ? (
+            <Button variant="outline" size="sm">
+              <User className="h-4 w-4 mr-2" />
+              Add Tenant
+            </Button>
+          ) : (
+            <Button variant="outline" size="sm">
+              <User className="h-4 w-4 mr-2" />
+              Manage Tenant
+            </Button>
+          )}
+          <Button variant="outline" size="sm">
+            <Wrench className="h-4 w-4 mr-2" />
+            Maintenance
+          </Button>
+        </div>
+        
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm">
+            <FileText className="h-4 w-4 mr-2" />
+            Documents
+          </Button>
+          <Button variant="outline" size="sm">
+            <BarChart3 className="h-4 w-4 mr-2" />
+            Analytics
+          </Button>
+        </div>
+      </div>
     </div>
   );
 };
