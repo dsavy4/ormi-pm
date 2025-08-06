@@ -635,35 +635,42 @@ export function Properties() {
     params.append('page', '1');
     params.append('limit', '20');
     
-    // Add cache-busting parameter to prevent stale data
-    params.append('_t', Date.now().toString());
+    // Cache key for properties - stable and cacheable
     
     return `/api/properties?${params.toString()}`;
   }, [advancedFilters, debouncedAdvancedSearch]);
 
-  // Data fetching with SWR
+  // Data fetching with SWR and proper caching
   const { 
     data: propertiesData, 
     error: propertiesError, 
     isLoading: propertiesLoading,
     mutate: mutateProperties 
-  } = useSWR<PropertiesResponse>(propertiesKey, propertiesFetcher);
+  } = useSWR<PropertiesResponse>(propertiesKey, propertiesFetcher, {
+    revalidateOnFocus: false,
+    revalidateOnReconnect: false,
+    dedupingInterval: 30000, // 30 seconds
+    refreshInterval: 0 // No auto-refresh
+  });
 
+  // Insights data with proper caching
   const { 
     data: insights, 
     error: insightsError, 
     isLoading: insightsLoading,
     mutate: mutateInsights 
-  } = useSWR<PropertyInsights>(`/api/properties/insights?_t=${Date.now()}`, () => propertiesApi.getInsights());
+  } = useSWR<PropertyInsights>('/api/properties/insights', () => propertiesApi.getInsights(), {
+    revalidateOnFocus: false,
+    revalidateOnReconnect: false,
+    dedupingInterval: 30000, // 30 seconds
+    refreshInterval: 0 // No auto-refresh
+  });
 
   // Force refresh function to clear cache and refetch
   const forceRefresh = () => {
     mutateProperties();
     mutateInsights();
-    // Force clear SWR cache for properties
-    if (typeof window !== 'undefined' && window.swrCache) {
-      window.swrCache.clear();
-    }
+    toast.success('Data refreshed successfully');
   };
 
   // Computed values
