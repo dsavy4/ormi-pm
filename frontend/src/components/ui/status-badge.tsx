@@ -12,25 +12,25 @@ import {
 } from "lucide-react"
 
 const statusBadgeVariants = cva(
-  "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+  "inline-flex items-center gap-1.5 rounded-full border-2 px-3 py-1.5 text-xs font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 shadow-sm",
   {
     variants: {
       variant: {
         occupied:
-          "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800/30 dark:bg-emerald-900/20 dark:text-emerald-300",
+          "border-emerald-500 bg-emerald-500 text-white shadow-emerald-500/25 dark:border-emerald-400 dark:bg-emerald-400 dark:text-emerald-950 dark:shadow-emerald-400/25",
         vacant:
-          "border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700/30 dark:bg-slate-800/20 dark:text-slate-300",
+          "border-slate-500 bg-slate-500 text-white shadow-slate-500/25 dark:border-slate-400 dark:bg-slate-400 dark:text-slate-950 dark:shadow-slate-400/25",
         maintenance:
-          "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800/30 dark:bg-amber-900/20 dark:text-amber-300",
+          "border-amber-500 bg-amber-500 text-white shadow-amber-500/25 dark:border-amber-400 dark:bg-amber-400 dark:text-amber-950 dark:shadow-amber-400/25",
         reserved:
-          "border-indigo-200 bg-indigo-50 text-indigo-800 dark:border-indigo-800/30 dark:bg-indigo-900/20 dark:text-indigo-300",
+          "border-indigo-500 bg-indigo-500 text-white shadow-indigo-500/25 dark:border-indigo-400 dark:bg-indigo-400 dark:text-indigo-950 dark:shadow-indigo-400/25",
         default:
-          "border-gray-200 bg-gray-50 text-gray-700 dark:border-gray-800/30 dark:bg-gray-900/20 dark:text-gray-400",
+          "border-gray-500 bg-gray-500 text-white shadow-gray-500/25 dark:border-gray-400 dark:bg-gray-400 dark:text-gray-950 dark:shadow-gray-400/25",
       },
       size: {
-        sm: "px-2 py-0.5 text-xs",
-        md: "px-2.5 py-1 text-xs",
-        lg: "px-3 py-1.5 text-sm",
+        sm: "px-2 py-1 text-xs border",
+        md: "px-3 py-1.5 text-xs border-2",
+        lg: "px-4 py-2 text-sm border-2",
       },
     },
     defaultVariants: {
@@ -113,9 +113,9 @@ function StatusBadge({
       {...props}
     >
       {showIcon && (
-        <IconComponent className="h-3 w-3 flex-shrink-0" />
+        <IconComponent className="h-3.5 w-3.5 flex-shrink-0" />
       )}
-      <span className="font-medium">{config.label}</span>
+      <span className="font-semibold">{config.label}</span>
     </div>
   )
 }
