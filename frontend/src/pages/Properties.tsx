@@ -5957,6 +5957,123 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
               </CardContent>
             </Card>
           )}
+
+          {/* Units Section with Inline Expansion */}
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-2">
+                  <Home className="h-5 w-5 text-blue-600" />
+                  <h3 className="text-lg font-semibold">Units ({property.totalUnits || 0})</h3>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm">
+                    <Filter className="h-4 w-4 mr-2" />
+                    Filters
+                  </Button>
+                  <Button size="sm">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Unit
+                  </Button>
+                </div>
+              </div>
+
+              {/* Mock Units Data for Demonstration */}
+              {(() => {
+                const mockUnits = [
+                  {
+                    id: 'unit-1',
+                    unitNumber: '101',
+                    bedrooms: 2,
+                    bathrooms: 1,
+                    sqft: 850,
+                    monthlyRent: 1800,
+                    status: 'occupied' as const,
+                    tenant: {
+                      id: 'tenant-1',
+                      name: 'John Smith',
+                      email: 'john.smith@email.com',
+                      phone: '(555) 123-4567'
+                    },
+                    lease: {
+                      startDate: '2024-01-01',
+                      endDate: '2024-12-31',
+                      securityDeposit: 1800
+                    }
+                  },
+                  {
+                    id: 'unit-2',
+                    unitNumber: '102',
+                    bedrooms: 1,
+                    bathrooms: 1,
+                    sqft: 650,
+                    monthlyRent: 1400,
+                    status: 'vacant' as const,
+                    tenant: null,
+                    lease: null
+                  },
+                  {
+                    id: 'unit-3',
+                    unitNumber: '201',
+                    bedrooms: 3,
+                    bathrooms: 2,
+                    sqft: 1200,
+                    monthlyRent: 2200,
+                    status: 'occupied' as const,
+                    tenant: {
+                      id: 'tenant-2',
+                      name: 'Sarah Johnson',
+                      email: 'sarah.j@email.com',
+                      phone: '(555) 987-6543'
+                    },
+                    lease: {
+                      startDate: '2023-11-01',
+                      endDate: '2024-10-31',
+                      securityDeposit: 2200
+                    }
+                  }
+                ];
+
+                return (
+                  <div className="space-y-3">
+                    {mockUnits.map(unit => (
+                      <ExpandableUnitCard
+                        key={unit.id}
+                        unit={{
+                          id: unit.id,
+                          number: unit.unitNumber,
+                          bedrooms: unit.bedrooms,
+                          bathrooms: unit.bathrooms,
+                          squareFootage: unit.sqft,
+                          floor: 1, // Mock data
+                          building: 'Main',
+                          amenities: ['AC', 'W/D'],
+                          monthlyRent: unit.monthlyRent,
+                          securityDeposit: unit.lease?.securityDeposit || unit.monthlyRent,
+                          status: unit.status,
+                          tenant: unit.tenant ? {
+                            id: unit.tenant.id,
+                            name: unit.tenant.name,
+                            email: unit.tenant.email,
+                            phone: unit.tenant.phone,
+                            moveInDate: unit.lease?.startDate || '2024-01-01'
+                          } : undefined
+                        }}
+                        isExpanded={expandedUnits.has(unit.id)}
+                        details={unitDetails[unit.id]}
+                        isLoading={loadingUnits.has(unit.id)}
+                        onToggle={() => toggleUnitExpansion(unit.id)}
+                        onEdit={(unitId) => {
+                          // TODO: Implement unit edit
+                          console.log('Edit unit:', unitId);
+                        }}
+                      />
+                    ))}
+                  </div>
+                );
+              })()}
+            </CardContent>
+          </Card>
           </div>
         </div>
       </SheetContent>
