@@ -12,25 +12,25 @@ import {
 } from "lucide-react"
 
 const statusBadgeVariants = cva(
-  "inline-flex items-center gap-1.5 rounded-full border-2 px-3 py-1.5 text-xs font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 shadow-sm",
+  "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
   {
     variants: {
       variant: {
         occupied:
-          "border-emerald-500 bg-emerald-500 text-white shadow-emerald-500/25 dark:border-emerald-400 dark:bg-emerald-400 dark:text-emerald-950 dark:shadow-emerald-400/25",
+          "border-emerald-200 bg-emerald-100 text-emerald-800 dark:border-emerald-800/30 dark:bg-emerald-900/20 dark:text-emerald-300",
         vacant:
-          "border-slate-500 bg-slate-500 text-white shadow-slate-500/25 dark:border-slate-400 dark:bg-slate-400 dark:text-slate-950 dark:shadow-slate-400/25",
+          "border-slate-200 bg-slate-100 text-slate-700 dark:border-slate-700/30 dark:bg-slate-800/20 dark:text-slate-300",
         maintenance:
-          "border-amber-500 bg-amber-500 text-white shadow-amber-500/25 dark:border-amber-400 dark:bg-amber-400 dark:text-amber-950 dark:shadow-amber-400/25",
+          "border-amber-200 bg-amber-100 text-amber-800 dark:border-amber-800/30 dark:bg-amber-900/20 dark:text-amber-300",
         reserved:
-          "border-indigo-500 bg-indigo-500 text-white shadow-indigo-500/25 dark:border-indigo-400 dark:bg-indigo-400 dark:text-indigo-950 dark:shadow-indigo-400/25",
+          "border-indigo-200 bg-indigo-100 text-indigo-800 dark:border-indigo-800/30 dark:bg-indigo-900/20 dark:text-indigo-300",
         default:
-          "border-gray-500 bg-gray-500 text-white shadow-gray-500/25 dark:border-gray-400 dark:bg-gray-400 dark:text-gray-950 dark:shadow-gray-400/25",
+          "border-gray-200 bg-gray-100 text-gray-700 dark:border-gray-700/30 dark:bg-gray-800/20 dark:text-gray-300",
       },
       size: {
-        sm: "px-2 py-1 text-xs border",
-        md: "px-3 py-1.5 text-xs border-2",
-        lg: "px-4 py-2 text-sm border-2",
+        sm: "px-2 py-1 text-xs",
+        md: "px-3 py-1.5 text-xs",
+        lg: "px-4 py-2 text-sm",
       },
     },
     defaultVariants: {
