@@ -78,6 +78,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/ui/status-badge';
 import { ProCheckbox } from '@/components/ui/pro-checkbox';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -2370,15 +2371,7 @@ const ExpandableUnitCard: React.FC<ExpandableUnitCardProps> = ({
   onToggle,
   onEdit
 }) => {
-  const getStatusVariant = (status: string) => {
-    switch (status) {
-      case 'occupied': return 'default';
-      case 'vacant': return 'secondary';
-      case 'maintenance': return 'destructive';
-      case 'reserved': return 'outline';
-      default: return 'secondary';
-    }
-  };
+  // Status badge configuration is now handled by the StatusBadge component
 
   return (
     <Card className={`transition-all duration-300 ${
@@ -2419,9 +2412,7 @@ const ExpandableUnitCard: React.FC<ExpandableUnitCardProps> = ({
                 </div>
               )}
               
-              <Badge variant={getStatusVariant(unit.status)}>
-                {unit.status}
-              </Badge>
+              <StatusBadge status={unit.status} size="sm" />
             </div>
           </div>
 
