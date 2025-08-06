@@ -566,21 +566,27 @@ export const unitsApi = {
     return handleResponse(response);
   },
 
-  getByProperty: async (propertyId: string, page: number = 1, limit: number = 20, filters?: {
-    search?: string;
-    status?: string;
-    sortBy?: string;
-    sortOrder?: 'asc' | 'desc';
-  }) => {
+              getByProperty: async (propertyId: string, page: number = 1, limit: number = 20, filters?: {
+              search?: string;
+              status?: string;
+              occupancy?: string;
+              bedrooms?: string;
+              floor?: string;
+              sortBy?: string;
+              sortOrder?: 'asc' | 'desc';
+            }) => {
     const params = new URLSearchParams({
       page: page.toString(),
       limit: limit.toString()
     });
 
-    if (filters?.search) params.append('search', filters.search);
-    if (filters?.status) params.append('status', filters.status);
-    if (filters?.sortBy) params.append('sortBy', filters.sortBy);
-    if (filters?.sortOrder) params.append('sortOrder', filters.sortOrder);
+                  if (filters?.search) params.append('search', filters.search);
+              if (filters?.status) params.append('status', filters.status);
+              if (filters?.occupancy) params.append('occupancy', filters.occupancy);
+              if (filters?.bedrooms) params.append('bedrooms', filters.bedrooms);
+              if (filters?.floor) params.append('floor', filters.floor);
+              if (filters?.sortBy) params.append('sortBy', filters.sortBy);
+              if (filters?.sortOrder) params.append('sortOrder', filters.sortOrder);
 
     const response = await fetch(`${API_BASE_URL}/api/units/property/${propertyId}?${params}`, {
       headers: getAuthHeaders(),

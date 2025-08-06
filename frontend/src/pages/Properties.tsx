@@ -5523,6 +5523,9 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
   // State for smart filtering
   const [unitSearchQuery, setUnitSearchQuery] = useState('');
   const [unitStatusFilter, setUnitStatusFilter] = useState('all');
+  const [unitOccupancyFilter, setUnitOccupancyFilter] = useState('all');
+  const [unitBedroomsFilter, setUnitBedroomsFilter] = useState('all');
+  const [unitFloorFilter, setUnitFloorFilter] = useState('all');
   const [unitSortBy, setUnitSortBy] = useState('unitNumber');
 
   // State for real units data
@@ -5560,13 +5563,16 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
     try {
       const { unitsApi } = await import('@/lib/api');
       
-      // Apply current filters
-      const filters = {
-        search: unitSearchQuery,
-        status: unitStatusFilter,
-        sortBy: unitSortBy,
-        sortOrder: 'asc' as const
-      };
+                      // Apply current filters
+                const filters = {
+                  search: unitSearchQuery,
+                  status: unitStatusFilter,
+                  occupancy: unitOccupancyFilter,
+                  bedrooms: unitBedroomsFilter,
+                  floor: unitFloorFilter,
+                  sortBy: unitSortBy,
+                  sortOrder: 'asc' as const
+                };
 
       const response = await unitsApi.getByProperty(property.id, page, 20, filters);
       
@@ -6269,6 +6275,46 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
                     </SelectContent>
                   </Select>
 
+                  <Select value={unitOccupancyFilter} onValueChange={setUnitOccupancyFilter}>
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue placeholder="Occupancy" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All</SelectItem>
+                      <SelectItem value="occupied">Occupied</SelectItem>
+                      <SelectItem value="vacant">Vacant</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <Select value={unitBedroomsFilter} onValueChange={setUnitBedroomsFilter}>
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue placeholder="Bedrooms" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All</SelectItem>
+                      <SelectItem value="0">Studio</SelectItem>
+                      <SelectItem value="1">1 Bedroom</SelectItem>
+                      <SelectItem value="2">2 Bedrooms</SelectItem>
+                      <SelectItem value="3">3 Bedrooms</SelectItem>
+                      <SelectItem value="4">4+ Bedrooms</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <Select value={unitFloorFilter} onValueChange={setUnitFloorFilter}>
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue placeholder="Floor" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Floors</SelectItem>
+                      <SelectItem value="0">Ground Floor</SelectItem>
+                      <SelectItem value="1">1st Floor</SelectItem>
+                      <SelectItem value="2">2nd Floor</SelectItem>
+                      <SelectItem value="3">3rd Floor</SelectItem>
+                      <SelectItem value="4">4th Floor</SelectItem>
+                      <SelectItem value="5">5th Floor</SelectItem>
+                    </SelectContent>
+                  </Select>
+
                   <Select value={unitSortBy} onValueChange={setUnitSortBy}>
                     <SelectTrigger className="w-[140px]">
                       <SelectValue placeholder="Sort by" />
@@ -6288,6 +6334,9 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
                     onClick={() => {
                       setUnitSearchQuery('');
                       setUnitStatusFilter('all');
+                      setUnitOccupancyFilter('all');
+                      setUnitBedroomsFilter('all');
+                      setUnitFloorFilter('all');
                       setUnitSortBy('unitNumber');
                     }}
                   >
@@ -6339,11 +6388,42 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
                   );
                 }
 
-                // Status filter
+                                // Status filter
                 if (unitStatusFilter !== 'all') {
-                  filteredUnits = filteredUnits.filter(unit => 
+                  filteredUnits = filteredUnits.filter(unit =>
                     unit.status.toLowerCase() === unitStatusFilter
                   );
+                }
+
+                // Occupancy filter
+                if (unitOccupancyFilter !== 'all') {
+                  filteredUnits = filteredUnits.filter(unit => {
+                    if (unitOccupancyFilter === 'occupied') {
+                      return unit.tenant !== null;
+                    } else if (unitOccupancyFilter === 'vacant') {
+                      return unit.tenant === null;
+                    }
+                    return true;
+                  });
+                }
+
+                // Bedrooms filter
+                if (unitBedroomsFilter !== 'all') {
+                  filteredUnits = filteredUnits.filter(unit => {
+                    const bedrooms = unit.bedrooms || 0;
+                    if (unitBedroomsFilter === '4') {
+                      return bedrooms >= 4;
+                    }
+                    return bedrooms === parseInt(unitBedroomsFilter);
+                  });
+                }
+
+                // Floor filter
+                if (unitFloorFilter !== 'all') {
+                  filteredUnits = filteredUnits.filter(unit => {
+                    const floor = unit.floor || 0;
+                    return floor === parseInt(unitFloorFilter);
+                  });
                 }
 
                 // Sort units
@@ -6372,8 +6452,11 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
                     {filteredUnits.length !== units.length && (
                       <div className="text-sm text-muted-foreground mb-4">
                         Showing {filteredUnits.length} of {units.length} units
-                        {unitSearchQuery && ` matching "${unitSearchQuery}"`}
-                        {unitStatusFilter !== 'all' && ` with status "${unitStatusFilter}"`}
+                                        {unitSearchQuery && ` matching "${unitSearchQuery}"`}
+                {unitStatusFilter !== 'all' && ` with status "${unitStatusFilter}"`}
+                {unitOccupancyFilter !== 'all' && ` ${unitOccupancyFilter}`}
+                {unitBedroomsFilter !== 'all' && ` ${unitBedroomsFilter === '0' ? 'Studio' : `${unitBedroomsFilter}BR`}`}
+                {unitFloorFilter !== 'all' && ` Floor ${unitFloorFilter}`}
                       </div>
                     )}
 
@@ -6437,10 +6520,16 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
                               ? `No units match "${unitSearchQuery}"`
                               : unitStatusFilter !== 'all'
                               ? `No units with status "${unitStatusFilter}"`
+                              : unitOccupancyFilter !== 'all'
+                              ? `No ${unitOccupancyFilter} units`
+                              : unitBedroomsFilter !== 'all'
+                              ? `No ${unitBedroomsFilter === '0' ? 'Studio' : `${unitBedroomsFilter}BR`} units`
+                              : unitFloorFilter !== 'all'
+                              ? `No units on Floor ${unitFloorFilter}`
                               : 'No units available'
                             }
                           </p>
-                          {(unitSearchQuery || unitStatusFilter !== 'all') && (
+                          {(unitSearchQuery || unitStatusFilter !== 'all' || unitOccupancyFilter !== 'all' || unitBedroomsFilter !== 'all' || unitFloorFilter !== 'all') && (
                             <Button
                               variant="outline"
                               size="sm"
@@ -6448,6 +6537,9 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
                               onClick={() => {
                                 setUnitSearchQuery('');
                                 setUnitStatusFilter('all');
+                                setUnitOccupancyFilter('all');
+                                setUnitBedroomsFilter('all');
+                                setUnitFloorFilter('all');
                               }}
                             >
                               Clear filters

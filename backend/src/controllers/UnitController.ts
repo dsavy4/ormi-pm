@@ -20,12 +20,15 @@ export class UnitController {
       }
 
       // Get query parameters
-      const page = parseInt(c.req.query('page') || '1');
-      const limit = parseInt(c.req.query('limit') || '20');
-      const search = c.req.query('search') || '';
-      const status = c.req.query('status') || '';
-      const sortBy = c.req.query('sortBy') || 'unitNumber';
-      const sortOrder = c.req.query('sortOrder') || 'asc';
+                        const page = parseInt(c.req.query('page') || '1');
+                  const limit = parseInt(c.req.query('limit') || '20');
+                  const search = c.req.query('search') || '';
+                  const status = c.req.query('status') || '';
+                  const occupancy = c.req.query('occupancy') || '';
+                  const bedrooms = c.req.query('bedrooms') || '';
+                  const floor = c.req.query('floor') || '';
+                  const sortBy = c.req.query('sortBy') || 'unitNumber';
+                  const sortOrder = c.req.query('sortOrder') || 'asc';
       
       // Get property info to determine loading strategy
       const { data: property, error: propertyError } = await supabase
@@ -67,14 +70,30 @@ export class UnitController {
         .eq('propertyId', propertyId)
         .eq('isActive', true);
 
-      // Add filters
-      if (search) {
-        query = query.or(`unitNumber.ilike.%${search}%,tenant.firstName.ilike.%${search}%,tenant.lastName.ilike.%${search}%`);
-      }
+                        // Add filters
+                  if (search) {
+                    query = query.or(`unitNumber.ilike.%${search}%,tenant.firstName.ilike.%${search}%,tenant.lastName.ilike.%${search}%`);
+                  }
 
-      if (status && status !== 'all') {
-        query = query.eq('status', status.toUpperCase());
-      }
+                  if (status && status !== 'all') {
+                    query = query.eq('status', status.toUpperCase());
+                  }
+
+                  if (occupancy && occupancy !== 'all') {
+                    if (occupancy === 'occupied') {
+                      query = query.not('tenantId', 'is', null);
+                    } else if (occupancy === 'vacant') {
+                      query = query.is('tenantId', null);
+                    }
+                  }
+
+                  if (bedrooms && bedrooms !== 'all') {
+                    query = query.eq('bedrooms', parseInt(bedrooms));
+                  }
+
+                  if (floor && floor !== 'all') {
+                    query = query.eq('floor', parseInt(floor));
+                  }
 
       // Add sorting
       if (sortBy === 'unitNumber') {
