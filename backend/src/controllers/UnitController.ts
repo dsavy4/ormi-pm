@@ -62,20 +62,17 @@ export class UnitController {
         unitNumber: unit.unitNumber,
         bedrooms: unit.bedrooms,
         bathrooms: unit.bathrooms,
-        sqft: unit.squareFootage,
+        squareFootage: unit.squareFootage,
         monthlyRent: parseFloat(unit.monthlyRent.toString()),
         status: unit.status.toLowerCase(),
+        amenities: unit.amenities || [],
+        createdAt: unit.createdAt.toISOString(),
         tenant: unit.tenant ? {
           id: unit.tenant.id,
-          name: `${unit.tenant.firstName} ${unit.tenant.lastName}`,
+          firstName: unit.tenant.firstName,
+          lastName: unit.tenant.lastName,
           email: unit.tenant.email,
-          phone: unit.tenant.phoneNumber || '',
-          moveInDate: unit.createdAt.toISOString().split('T')[0] // Using creation date as move-in date for now
-        } : null,
-        lease: unit.tenant ? {
-          startDate: unit.createdAt.toISOString().split('T')[0],
-          endDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 1 year from now
-          securityDeposit: parseFloat(unit.monthlyRent.toString())
+          phoneNumber: unit.tenant.phoneNumber || ''
         } : null,
         lastPayment: unit.payments[0] ? {
           date: unit.payments[0].paymentDate?.toISOString().split('T')[0],
