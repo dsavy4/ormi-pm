@@ -14,6 +14,7 @@ import { SignJWT, jwtVerify } from 'jose';
 import { z } from 'zod';
 import { getSupabaseClient } from './utils/supabase';
 import Stripe from 'stripe';
+import { UnitController } from './controllers/UnitController';
 
 // Initialize Hono app
 const app = new Hono<{ Bindings: Env; Variables: Variables }>();
@@ -542,6 +543,21 @@ app.get('/api/units', authMiddleware, async (c) => {
     console.error('[DEBUG] Error details:', error);
     return c.json({ error: 'Internal server error' }, 500);
   }
+});
+
+// Get units for a specific property
+app.get('/api/units/property/:propertyId', authMiddleware, async (c) => {
+  return UnitController.getUnitsByProperty(c);
+});
+
+// Get unit details by ID
+app.get('/api/units/:unitId/details', authMiddleware, async (c) => {
+  return UnitController.getUnitDetails(c);
+});
+
+// Get bulk unit details by array of IDs
+app.post('/api/units/bulk-details', authMiddleware, async (c) => {
+  return UnitController.getBulkUnitDetails(c);
 });
 
 // Unit image upload endpoints

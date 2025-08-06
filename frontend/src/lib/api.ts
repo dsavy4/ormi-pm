@@ -567,7 +567,7 @@ export const unitsApi = {
   },
 
   getByProperty: async (propertyId: string) => {
-    const response = await fetch(`${API_BASE_URL}/api/properties/${propertyId}/units`, {
+    const response = await fetch(`${API_BASE_URL}/api/units/property/${propertyId}`, {
       headers: getAuthHeaders(),
     });
     return handleResponse(response);
@@ -576,6 +576,22 @@ export const unitsApi = {
   getById: async (id: string) => {
     const response = await fetch(`${API_BASE_URL}/api/units/${id}`, {
       headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  getDetails: async (unitId: string) => {
+    const response = await fetch(`${API_BASE_URL}/api/units/${unitId}/details`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  getBulkDetails: async (unitIds: string[]) => {
+    const response = await fetch(`${API_BASE_URL}/api/units/bulk-details`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ unitIds }),
     });
     return handleResponse(response);
   },

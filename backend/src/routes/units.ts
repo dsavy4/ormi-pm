@@ -1,53 +1,15 @@
-import { Router } from 'express';
-import { authenticateToken, AuthRequest } from '../middleware/auth';
+import { Hono } from 'hono';
 import { UnitController } from '../controllers/UnitController';
 
-const router = Router();
-const unitController = new UnitController();
+const units = new Hono();
 
-// All routes require authentication
-router.use(authenticateToken);
+// Get all units for a specific property
+units.get('/property/:propertyId', UnitController.getUnitsByProperty);
 
-// GET /api/units - Get all units (legacy route)
-router.get('/', (req: AuthRequest, res) => {
-  res.json({ message: 'Units route working', user: req.user });
-});
+// Get unit details by ID
+units.get('/:unitId/details', UnitController.getUnitDetails);
 
+// Get bulk unit details by array of IDs
+units.post('/bulk-details', UnitController.getBulkUnitDetails);
 
-
-// GET /api/units/:id - Get single unit
-router.get('/:id', async (req: AuthRequest, res) => {
-  await unitController.getById(req, res);
-});
-
-// POST /api/units - Create new unit
-router.post('/', async (req: AuthRequest, res) => {
-  await unitController.create(req, res);
-});
-
-// PUT /api/units/:id - Update unit
-router.put('/:id', async (req: AuthRequest, res) => {
-  await unitController.update(req, res);
-});
-
-// DELETE /api/units/:id - Delete unit
-router.delete('/:id', async (req: AuthRequest, res) => {
-  await unitController.delete(req, res);
-});
-
-// PUT /api/units/:id/assign-tenant - Assign tenant to unit
-router.put('/:id/assign-tenant', async (req: AuthRequest, res) => {
-  await unitController.assignTenant(req, res);
-});
-
-// PUT /api/units/:id/remove-tenant - Remove tenant from unit
-router.put('/:id/remove-tenant', async (req: AuthRequest, res) => {
-  await unitController.removeTenant(req, res);
-});
-
-// POST /api/units/bulk-operations - Bulk operations on units
-router.post('/bulk-operations', async (req: AuthRequest, res) => {
-  await unitController.bulkOperations(req, res);
-});
-
-export default router; 
+export default units; 

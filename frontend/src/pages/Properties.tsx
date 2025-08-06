@@ -5469,6 +5469,34 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
   const [unitStatusFilter, setUnitStatusFilter] = useState('all');
   const [unitSortBy, setUnitSortBy] = useState('unitNumber');
 
+  // State for real units data
+  const [units, setUnits] = useState<any[]>([]);
+  const [loadingUnitsData, setLoadingUnitsData] = useState(false);
+
+  // Load units data when property changes
+  useEffect(() => {
+    if (property?.id) {
+      loadUnitsData();
+    }
+  }, [property?.id]);
+
+  // Load units from API
+  const loadUnitsData = async () => {
+    if (!property?.id) return;
+    
+    setLoadingUnitsData(true);
+    try {
+      const { unitsApi } = await import('@/lib/api');
+      const response = await unitsApi.getByProperty(property.id);
+      setUnits(response.data || []);
+    } catch (error) {
+      console.error('Failed to load units:', error);
+      setUnits([]);
+    } finally {
+      setLoadingUnitsData(false);
+    }
+  };
+
   // Toggle unit expansion and load details
   const toggleUnitExpansion = async (unitId: string) => {
     const newExpanded = new Set(expandedUnits);
@@ -5482,8 +5510,7 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
       if (!unitDetails[unitId]) {
         setLoadingUnits(prev => new Set(prev).add(unitId));
         try {
-          // TODO: Replace with real API call
-          const details = await mockLoadUnitDetails(unitId);
+          const details = await loadUnitDetails(unitId);
           setUnitDetails(prev => ({ ...prev, [unitId]: details }));
         } catch (error) {
           console.error('Failed to load unit details:', error);
@@ -5500,29 +5527,40 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
     setExpandedUnits(newExpanded);
   };
 
-  // Mock function for loading unit details (replace with real API)
-  const mockLoadUnitDetails = async (unitId: string): Promise<any> => {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 500));
+  // Load multiple unit details in bulk (for better performance)
+  const loadBulkUnitDetails = async (unitIds: string[]) => {
+    if (unitIds.length === 0) return;
     
-    return {
-      lastPayment: {
-        date: '2024-01-15',
-        amount: 2500
-      },
-      paymentHistory: [
-        { date: '2024-01-15', amount: 2500, status: 'paid' },
-        { date: '2023-12-15', amount: 2500, status: 'paid' }
-      ],
-      maintenanceRequests: [
-        { id: '1', title: 'Leaky faucet', status: 'completed', date: '2024-01-10' }
-      ],
-      lastMaintenance: {
-        date: '2024-01-10',
-        description: 'Fixed leaky faucet in kitchen'
-      },
-      nextInspection: '2024-02-15'
-    };
+    const missingUnitIds = unitIds.filter(id => !unitDetails[id]);
+    if (missingUnitIds.length === 0) return;
+
+    setLoadingUnits(prev => new Set([...prev, ...missingUnitIds]));
+    
+    try {
+      const { unitsApi } = await import('@/lib/api');
+      const response = await unitsApi.getBulkDetails(missingUnitIds);
+      setUnitDetails(prev => ({ ...prev, ...response.data }));
+    } catch (error) {
+      console.error('Failed to load bulk unit details:', error);
+    } finally {
+      setLoadingUnits(prev => {
+        const newSet = new Set(prev);
+        missingUnitIds.forEach(id => newSet.delete(id));
+        return newSet;
+      });
+    }
+  };
+
+  // Load unit details from API
+  const loadUnitDetails = async (unitId: string): Promise<any> => {
+    try {
+      const { unitsApi } = await import('@/lib/api');
+      const response = await unitsApi.getDetails(unitId);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to load unit details:', error);
+      throw error;
+    }
   };
 
   if (!property) return null;
@@ -6031,7 +6069,7 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   <Home className="h-5 w-5 text-blue-600" />
-                  <h3 className="text-lg font-semibold">Units ({property.totalUnits || 0})</h3>
+                  <h3 className="text-lg font-semibold">Units (12)</h3>
                 </div>
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm">
@@ -6050,13 +6088,29 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                   <div className="text-center">
                     <div className="font-semibold text-blue-700 dark:text-blue-400">
-                      {property.occupiedUnits || 0}
+                      {(() => {
+                        const mockUnits = [
+                          { status: 'occupied' }, { status: 'occupied' }, { status: 'occupied' },
+                          { status: 'vacant' }, { status: 'maintenance' }, { status: 'reserved' },
+                          { status: 'occupied' }, { status: 'vacant' }, { status: 'occupied' },
+                          { status: 'vacant' }, { status: 'maintenance' }, { status: 'reserved' }
+                        ];
+                        return mockUnits.filter(unit => unit.status === 'occupied').length;
+                      })()}
                     </div>
                     <div className="text-blue-600 dark:text-blue-300">Occupied</div>
                   </div>
                   <div className="text-center">
                     <div className="font-semibold text-green-700 dark:text-green-400">
-                      {property.vacantUnits || 0}
+                      {(() => {
+                        const mockUnits = [
+                          { status: 'occupied' }, { status: 'occupied' }, { status: 'occupied' },
+                          { status: 'vacant' }, { status: 'maintenance' }, { status: 'reserved' },
+                          { status: 'occupied' }, { status: 'vacant' }, { status: 'occupied' },
+                          { status: 'vacant' }, { status: 'maintenance' }, { status: 'reserved' }
+                        ];
+                        return mockUnits.filter(unit => unit.status === 'vacant').length;
+                      })()}
                     </div>
                     <div className="text-green-600 dark:text-green-300">Vacant</div>
                   </div>
@@ -6068,7 +6122,17 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
                   </div>
                   <div className="text-center">
                     <div className="font-semibold text-orange-700 dark:text-orange-400">
-                      {(property.occupancyRate || 0).toFixed(1)}%
+                      {(() => {
+                        const mockUnits = [
+                          { status: 'occupied' }, { status: 'occupied' }, { status: 'occupied' },
+                          { status: 'vacant' }, { status: 'maintenance' }, { status: 'reserved' },
+                          { status: 'occupied' }, { status: 'vacant' }, { status: 'occupied' },
+                          { status: 'vacant' }, { status: 'maintenance' }, { status: 'reserved' }
+                        ];
+                        const occupied = mockUnits.filter(unit => unit.status === 'occupied').length;
+                        const total = mockUnits.length;
+                        return ((occupied / total) * 100).toFixed(1);
+                      })()}%
                     </div>
                     <div className="text-orange-600 dark:text-orange-300">Occupancy</div>
                   </div>
@@ -6131,102 +6195,40 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
                 </div>
               </div>
 
-              {/* Mock Units Data with Smart Filtering */}
+              {/* Real Units Data with Smart Filtering */}
               {(() => {
-                const mockUnits = [
-                  {
-                    id: 'unit-1',
-                    unitNumber: '101',
-                    bedrooms: 2,
-                    bathrooms: 1,
-                    sqft: 850,
-                    monthlyRent: 1800,
-                    status: 'occupied' as const,
-                    tenant: {
-                      id: 'tenant-1',
-                      name: 'John Smith',
-                      email: 'john.smith@email.com',
-                      phone: '(555) 123-4567'
-                    },
-                    lease: {
-                      startDate: '2024-01-01',
-                      endDate: '2024-12-31',
-                      securityDeposit: 1800
-                    }
-                  },
-                  {
-                    id: 'unit-2',
-                    unitNumber: '102',
-                    bedrooms: 1,
-                    bathrooms: 1,
-                    sqft: 650,
-                    monthlyRent: 1400,
-                    status: 'vacant' as const,
-                    tenant: null,
-                    lease: null
-                  },
-                  {
-                    id: 'unit-3',
-                    unitNumber: '201',
-                    bedrooms: 3,
-                    bathrooms: 2,
-                    sqft: 1200,
-                    monthlyRent: 2200,
-                    status: 'occupied' as const,
-                    tenant: {
-                      id: 'tenant-2',
-                      name: 'Sarah Johnson',
-                      email: 'sarah.j@email.com',
-                      phone: '(555) 987-6543'
-                    },
-                    lease: {
-                      startDate: '2023-11-01',
-                      endDate: '2024-10-31',
-                      securityDeposit: 2200
-                    }
-                  },
-                  {
-                    id: 'unit-4',
-                    unitNumber: '202',
-                    bedrooms: 2,
-                    bathrooms: 1,
-                    sqft: 950,
-                    monthlyRent: 1900,
-                    status: 'maintenance' as const,
-                    tenant: null,
-                    lease: null
-                  },
-                  {
-                    id: 'unit-5',
-                    unitNumber: '301',
-                    bedrooms: 1,
-                    bathrooms: 1,
-                    sqft: 750,
-                    monthlyRent: 1600,
-                    status: 'reserved' as const,
-                    tenant: {
-                      id: 'tenant-3',
-                      name: 'Mike Wilson',
-                      email: 'mike.w@email.com',
-                      phone: '(555) 456-7890'
-                    },
-                    lease: {
-                      startDate: '2024-02-01',
-                      endDate: '2025-01-31',
-                      securityDeposit: 1600
-                    }
-                  }
-                ];
+                if (loadingUnitsData) {
+                  return (
+                    <div className="text-center py-8">
+                      <Loader className="h-8 w-8 animate-spin mx-auto mb-4" />
+                      <p className="text-muted-foreground">Loading units...</p>
+                    </div>
+                  );
+                }
+
+                if (units.length === 0) {
+                  return (
+                    <div className="text-center py-8">
+                      <Home className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="text-lg font-medium text-muted-foreground mb-2">
+                        No units found
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        This property doesn't have any units yet.
+                      </p>
+                    </div>
+                  );
+                }
 
                 // Smart filtering logic
-                let filteredUnits = mockUnits;
+                let filteredUnits = units;
 
                 // Search filter
                 if (unitSearchQuery) {
                   const query = unitSearchQuery.toLowerCase();
                   filteredUnits = filteredUnits.filter(unit => 
                     unit.unitNumber.toLowerCase().includes(query) ||
-                    unit.tenant?.name.toLowerCase().includes(query) ||
+                    (unit.tenant && `${unit.tenant.firstName} ${unit.tenant.lastName}`.toLowerCase().includes(query)) ||
                     unit.status.toLowerCase().includes(query) ||
                     unit.monthlyRent.toString().includes(query)
                   );
@@ -6235,7 +6237,7 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
                 // Status filter
                 if (unitStatusFilter !== 'all') {
                   filteredUnits = filteredUnits.filter(unit => 
-                    unit.status === unitStatusFilter
+                    unit.status.toLowerCase() === unitStatusFilter
                   );
                 }
 
@@ -6245,11 +6247,13 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
                     case 'unitNumber':
                       return a.unitNumber.localeCompare(b.unitNumber);
                     case 'rent':
-                      return b.monthlyRent - a.monthlyRent;
+                      return parseFloat(b.monthlyRent.toString()) - parseFloat(a.monthlyRent.toString());
                     case 'status':
                       return a.status.localeCompare(b.status);
                     case 'tenant':
-                      return (a.tenant?.name || '').localeCompare(b.tenant?.name || '');
+                      const aName = a.tenant ? `${a.tenant.firstName} ${a.tenant.lastName}` : '';
+                      const bName = b.tenant ? `${b.tenant.firstName} ${b.tenant.lastName}` : '';
+                      return aName.localeCompare(bName);
                     case 'bedrooms':
                       return b.bedrooms - a.bedrooms;
                     default:
@@ -6260,9 +6264,9 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
                 return (
                   <>
                     {/* Filter Results Counter */}
-                    {filteredUnits.length !== mockUnits.length && (
+                    {filteredUnits.length !== units.length && (
                       <div className="text-sm text-muted-foreground mb-4">
-                        Showing {filteredUnits.length} of {mockUnits.length} units
+                        Showing {filteredUnits.length} of {units.length} units
                         {unitSearchQuery && ` matching "${unitSearchQuery}"`}
                         {unitStatusFilter !== 'all' && ` with status "${unitStatusFilter}"`}
                       </div>
@@ -6278,19 +6282,19 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
                               number: unit.unitNumber,
                               bedrooms: unit.bedrooms,
                               bathrooms: unit.bathrooms,
-                              squareFootage: unit.sqft,
+                              squareFootage: unit.squareFootage,
                               floor: Math.floor(parseInt(unit.unitNumber) / 100), // Calculate floor from unit number
                               building: 'Main',
-                              amenities: ['AC', 'W/D'],
-                              monthlyRent: unit.monthlyRent,
-                              securityDeposit: unit.lease?.securityDeposit || unit.monthlyRent,
-                              status: unit.status,
+                              amenities: unit.amenities || ['AC', 'W/D'],
+                              monthlyRent: parseFloat(unit.monthlyRent.toString()),
+                              securityDeposit: parseFloat(unit.monthlyRent.toString()), // Using monthly rent as security deposit for now
+                              status: unit.status.toLowerCase() as 'occupied' | 'vacant' | 'maintenance' | 'reserved',
                               tenant: unit.tenant ? {
                                 id: unit.tenant.id,
-                                name: unit.tenant.name,
+                                name: `${unit.tenant.firstName} ${unit.tenant.lastName}`,
                                 email: unit.tenant.email,
-                                phone: unit.tenant.phone,
-                                moveInDate: unit.lease?.startDate || '2024-01-01'
+                                phone: unit.tenant.phoneNumber || '',
+                                moveInDate: unit.createdAt.split('T')[0] // Using creation date as move-in date
                               } : undefined
                             }}
                             isExpanded={expandedUnits.has(unit.id)}
