@@ -707,10 +707,11 @@ export function Properties() {
   // Enhanced Selection Functions
   // Enhanced Selection Functions with Keyboard Shortcuts
   const handleSelectAll = () => {
-    if (selectedProperties.length === properties.length) {
+    if (selectedProperties.length === properties.length && properties.length > 0) {
       setSelectedProperties([]);
     } else {
-      setSelectedProperties(properties.map(p => p.id));
+      const allPropertyIds = properties.map(p => p.id);
+      setSelectedProperties(allPropertyIds);
     }
   };
 
@@ -730,11 +731,19 @@ export function Properties() {
       return;
     }
 
-    // Ctrl+A: Select all properties
+    // Ctrl+A: Toggle select all properties
     if (e.ctrlKey && e.key === 'a') {
       e.preventDefault();
-      handleSelectAll();
-      toast.success(selectedProperties.length === properties.length ? 'Deselected all properties' : 'Selected all properties');
+      e.stopPropagation();
+      
+      if (selectedProperties.length === properties.length && properties.length > 0) {
+        setSelectedProperties([]);
+        toast.success('Deselected all properties');
+      } else {
+        const allPropertyIds = properties.map(p => p.id);
+        setSelectedProperties(allPropertyIds);
+        toast.success('Selected all properties');
+      }
     }
 
     // Ctrl+D: Deselect all properties
@@ -748,7 +757,7 @@ export function Properties() {
     if (e.key === 'Escape') {
       setSelectedProperties([]);
     }
-  }, [selectedProperties.length, properties.length]);
+  }, [selectedProperties.length, properties.length, properties]);
 
   // Add keyboard event listeners
   useEffect(() => {
@@ -2250,27 +2259,37 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
         />
       )}
 
-      {/* Enhanced Selection Checkbox - Professional Design */}
+      {/* Refined Selection Checkbox - Professional UX */}
       <div className="absolute top-3 left-3 z-10">
         <button
-          onClick={onSelect}
-          className={`flex items-center justify-center w-12 h-12 rounded-xl border-2 transition-all duration-300 cursor-pointer group backdrop-blur-sm ${
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onSelect();
+          }}
+          className={`flex items-center justify-center w-10 h-10 rounded-lg border-2 transition-all duration-200 cursor-pointer group backdrop-blur-sm ${
             isSelected 
-              ? 'bg-primary border-primary shadow-lg shadow-primary/30 scale-110' 
-              : 'bg-white/90 dark:bg-gray-800/90 border-gray-300 dark:border-gray-600 hover:border-primary/60 hover:shadow-lg hover:scale-105'
+              ? 'bg-primary border-primary shadow-md shadow-primary/25 scale-105' 
+              : 'bg-white/95 dark:bg-gray-800/95 border-gray-200 dark:border-gray-600 hover:border-primary/50 hover:shadow-sm hover:scale-102'
           }`}
           aria-label={`Select ${property.name}`}
         >
-          <ProCheckbox
-            checked={isSelected}
-            onCheckedChange={onSelect}
-            size="lg"
-            className={`transition-all duration-300 ${
+          <div 
+            className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all duration-200 ${
               isSelected 
-                ? 'text-white scale-110' 
-                : 'text-gray-600 dark:text-gray-400 group-hover:text-primary group-hover:scale-110'
+                ? 'bg-white border-white' 
+                : 'bg-transparent border-gray-400 group-hover:border-primary'
             }`}
-          />
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onSelect();
+            }}
+          >
+            {isSelected && (
+              <CheckCircle2 className="w-3 h-3 text-primary" />
+            )}
+          </div>
         </button>
         
         {/* Selection Indicator */}
@@ -2507,27 +2526,37 @@ const PropertyListItem: React.FC<PropertyListItemProps> = ({
       )}
 
       <div className="grid grid-cols-12 gap-4 items-center relative z-10">
-        {/* Enhanced Selection - Professional Design */}
+        {/* Refined Selection - Professional UX */}
         <div className="col-span-1">
           <button
-            onClick={onSelect}
-            className={`flex items-center justify-center w-12 h-12 rounded-xl border-2 transition-all duration-300 cursor-pointer group backdrop-blur-sm ${
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onSelect();
+            }}
+            className={`flex items-center justify-center w-10 h-10 rounded-lg border-2 transition-all duration-200 cursor-pointer group backdrop-blur-sm ${
               isSelected 
-                ? 'bg-primary border-primary shadow-lg shadow-primary/30 scale-110' 
-                : 'bg-white/90 dark:bg-gray-800/90 border-gray-300 dark:border-gray-600 hover:border-primary/60 hover:shadow-lg hover:scale-105'
+                ? 'bg-primary border-primary shadow-md shadow-primary/25 scale-105' 
+                : 'bg-white/95 dark:bg-gray-800/95 border-gray-200 dark:border-gray-600 hover:border-primary/50 hover:shadow-sm hover:scale-102'
             }`}
             aria-label={`Select ${property.name}`}
           >
-            <ProCheckbox
-              checked={isSelected}
-              onCheckedChange={onSelect}
-              size="lg"
-              className={`transition-all duration-300 ${
+            <div 
+              className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all duration-200 ${
                 isSelected 
-                  ? 'text-white scale-110' 
-                  : 'text-gray-600 dark:text-gray-400 group-hover:text-primary group-hover:scale-110'
+                  ? 'bg-white border-white' 
+                  : 'bg-transparent border-gray-400 group-hover:border-primary'
               }`}
-            />
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onSelect();
+              }}
+            >
+              {isSelected && (
+                <CheckCircle2 className="w-3 h-3 text-primary" />
+              )}
+            </div>
           </button>
           
           {/* Selection Indicator */}
