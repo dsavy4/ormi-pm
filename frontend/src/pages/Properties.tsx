@@ -5459,6 +5459,67 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
   onArchive, 
   formatCurrency 
 }) => {
+  // State for inline unit expansion
+  const [expandedUnits, setExpandedUnits] = useState<Set<string>>(new Set());
+  const [unitDetails, setUnitDetails] = useState<Record<string, any>>({});
+  const [loadingUnits, setLoadingUnits] = useState<Set<string>>(new Set());
+
+  // Toggle unit expansion and load details
+  const toggleUnitExpansion = async (unitId: string) => {
+    const newExpanded = new Set(expandedUnits);
+    
+    if (newExpanded.has(unitId)) {
+      // Collapse unit
+      newExpanded.delete(unitId);
+    } else {
+      // Expand unit and load details if not already loaded
+      newExpanded.add(unitId);
+      if (!unitDetails[unitId]) {
+        setLoadingUnits(prev => new Set(prev).add(unitId));
+        try {
+          // TODO: Replace with real API call
+          const details = await mockLoadUnitDetails(unitId);
+          setUnitDetails(prev => ({ ...prev, [unitId]: details }));
+        } catch (error) {
+          console.error('Failed to load unit details:', error);
+        } finally {
+          setLoadingUnits(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(unitId);
+            return newSet;
+          });
+        }
+      }
+    }
+    
+    setExpandedUnits(newExpanded);
+  };
+
+  // Mock function for loading unit details (replace with real API)
+  const mockLoadUnitDetails = async (unitId: string): Promise<any> => {
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    return {
+      lastPayment: {
+        date: '2024-01-15',
+        amount: 2500
+      },
+      paymentHistory: [
+        { date: '2024-01-15', amount: 2500, status: 'paid' },
+        { date: '2023-12-15', amount: 2500, status: 'paid' }
+      ],
+      maintenanceRequests: [
+        { id: '1', title: 'Leaky faucet', status: 'completed', date: '2024-01-10' }
+      ],
+      lastMaintenance: {
+        date: '2024-01-10',
+        description: 'Fixed leaky faucet in kitchen'
+      },
+      nextInspection: '2024-02-15'
+    };
+  };
+
   if (!property) return null;
   
   return (
