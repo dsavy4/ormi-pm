@@ -963,6 +963,82 @@ async function cleanupTenantFiles(env: any, userId: string, tenantId: string): P
   }
 }
 
+/**
+ * Clean up R2 files for a maintenance request
+ */
+async function cleanupMaintenanceRequestFiles(env: any, userId: string, maintenanceId: string): Promise<void> {
+  try {
+    const { createStorageService } = await import('./utils/storage');
+    const storageService = createStorageService(env);
+    
+    // Get the maintenance request to access its images
+    const supabase = getSupabaseClient(env);
+    const { data: maintenance, error: fetchError } = await supabase
+      .from('maintenance_requests')
+      .select('images')
+      .eq('id', maintenanceId)
+      .single();
+    
+    if (fetchError || !maintenance) {
+      console.error('[DEBUG] Error fetching maintenance request for cleanup:', fetchError);
+      return;
+    }
+    
+    // Delete each image from R2
+    for (const imageUrl of maintenance.images || []) {
+      if (imageUrl && !imageUrl.startsWith('http')) {
+        try {
+          await storageService.deleteFile(imageUrl);
+          console.log('[DEBUG] Deleted maintenance R2 file:', imageUrl);
+        } catch (deleteError) {
+          console.error('[DEBUG] Error deleting maintenance R2 file:', imageUrl, deleteError);
+        }
+      }
+    }
+    
+    // Also get any documents associated with this maintenance request
+    const { data: documents, error: docError } = await supabase
+      .from('documents')
+      .select('fileUrl')
+      .eq('category', 'maintenance')
+      .eq('accountId', userId);
+    
+    if (!docError && documents) {
+      for (const doc of documents) {
+        if (doc.fileUrl && !doc.fileUrl.startsWith('http')) {
+          try {
+            await storageService.deleteFile(doc.fileUrl);
+            console.log('[DEBUG] Deleted maintenance document R2 file:', doc.fileUrl);
+          } catch (deleteError) {
+            console.error('[DEBUG] Error deleting maintenance document R2 file:', doc.fileUrl, deleteError);
+          }
+        }
+      }
+    }
+    
+    console.log('[DEBUG] Maintenance request cleanup completed for ID:', maintenanceId);
+  } catch (error) {
+    console.error('[DEBUG] Maintenance request cleanup error:', error);
+  }
+}
+
+/**
+ * Clean up R2 files for a single document
+ */
+async function cleanupDocumentFile(env: any, fileUrl: string): Promise<void> {
+  try {
+    const { createStorageService } = await import('./utils/storage');
+    const storageService = createStorageService(env);
+    
+    if (fileUrl && !fileUrl.startsWith('http')) {
+      await storageService.deleteFile(fileUrl);
+      console.log('[DEBUG] Deleted document R2 file:', fileUrl);
+    }
+  } catch (error) {
+    console.error('[DEBUG] Document cleanup error:', error);
+  }
+}
+
 // ===== COMPREHENSIVE API ENDPOINTS =====
 
 // 1. PROPERTY MANAGEMENT ENDPOINTS
@@ -1518,6 +1594,50 @@ app.get('/api/maintenance', authMiddleware, async (c) => {
     return c.json({ success: true, data: maintenance || [] });
   } catch (error) {
     console.error('[DEBUG] ===== MAINTENANCE FETCH ERROR =====');
+    console.error('[DEBUG] Error details:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+app.delete('/api/maintenance/:id', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== DELETE MAINTENANCE REQUEST ENDPOINT CALLED =====');
+  try {
+    const user = c.get('user');
+    const maintenanceId = c.req.param('id');
+    
+    const supabase = getSupabaseClient(c.env);
+    
+    // First, get the maintenance request to ensure it exists
+    const { data: maintenance, error: fetchError } = await supabase
+      .from('maintenance_requests')
+      .select('*')
+      .eq('id', maintenanceId)
+      .single();
+    
+    if (fetchError || !maintenance) {
+      console.log('[DEBUG] Maintenance request not found for deletion:', maintenanceId);
+      return c.json({ error: 'Maintenance request not found' }, 404);
+    }
+    
+    // Delete the maintenance request from database
+    const { error } = await supabase
+      .from('maintenance_requests')
+      .delete()
+      .eq('id', maintenanceId);
+    
+    if (error) {
+      console.log('[DEBUG] Maintenance request deletion error:', error);
+      return c.json({ error: 'Failed to delete maintenance request', details: error.message }, 500);
+    }
+    
+    // Clean up R2 files for this maintenance request
+    console.log('[DEBUG] Cleaning up R2 files for maintenance request:', maintenanceId);
+    await cleanupMaintenanceRequestFiles(c.env, user.userId, maintenanceId);
+    
+    console.log('[DEBUG] ===== MAINTENANCE REQUEST DELETED SUCCESSFULLY =====');
+    return c.json({ success: true, message: 'Maintenance request deleted successfully' });
+  } catch (error) {
+    console.error('[DEBUG] ===== MAINTENANCE REQUEST DELETION ERROR =====');
     console.error('[DEBUG] Error details:', error);
     return c.json({ error: 'Internal server error' }, 500);
   }
@@ -2694,6 +2814,51 @@ app.post('/api/documents', authMiddleware, async (c) => {
   } catch (error) {
     console.error('[DEBUG] ===== DOCUMENT CREATION ERROR =====');
     console.error('[DEBUG] Error:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+// 7. DOCUMENT MANAGEMENT ENDPOINTS
+app.delete('/api/documents/:id', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== DELETE DOCUMENT ENDPOINT CALLED =====');
+  try {
+    const user = c.get('user');
+    const documentId = c.req.param('id');
+    
+    const supabase = getSupabaseClient(c.env);
+    
+    // First, get the document to ensure it exists and get the fileUrl
+    const { data: document, error: fetchError } = await supabase
+      .from('documents')
+      .select('*')
+      .eq('id', documentId)
+      .single();
+    
+    if (fetchError || !document) {
+      console.log('[DEBUG] Document not found for deletion:', documentId);
+      return c.json({ error: 'Document not found' }, 404);
+    }
+    
+    // Delete the document from database
+    const { error } = await supabase
+      .from('documents')
+      .delete()
+      .eq('id', documentId);
+    
+    if (error) {
+      console.log('[DEBUG] Document deletion error:', error);
+      return c.json({ error: 'Failed to delete document', details: error.message }, 500);
+    }
+    
+    // Clean up R2 file for this document
+    console.log('[DEBUG] Cleaning up R2 file for document:', documentId);
+    await cleanupDocumentFile(c.env, document.fileUrl);
+    
+    console.log('[DEBUG] ===== DOCUMENT DELETED SUCCESSFULLY =====');
+    return c.json({ success: true, message: 'Document deleted successfully' });
+  } catch (error) {
+    console.error('[DEBUG] ===== DOCUMENT DELETION ERROR =====');
+    console.error('[DEBUG] Error details:', error);
     return c.json({ error: 'Internal server error' }, 500);
   }
 });
