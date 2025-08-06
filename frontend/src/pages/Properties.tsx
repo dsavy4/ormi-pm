@@ -5472,6 +5472,15 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
   // State for real units data
   const [units, setUnits] = useState<any[]>([]);
   const [loadingUnitsData, setLoadingUnitsData] = useState(false);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 1,
+    hasNextPage: false,
+    hasPrevPage: false,
+    showing: '0 of 0 units'
+  });
 
   // Load units data when property changes
   useEffect(() => {
@@ -5481,14 +5490,23 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
   }, [property?.id]);
 
   // Load units from API
-  const loadUnitsData = async () => {
+  const loadUnitsData = async (page: number = 1) => {
     if (!property?.id) return;
     
     setLoadingUnitsData(true);
     try {
       const { unitsApi } = await import('@/lib/api');
-      const response = await unitsApi.getByProperty(property.id);
+      const response = await unitsApi.getByProperty(property.id, page, 20);
       setUnits(response.data || []);
+      setPagination(response.pagination || {
+        page: 1,
+        limit: 20,
+        total: 0,
+        totalPages: 1,
+        hasNextPage: false,
+        hasPrevPage: false,
+        showing: '0 of 0 units'
+      });
     } catch (error) {
       console.error('Failed to load units:', error);
       setUnits([]);
@@ -6272,6 +6290,11 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
                       </div>
                     )}
 
+                    {/* Pagination Info */}
+                    <div className="text-sm text-muted-foreground mb-4">
+                      {pagination.showing} • Page {pagination.page} of {pagination.totalPages}
+                    </div>
+
                     <div className="space-y-3">
                       {filteredUnits.length > 0 ? (
                         filteredUnits.map(unit => (
@@ -6334,6 +6357,51 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
                               Clear filters
                             </Button>
                           )}
+                        </div>
+                      )}
+
+                      {/* Pagination Controls */}
+                      {pagination.totalPages > 1 && (
+                        <div className="flex items-center justify-between mt-6 pt-4 border-t">
+                          <div className="text-sm text-muted-foreground">
+                            {pagination.showing}
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => loadUnitsData(pagination.page - 1)}
+                              disabled={!pagination.hasPrevPage}
+                            >
+                              <ChevronLeft className="h-4 w-4" />
+                              Previous
+                            </Button>
+                            <div className="flex items-center space-x-1">
+                              {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                                const pageNum = i + 1;
+                                return (
+                                  <Button
+                                    key={pageNum}
+                                    variant={pagination.page === pageNum ? "default" : "outline"}
+                                    size="sm"
+                                    onClick={() => loadUnitsData(pageNum)}
+                                    className="w-8 h-8"
+                                  >
+                                    {pageNum}
+                                  </Button>
+                                );
+                              })}
+                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => loadUnitsData(pagination.page + 1)}
+                              disabled={!pagination.hasNextPage}
+                            >
+                              Next
+                              <ChevronRight className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
                       )}
                     </div>

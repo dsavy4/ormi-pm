@@ -566,8 +566,8 @@ export const unitsApi = {
     return handleResponse(response);
   },
 
-  getByProperty: async (propertyId: string) => {
-    const response = await fetch(`${API_BASE_URL}/api/units/property/${propertyId}`, {
+  getByProperty: async (propertyId: string, page: number = 1, limit: number = 20) => {
+    const response = await fetch(`${API_BASE_URL}/api/units/property/${propertyId}?page=${page}&limit=${limit}`, {
       headers: getAuthHeaders(),
     });
     return handleResponse(response);

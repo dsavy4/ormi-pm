@@ -19,10 +19,15 @@ export class UnitController {
         return c.json({ error: 'Property ID is required' }, 400);
       }
 
-      console.log('[DEBUG] About to query database with Supabase');
+      // Get pagination parameters
+      const page = parseInt(c.req.query('page') || '1');
+      const limit = parseInt(c.req.query('limit') || '20');
+      const offset = (page - 1) * limit;
+
+      console.log(`[DEBUG] About to query database with Supabase - Page: ${page}, Limit: ${limit}, Offset: ${offset}`);
       
-      // Query units with Supabase
-      const { data: units, error: unitsError } = await supabase
+      // Query units with Supabase and pagination
+      const { data: units, error: unitsError, count } = await supabase
         .from('units')
         .select(`
           *,
@@ -37,9 +42,10 @@ export class UnitController {
             id,
             name
           )
-        `)
+        `, { count: 'exact' })
         .eq('propertyId', propertyId)
         .eq('isActive', true)
+        .range(offset, offset + limit - 1)
         .order('unitNumber', { ascending: true });
 
       if (unitsError) {
@@ -71,10 +77,22 @@ export class UnitController {
         openMaintenanceRequests: 0 // Will be loaded separately if needed
       }));
 
+      const totalPages = Math.ceil((count || 0) / limit);
+      const hasNextPage = page < totalPages;
+      const hasPrevPage = page > 1;
+
       return c.json({
         success: true,
         data: transformedUnits,
-        total: transformedUnits.length
+        pagination: {
+          page,
+          limit,
+          total: count || 0,
+          totalPages,
+          hasNextPage,
+          hasPrevPage,
+          showing: `${offset + 1}-${Math.min(offset + limit, count || 0)} of ${count || 0} units`
+        }
       });
 
     } catch (error: any) {
