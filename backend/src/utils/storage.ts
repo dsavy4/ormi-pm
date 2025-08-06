@@ -20,7 +20,7 @@ const defaultConfig: StorageConfig = {
   accessKeyId: '',
   secretAccessKey: '',
   endpoint: 'https://475a121e52d9057d0e99c52062f3b6e5.r2.cloudflarestorage.com',
-  publicUrl: 'https://data.ormi.com',
+  publicUrl: 'https://cdn.ormi.com',
 };
 
 class StorageService {
@@ -259,7 +259,7 @@ export function createStorageService(env: any): StorageService {
     accessKeyId: env.R2_ACCESS_KEY_ID || '',
     secretAccessKey: env.R2_SECRET_ACCESS_KEY || '',
     endpoint: env.R2_ENDPOINT || 'https://475a121e52d9057d0e99c52062f3b6e5.r2.cloudflarestorage.com',
-    publicUrl: env.R2_PUBLIC_URL || 'https://data.ormi.com',
+    publicUrl: env.R2_PUBLIC_URL || 'https://cdn.ormi.com',
   };
   
   console.log('[DEBUG] Storage service config:', {

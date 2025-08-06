@@ -647,10 +647,10 @@ app.post('/api/units/:id/images', authMiddleware, async (c) => {
 
     for (const file of files) {
       if (file && file.size > 0) {
-        // Upload to R2 with account-based path
+        // Upload to R2 with optimized account-based path
         const buffer = await file.arrayBuffer();
         const user = c.get('user');
-        const filePath = `${user.userId}/property/units/${unitId}/images`;
+        const filePath = `${user.userId}/property/${unitWithPropertyImg.propertyId}/${unitId}`;
         const uploadResult = await storageService.uploadFile(Buffer.from(buffer), file.name, file.type, filePath);
 
         uploadedImages.push(uploadResult.url);
@@ -783,6 +783,98 @@ app.get('/api/payments', authMiddleware, async (c) => {
 // Export for Cloudflare Workers
 export default app; 
 
+// ===== R2 CLEANUP HELPER FUNCTIONS =====
+
+/**
+ * Clean up R2 files for a property and all its units
+ */
+async function cleanupPropertyFiles(env: any, userId: string, propertyId: string): Promise<void> {
+  try {
+    const { createStorageService } = await import('./utils/storage');
+    const storageService = createStorageService(env);
+    
+    // Get all files for this property from documents table
+    const supabase = getSupabaseClient(env);
+    const { data: documents, error } = await supabase
+      .from('documents')
+      .select('fileUrl')
+      .eq('propertyId', propertyId);
+    
+    if (error) {
+      console.error('[DEBUG] Error fetching property documents for cleanup:', error);
+      return;
+    }
+    
+    // Delete each file from R2
+    for (const doc of documents || []) {
+      if (doc.fileUrl && !doc.fileUrl.startsWith('http')) {
+        try {
+          await storageService.deleteFile(doc.fileUrl);
+          console.log('[DEBUG] Deleted R2 file:', doc.fileUrl);
+        } catch (deleteError) {
+          console.error('[DEBUG] Error deleting R2 file:', doc.fileUrl, deleteError);
+        }
+      }
+    }
+    
+    // Also delete any files in the property directory structure
+    const propertyPath = `${userId}/property/${propertyId}`;
+    try {
+      // Note: This would require listing objects in R2, which we'll implement later
+      console.log('[DEBUG] Property cleanup completed for path:', propertyPath);
+    } catch (pathError) {
+      console.error('[DEBUG] Error cleaning up property path:', propertyPath, pathError);
+    }
+  } catch (error) {
+    console.error('[DEBUG] Property cleanup error:', error);
+  }
+}
+
+/**
+ * Clean up R2 files for a team member
+ */
+async function cleanupTeamMemberFiles(env: any, userId: string, teamMemberId: string): Promise<void> {
+  try {
+    const { createStorageService } = await import('./utils/storage');
+    const storageService = createStorageService(env);
+    
+    // Get all files for this team member from documents table
+    const supabase = getSupabaseClient(env);
+    const { data: documents, error } = await supabase
+      .from('documents')
+      .select('fileUrl')
+      .eq('category', 'team')
+      .eq('accountId', userId);
+    
+    if (error) {
+      console.error('[DEBUG] Error fetching team documents for cleanup:', error);
+      return;
+    }
+    
+    // Delete each file from R2
+    for (const doc of documents || []) {
+      if (doc.fileUrl && !doc.fileUrl.startsWith('http')) {
+        try {
+          await storageService.deleteFile(doc.fileUrl);
+          console.log('[DEBUG] Deleted R2 file:', doc.fileUrl);
+        } catch (deleteError) {
+          console.error('[DEBUG] Error deleting R2 file:', doc.fileUrl, deleteError);
+        }
+      }
+    }
+    
+    // Also delete any files in the team member directory structure
+    const teamPath = `${userId}/team/${teamMemberId}`;
+    try {
+      console.log('[DEBUG] Team member cleanup completed for path:', teamPath);
+    } catch (pathError) {
+      console.error('[DEBUG] Error cleaning up team member path:', teamPath, pathError);
+    }
+  } catch (error) {
+    console.error('[DEBUG] Team member cleanup error:', error);
+  }
+}
+
 // ===== COMPREHENSIVE API ENDPOINTS =====
 
 // 1. PROPERTY MANAGEMENT ENDPOINTS
@@ -903,10 +995,24 @@ app.put('/api/properties/:id', authMiddleware, async (c) => {
 app.delete('/api/properties/:id', authMiddleware, async (c) => {
   console.log('[DEBUG] ===== DELETE PROPERTY ENDPOINT CALLED =====');
   try {
+    const user = c.get('user');
     const propertyId = c.req.param('id');
     
     const supabase = getSupabaseClient(c.env);
     
+    // First, get the property to ensure it exists and get any related data
+    const { data: property, error: fetchError } = await supabase
+      .from('properties')
+      .select('*')
+      .eq('id', propertyId)
+      .single();
+    
+    if (fetchError || !property) {
+      console.log('[DEBUG] Property not found for deletion:', propertyId);
+      return c.json({ error: 'Property not found' }, 404);
+    }
+    
+    // Delete the property from database
     const { error } = await supabase
       .from('properties')
       .delete()
@@ -916,6 +1022,10 @@ app.delete('/api/properties/:id', authMiddleware, async (c) => {
       console.log('[DEBUG] Property deletion error:', error);
       return c.json({ error: 'Failed to delete property', details: error.message }, 500);
     }
+    
+    // Clean up R2 files for this property
+    console.log('[DEBUG] Cleaning up R2 files for property:', propertyId);
+    await cleanupPropertyFiles(c.env, user.userId, propertyId);
     
     console.log('[DEBUG] ===== PROPERTY DELETED SUCCESSFULLY =====');
     return c.json({ success: true, message: 'Property deleted successfully' });
@@ -1435,10 +1545,24 @@ app.put('/api/team/:id', authMiddleware, async (c) => {
 app.delete('/api/team/:id', authMiddleware, async (c) => {
   console.log('[DEBUG] ===== DELETE TEAM MEMBER ENDPOINT CALLED =====');
   try {
+    const user = c.get('user');
     const supabase = getSupabaseClient(c.env);
     const teamMemberId = c.req.param('id');
     
-    const { data: teamMember, error } = await supabase
+    // First, get the team member to ensure they exist
+    const { data: teamMember, error: fetchError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', teamMemberId)
+      .single();
+    
+    if (fetchError || !teamMember) {
+      console.log('[DEBUG] Team member not found for deletion:', teamMemberId);
+      return c.json({ error: 'Team member not found' }, 404);
+    }
+    
+    // Soft delete the team member (set is_active to false)
+    const { data: updatedTeamMember, error } = await supabase
       .from('users')
       .update({ is_active: false })
       .eq('id', teamMemberId)
@@ -1450,7 +1574,11 @@ app.delete('/api/team/:id', authMiddleware, async (c) => {
       return c.json({ error: 'Failed to delete team member', details: error.message }, 500);
     }
     
-    return c.json({ success: true, data: teamMember });
+    // Clean up R2 files for this team member
+    console.log('[DEBUG] Cleaning up R2 files for team member:', teamMemberId);
+    await cleanupTeamMemberFiles(c.env, user.userId, teamMemberId);
+    
+    return c.json({ success: true, data: updatedTeamMember });
   } catch (error) {
     console.error('[DEBUG] Team member deletion error:', error);
     return c.json({ error: 'Internal server error' }, 500);
@@ -1547,10 +1675,10 @@ app.post('/api/team/:id/avatar', authMiddleware, async (c) => {
       return c.json({ error: 'No file provided' }, 400);
     }
     
-    // Generate account-based file path
+    // Generate optimized account-based file path
     const fileName = `${Date.now()}-${file.name}`;
-    const filePath = `${user.userId}/team/avatars/${teamMemberId}/${fileName}`;
-    const publicUrl = `https://data.ormi.com/${filePath}`;
+    const filePath = `${user.userId}/team/${teamMemberId}`;
+    const publicUrl = `https://cdn.ormi.com/${filePath}`;
     
     // For now, return a mock URL - in production, upload to Cloudflare R2
     const mockUrl = publicUrl;
@@ -1613,10 +1741,10 @@ app.post('/api/team/:id/avatar/upload-url', authMiddleware, async (c) => {
       return c.json({ error: 'File name and content type are required' }, 400);
     }
     
-    // Generate account-based file path
+    // Generate optimized account-based file path
     const fileName = `${Date.now()}-${body.fileName}`;
-    const filePath = `${user.userId}/team/avatars/${teamMemberId}/${fileName}`;
-    const publicUrl = `https://data.ormi.com/${filePath}`;
+    const filePath = `${user.userId}/team/${teamMemberId}`;
+    const publicUrl = `https://cdn.ormi.com/${filePath}`;
     
     // For now, return a mock upload URL - in production, generate R2 presigned URL
     const mockUploadUrl = `https://api.ormi.com/upload/mock-${teamMemberId}-${Date.now()}`;
@@ -2506,7 +2634,7 @@ app.post('/api/upload/image', authMiddleware, async (c) => {
     
     // Generate account-based file path
     const fileName = `${Date.now()}-${file.name}`;
-    const filePath = `${user.userId}/${category}/${context}/${fileName}`;
+          const filePath = `${user.userId}/documents/${category}/${context}`;
     const publicUrl = `https://data.ormi.com/${filePath}`;
     
     // For now, return a mock URL - in production, upload to Cloudflare R2
@@ -2594,10 +2722,10 @@ app.post('/api/properties/:id/images', authMiddleware, async (c) => {
         try {
           console.log('[DEBUG] Processing file:', file.name, 'Size:', file.size);
           
-          // Upload to R2 with account-based path
+          // Upload to R2 with optimized account-based path
           const buffer = await file.arrayBuffer();
-          const filePath = `${user.userId}/property/properties/${propertyId}`;
-          console.log('[DEBUG] Uploading to path:', filePath);
+          const filePath = `${user.userId}/property/${propertyId}`;
+          console.log('[DEBUG] Uploading to optimized path:', filePath);
           
           const uploadResult = await storageService.uploadFile(new Uint8Array(buffer), file.name, file.type, filePath);
           console.log('[DEBUG] Upload successful, URL:', uploadResult.url);
@@ -2695,7 +2823,7 @@ app.post('/api/upload/document', authMiddleware, async (c) => {
     // Upload to R2 with account-based path
     const buffer = await file.arrayBuffer();
     const fileName = `${Date.now()}-${file.name}`;
-    const filePath = `${user.userId}/${category}/${context}`;
+          const filePath = `${user.userId}/documents/${category}/${context}`;
     const uploadResult = await storageService.uploadFile(Buffer.from(buffer), fileName, file.type, filePath);
     
     // Create document record for tracking

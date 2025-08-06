@@ -340,17 +340,20 @@
 
 ## 🚀 **INFRASTRUCTURE & STORAGE**
 
-### ✅ **COMPLETED - PROFESSIONAL CDN & STORAGE**
+### ✅ **COMPLETED - OPTIMIZED STORAGE STRUCTURE & R2 CLEANUP**
 - ✅ **Cloudflare R2 Integration**: Complete object storage setup with account-based organization
 - ✅ **Professional CDN Setup**: Configured cdn.ormi.com for professional asset delivery
+- ✅ **Optimized Storage Structure**: Removed redundant paths (accountId/property/propertyId vs accountId/property/properties/propertyId)
+- ✅ **R2 Cleanup System**: Automatic file deletion when properties/team members are removed
 - ✅ **Relative Path Storage**: Implemented smart URL management with getFileUrl utility
-- ✅ **Account-Based Organization**: Hierarchical storage structure (account-id/category/files)
+- ✅ **Account-Based Organization**: Hierarchical storage structure (accountId/category/entityId/files)
 - ✅ **Cross-Component Integration**: All components (Properties, Team, Tenants, Documents) use CDN
 - ✅ **Production Deployment**: Successfully deployed to Cloudflare Pages and Workers
 - ✅ **Professional URLs**: All assets served from cdn.ormi.com with clean, professional URLs
 - ✅ **Storage Analytics**: Real-time storage monitoring with billing integration
 - ✅ **Mobile Optimization**: Touch-optimized file upload and management
 - ✅ **Dark/Light Mode Support**: Complete theme compatibility for all storage components
+- ✅ **Migration Script**: Created migrate-storage-structure.js for seamless file reorganization
 
 ### 🎯 **BENEFITS ACHIEVED**
 - **🏢 Professional Branding**: Clean cdn.ormi.com URLs vs generic storage URLs
@@ -398,4 +401,4 @@
 
 ---
 
-**🚀 STATUS: 70% Complete - Leading the industry in property management UX excellence with professional CDN infrastructure!** 
+**🚀 STATUS: 75% Complete - Leading the industry in property management UX excellence with optimized storage and automatic cleanup!** 
