@@ -127,6 +127,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { unitsApi, propertiesApi, Unit, Property } from '@/lib/api';
+import { getFileUrl } from '@/lib/utils';
 import { toast } from 'react-hot-toast';
 
 const containerVariants = {

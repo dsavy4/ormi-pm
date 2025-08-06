@@ -52,6 +52,7 @@ import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { documentsApi } from '@/lib/api';
+import { getFileUrl } from '@/lib/utils';
 
 // Types
 interface Document {
@@ -511,7 +512,7 @@ function DocumentCard({ document }: { document: Document }) {
       <div className="relative aspect-square overflow-hidden rounded-t-lg">
         {document.thumbnail ? (
           <img
-            src={document.thumbnail}
+            src={getFileUrl(document.thumbnail)}
             alt={document.name}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
           />

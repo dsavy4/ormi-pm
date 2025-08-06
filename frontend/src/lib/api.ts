@@ -234,6 +234,17 @@ function getAuthHeaders(): HeadersInit {
   return headers;
 }
 
+function getAuthHeadersForFormData(): HeadersInit {
+  const token = getAuthToken();
+  const headers = {
+    'Accept': 'application/json',
+    'Accept-Encoding': 'identity',
+    ...(token && { Authorization: `Bearer ${token}` }),
+  };
+  console.log('[DEBUG] getAuthHeadersForFormData called, headers:', headers);
+  return headers;
+}
+
 // Helper function to get auth token from localStorage
 function getAuthToken(): string | null {
   if (typeof window !== 'undefined') {
@@ -535,10 +546,7 @@ export const propertiesApi = {
     
     const response = await fetch(`${API_BASE_URL}/api/properties/${propertyId}/images`, {
       method: 'POST',
-      headers: {
-        ...getAuthHeaders(),
-        // Don't set Content-Type for FormData
-      },
+      headers: getAuthHeadersForFormData(),
       body: formData,
     });
     return handleResponse(response);

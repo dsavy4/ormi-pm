@@ -58,16 +58,17 @@ class StorageService {
         Body: file,
         ContentType: contentType,
         CacheControl: 'public, max-age=31536000', // 1 year cache
-        ACL: 'public-read',
       });
 
-      await this.s3Client.send(command);
+      console.log('[DEBUG] Sending R2 upload command...');
+      const result = await this.s3Client.send(command);
+      console.log('[DEBUG] R2 upload result:', result);
 
-      // Return the public URL
-      const publicUrl = `${this.config.publicUrl}/${key}`;
+      // Return only the key (relative path) - let frontend construct full URL
+      console.log('[DEBUG] Generated key:', key);
       
       return {
-        url: publicUrl,
+        url: key, // Store only the relative path
         key: key,
       };
     } catch (error) {
@@ -104,7 +105,6 @@ class StorageService {
         Body: file,
         ContentType: contentType,
         CacheControl: 'public, max-age=31536000', // 1 year cache
-        ACL: 'public-read',
       });
 
       await this.s3Client.send(command);
@@ -139,7 +139,6 @@ class StorageService {
         Key: key,
         ContentType: contentType,
         CacheControl: 'public, max-age=31536000',
-        ACL: 'public-read',
       });
 
       const uploadUrl = await getSignedUrl(this.s3Client, command, {
@@ -193,7 +192,6 @@ class StorageService {
         Key: key,
         ContentType: contentType,
         CacheControl: 'public, max-age=31536000',
-        ACL: 'public-read',
       });
 
       const uploadUrl = await getSignedUrl(this.s3Client, command, {
@@ -246,7 +244,8 @@ export function createStorageService(env: any): StorageService {
     hasR2AccessKey: !!env.R2_ACCESS_KEY_ID,
     hasR2SecretKey: !!env.R2_SECRET_ACCESS_KEY,
     hasR2Endpoint: !!env.R2_ENDPOINT,
-    hasR2PublicUrl: !!env.R2_PUBLIC_URL
+    hasR2PublicUrl: !!env.R2_PUBLIC_URL,
+    r2PublicUrlValue: env.R2_PUBLIC_URL
   });
   
   // In Cloudflare Workers, R2 bindings are objects, not strings

@@ -68,6 +68,7 @@ import {
 // Hooks
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/contexts/ThemeContext';
+import { getFileUrl } from '@/lib/utils';
 
 // Enhanced Logo Component
 const Logo = ({ size = 'md', showText = true, collapsed = false }: { size?: 'sm' | 'md' | 'lg' | 'xl' | 'xxl'; showText?: boolean; collapsed?: boolean }) => {
@@ -561,7 +562,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="h-9 w-9 p-0 rounded-full">
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src={user?.avatar} alt={`${user?.firstName} ${user?.lastName}`} />
+                      <AvatarImage src={getFileUrl(user?.avatar || '')} alt={`${user?.firstName} ${user?.lastName}`} />
                       <AvatarFallback className="bg-gradient-to-r from-primary to-blue-600 text-white">
                         {user?.firstName?.[0]}{user?.lastName?.[0]}
                       </AvatarFallback>

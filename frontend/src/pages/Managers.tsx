@@ -131,6 +131,7 @@ import { Separator } from '@/components/ui/separator';
 
 // API
 import { managersApi } from '@/lib/api';
+import { getFileUrl } from '@/lib/utils';
 
 // Types
 interface Manager {
@@ -500,7 +501,7 @@ export function Managers() {
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <Avatar className="h-10 w-10">
-                            <AvatarImage src={manager.avatar} />
+                            <AvatarImage src={getFileUrl(manager.avatar || '')} />
                             <AvatarFallback>
                               {manager.firstName[0]}{manager.lastName[0]}
                             </AvatarFallback>

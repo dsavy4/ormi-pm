@@ -7,6 +7,7 @@ import { useDropzone } from 'react-dropzone';
 import { toast } from 'sonner';
 import useSWR from 'swr';
 import { tenantsApi, propertiesApi, unitsApi } from '@/lib/api';
+import { getFileUrl } from '@/lib/utils';
 import {
   Users,
   Plus,
@@ -1717,7 +1718,7 @@ export function Tenants() {
                       <TableCell>
                         <div className="flex items-center space-x-3">
                           <Avatar className="h-10 w-10">
-                            <AvatarImage src={tenant.avatar} alt={`${tenant.firstName} ${tenant.lastName}`} />
+                            <AvatarImage src={getFileUrl(tenant.avatar || '')} alt={`${tenant.firstName} ${tenant.lastName}`} />
                             <AvatarFallback>
                               {tenant.firstName[0]}{tenant.lastName[0]}
                             </AvatarFallback>
@@ -1807,7 +1808,7 @@ export function Tenants() {
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center space-x-3">
                       <Avatar className="h-12 w-12">
-                        <AvatarImage src={tenant.avatar} alt={`${tenant.firstName} ${tenant.lastName}`} />
+                        <AvatarImage src={getFileUrl(tenant.avatar || '')} alt={`${tenant.firstName} ${tenant.lastName}`} />
                         <AvatarFallback>
                           {tenant.firstName[0]}{tenant.lastName[0]}
                         </AvatarFallback>

@@ -39,6 +39,7 @@ import {
 
 // Hooks
 import { useAuth } from '@/hooks/useAuth';
+import { getFileUrl } from '@/lib/utils';
 import { useTheme } from '@/contexts/ThemeContext';
 
 interface NavItem {
@@ -184,7 +185,7 @@ export function TenantLayout({ children }: TenantLayoutProps) {
           <div className="border-t border-gray-200 dark:border-gray-700 p-4">
             <div className="flex items-center gap-3 mb-3">
               <Avatar className="h-8 w-8">
-                <AvatarImage src={user?.avatar} />
+                <AvatarImage src={getFileUrl(user?.avatar || '')} />
                 <AvatarFallback>
                   {user?.firstName?.[0]}{user?.lastName?.[0]}
                 </AvatarFallback>
@@ -252,7 +253,7 @@ export function TenantLayout({ children }: TenantLayoutProps) {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={user?.avatar} />
+                    <AvatarImage src={getFileUrl(user?.avatar || '')} />
                     <AvatarFallback>
                       {user?.firstName?.[0]}{user?.lastName?.[0]}
                     </AvatarFallback>

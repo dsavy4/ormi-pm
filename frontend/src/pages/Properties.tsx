@@ -117,7 +117,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { propertiesApi, Property } from '@/lib/api';
-import { cn } from '@/lib/utils';
+import { cn, getFileUrl } from '@/lib/utils';
 
 // API and Types
 import { 
@@ -347,7 +347,7 @@ const WIZARD_STEPS = [
     title: 'Review',
     description: '',
     icon: CheckCircle2,
-    schema: step5Schema,
+    schema: propertyFormSchema,
   },
 ];
 
@@ -364,6 +364,44 @@ const US_STATES = [
 const PROPERTY_TYPES = [
   'Multi-Family', 'Single-Family', 'Commercial', 'Condominium', 'Townhouse', 'Duplex'
 ];
+
+// Utility function to map database property types to form property types
+const mapPropertyType = (dbType: string | undefined): string => {
+  if (!dbType) return 'Multi-Family';
+  
+  const typeMap: { [key: string]: string } = {
+    'APARTMENT': 'Multi-Family',
+    'MULTI_FAMILY': 'Multi-Family',
+    'SINGLE_FAMILY': 'Single-Family',
+    'COMMERCIAL': 'Commercial',
+    'CONDOMINIUM': 'Condominium',
+    'TOWNHOUSE': 'Townhouse',
+    'DUPLEX': 'Duplex',
+    // Also handle the form format if it's already correct
+    'Multi-Family': 'Multi-Family',
+    'Single-Family': 'Single-Family',
+    'Commercial': 'Commercial',
+    'Condominium': 'Condominium',
+    'Townhouse': 'Townhouse',
+    'Duplex': 'Duplex',
+  };
+  
+  return typeMap[dbType.toUpperCase()] || 'Multi-Family';
+};
+
+// Utility function to map form property types back to database format
+const mapPropertyTypeToDb = (formType: string): string => {
+  const reverseMap: { [key: string]: string } = {
+    'Multi-Family': 'APARTMENT',
+    'Single-Family': 'SINGLE_FAMILY',
+    'Commercial': 'COMMERCIAL',
+    'Condominium': 'CONDOMINIUM',
+    'Townhouse': 'TOWNHOUSE',
+    'Duplex': 'DUPLEX',
+  };
+  
+  return reverseMap[formType] || 'APARTMENT';
+};
 
 const OWNERSHIP_TYPES = [
   'Owned', 'Managed', 'Third-Party'
@@ -1926,6 +1964,8 @@ interface PropertyImageProps {
   className?: string;
 }
 
+
+
 const PropertyImage: React.FC<PropertyImageProps> = ({ property, className }) => {
   const [imageError, setImageError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -1956,7 +1996,7 @@ const PropertyImage: React.FC<PropertyImageProps> = ({ property, className }) =>
         <div className="absolute inset-0 bg-muted animate-pulse rounded-lg" />
       )}
       <img
-        src={property.images?.[0] || '/api/placeholder/400/300'}
+        src={property.images?.[0] ? getFileUrl(property.images[0]) : '/api/placeholder/400/300'}
         alt={property.name}
         className={`w-full h-full object-cover rounded-lg ${isLoading ? 'opacity-0' : 'opacity-100'}`}
         onError={handleImageError}
@@ -3440,15 +3480,20 @@ const Step1BasicInfo: React.FC<Step1Props> = ({ form, formErrors, formValues }) 
           <div>
             <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-3">Property Type *</label>
             <Select 
-              value={form.watch('propertyType')} 
-              onValueChange={(value) => form.setValue('propertyType', value as any)}
+              value={formValues.propertyType || ''} 
+              onValueChange={(value) => {
+                console.log('Property type changed to:', value);
+                form.setValue('propertyType', value as any);
+              }}
             >
               <SelectTrigger className={`h-12 text-base transition-all duration-200 ${
                 formErrors.propertyType 
                   ? 'border-red-300 focus:border-red-500' 
                   : 'border-gray-200 focus:border-blue-500 hover:border-gray-300'
               }`}>
-                <SelectValue placeholder="Select property type" />
+                <SelectValue placeholder="Select property type">
+                  {formValues.propertyType || 'Select property type'}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {PROPERTY_TYPES.map(type => (
@@ -3473,7 +3518,7 @@ const Step1BasicInfo: React.FC<Step1Props> = ({ form, formErrors, formValues }) 
           <div>
             <label className="block text-sm font-semibold text-foreground mb-3">Ownership Type *</label>
             <Select 
-              value={form.watch('ownershipType')} 
+              value={formValues.ownershipType || ''} 
               onValueChange={(value) => form.setValue('ownershipType', value as any)}
             >
               <SelectTrigger className={`h-12 text-base transition-all duration-200 ${
@@ -3509,7 +3554,7 @@ const Step1BasicInfo: React.FC<Step1Props> = ({ form, formErrors, formValues }) 
         <div>
           <label className="block text-sm font-semibold text-foreground mb-3">Tags (Optional)</label>
           <div className="flex flex-wrap gap-2 mb-4">
-            {form.watch('tags').map((tag: string, index: number) => (
+                            {(formValues.tags || []).map((tag: string, index: number) => (
               <Badge 
                 key={index} 
                 variant="secondary" 
@@ -3543,7 +3588,7 @@ const Step1BasicInfo: React.FC<Step1Props> = ({ form, formErrors, formValues }) 
               <SelectValue placeholder="Add tags to categorize your property" />
             </SelectTrigger>
             <SelectContent>
-              {AVAILABLE_TAGS.filter(tag => !form.watch('tags').includes(tag)).map(tag => (
+              {AVAILABLE_TAGS.filter(tag => !(formValues.tags || []).includes(tag)).map(tag => (
                 <SelectItem key={tag} value={tag} className="py-3">
                   <div className="flex items-center gap-3">
                     <div className="p-1.5 bg-purple-100 rounded">
@@ -3636,7 +3681,7 @@ const Step2Location: React.FC<Step1Props> = ({ form, formErrors, formValues }) =
           <div>
             <label className="block text-sm font-semibold text-foreground mb-3">State *</label>
             <Select 
-              value={form.watch('state')} 
+                              value={formValues.state || ''} 
               onValueChange={(value) => form.setValue('state', value)}
             >
               <SelectTrigger className={`h-12 text-base transition-all duration-200 ${
@@ -4050,7 +4095,7 @@ const Step5Financial: React.FC<Step1Props> = ({ form, formErrors, formValues }) 
                   <SelectValue placeholder="Select a manager" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No manager assigned</SelectItem>
+                  <SelectItem value="none">No manager assigned</SelectItem>
                   <SelectItem value="manager_1">John Smith</SelectItem>
                   <SelectItem value="manager_2">Sarah Johnson</SelectItem>
                   <SelectItem value="manager_3">Mike Davis</SelectItem>
@@ -4673,7 +4718,7 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
                 <SheetTitle className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                   {property.name}
                   <Badge variant="outline" className="text-xs font-medium">
-                    {property.propertyType || 'Property'}
+                    {mapPropertyType(property.propertyType)}
                   </Badge>
                 </SheetTitle>
                 <SheetDescription className="text-sm text-gray-600 dark:text-gray-300 mt-1 flex items-center gap-2">
@@ -5579,9 +5624,12 @@ const PropertyEditSheet: React.FC<PropertyEditSheetProps> = ({
   // Pre-populate form when property changes
   useEffect(() => {
     if (property) {
+      console.log('Property data for form reset:', property);
+      console.log('Property type:', property.propertyType);
+      
       form.reset({
         name: property.name || '',
-        propertyType: (property.propertyType as any) || 'Multi-Family',
+        propertyType: mapPropertyType(property.propertyType),
         ownershipType: 'Owned',
         tags: property.tags || [],
         address: property.address || '',
@@ -5763,52 +5811,38 @@ const PropertyEditSheet: React.FC<PropertyEditSheetProps> = ({
       // Handle image uploads first
       const imageUrls = [...(property.images || [])]; // Keep existing images
       
-      // Upload new images
+      // Upload new images using the API function
       const newImages = data.images.filter(img => img instanceof File);
-      for (const image of newImages) {
+      if (newImages.length > 0) {
         try {
-          const formData = new FormData();
-          formData.append('files', image);
-          
-          const uploadResponse = await fetch(`/api/properties/${property.id}/images`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${localStorage.getItem('token')}`
-            },
-            body: formData
-          });
-
-          if (uploadResponse.ok) {
-            const uploadResult = await uploadResponse.json();
-            imageUrls.push(uploadResult.url);
+          const { propertiesApi } = await import('@/lib/api');
+          const uploadResult = await propertiesApi.uploadPropertyImages(property.id, newImages);
+          if (uploadResult.success && uploadResult.data?.images) {
+            imageUrls.push(...uploadResult.data.images);
           }
         } catch (error) {
-          console.error('Error uploading image:', error);
+          console.error('Error uploading images:', error);
         }
       }
 
-      // Update property data
-      const response = await fetch(`/api/properties/${property.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          ...data,
-          images: imageUrls,
-          yearBuilt: data.yearBuilt || null,
-          sqft: data.sqft || null,
-          lotSize: data.lotSize || null,
-          marketValue: data.marketValue || null,
-          purchasePrice: data.purchasePrice || null,
-          expenses: data.expenses || null,
-        })
-      });
+      // Update property data using the API function
+      const { propertiesApi } = await import('@/lib/api');
+      const updateData = {
+        ...data,
+        propertyType: mapPropertyTypeToDb(data.propertyType),
+        images: imageUrls,
+        yearBuilt: data.yearBuilt || null,
+        sqft: data.sqft || null,
+        lotSize: data.lotSize || null,
+        marketValue: data.marketValue || null,
+        purchasePrice: data.purchasePrice || null,
+        expenses: data.expenses || null,
+      };
 
-      if (response.ok) {
-        const updatedProperty = await response.json();
-        onPropertyUpdated(updatedProperty);
+      const response = await propertiesApi.update(property.id, updateData);
+      
+      if (response.success) {
+        onPropertyUpdated(response.data);
         toast.success("Property updated successfully");
         onClose();
       } else {
@@ -5922,7 +5956,7 @@ const PropertyEditSheet: React.FC<PropertyEditSheetProps> = ({
 
         {/* Form Content - Scrollable */}
         <div className="flex-1 overflow-y-auto px-6 py-6">
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form id="property-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             {currentStep === 1 && (
               <Step1BasicInfo form={form} formErrors={formErrors} formValues={formValues} />
             )}

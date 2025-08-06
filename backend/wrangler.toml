@@ -12,6 +12,7 @@ NODE_ENV = "production"
 ENVIRONMENT = "production"
 SUPABASE_URL = "https://kmhmgutrhkzjnsgifsrl.supabase.co"
 SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImttaG1ndXRyaGt6am5zZ2lmc3JsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1MDYwNTYsImV4cCI6MjA2NzA4MjA1Nn0.Yeg2TBq3K9jddh-LQFHadr1rv_GaYS-SBVTfnZS6z3c"
+R2_PUBLIC_URL = "https://cdn.ormi.com"
 
 # Workers Logs configuration
 [observability]

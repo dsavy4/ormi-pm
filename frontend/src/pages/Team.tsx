@@ -104,6 +104,7 @@ import {
 } from '@/components/ui/sheet';
 import { useToast } from '@/hooks/use-toast';
 import { teamApi } from '@/lib/api';
+import { getFileUrl } from '@/lib/utils';
 
 // Types
 interface TeamMember {
@@ -1027,7 +1028,7 @@ const TeamMemberCard: React.FC<{ member: TeamMember }> = ({ member }) => {
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
             <Avatar className="h-12 w-12">
-              <AvatarImage src={member.avatar} alt={`${member.firstName} ${member.lastName}`} />
+              <AvatarImage src={getFileUrl(member.avatar || '')} alt={`${member.firstName} ${member.lastName}`} />
               <AvatarFallback className="bg-gradient-to-br from-blue-500 to-blue-600 text-white font-semibold">
                 {member.firstName[0]}{member.lastName[0]}
               </AvatarFallback>
@@ -1074,7 +1075,7 @@ const TeamMemberListItem: React.FC<{ member: TeamMember }> = ({ member }) => {
       <CardContent className="p-4">
         <div className="flex items-center gap-4">
           <Avatar className="h-10 w-10">
-            <AvatarImage src={member.avatar} alt={`${member.firstName} ${member.lastName}`} />
+            <AvatarImage src={getFileUrl(member.avatar || '')} alt={`${member.firstName} ${member.lastName}`} />
             <AvatarFallback className="bg-gradient-to-br from-blue-500 to-blue-600 text-white font-semibold">
               {member.firstName[0]}{member.lastName[0]}
             </AvatarFallback>
@@ -1120,7 +1121,7 @@ const TeamMemberTile: React.FC<{ member: TeamMember }> = ({ member }) => {
       <CardContent className="p-6">
         <div className="text-center">
           <Avatar className="h-20 w-20 mx-auto mb-4">
-            <AvatarImage src={member.avatar} alt={`${member.firstName} ${member.lastName}`} />
+            <AvatarImage src={getFileUrl(member.avatar || '')} alt={`${member.firstName} ${member.lastName}`} />
             <AvatarFallback className="bg-gradient-to-br from-blue-500 to-blue-600 text-white text-xl font-bold">
               {member.firstName[0]}{member.lastName[0]}
             </AvatarFallback>

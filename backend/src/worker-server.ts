@@ -127,6 +127,12 @@ const authMiddleware = async (c: any, next: any) => {
 // Health check endpoint
 app.get('/', (c) => {
   console.log('[DEBUG] Root endpoint called');
+  console.log('[DEBUG] Environment variables check:', {
+    hasR2PublicUrl: !!c.env.R2_PUBLIC_URL,
+    r2PublicUrlValue: c.env.R2_PUBLIC_URL,
+    hasJwtSecret: !!c.env.JWT_SECRET,
+    hasDatabaseUrl: !!c.env.DATABASE_URL
+  });
   return c.json({ 
     message: 'ORMI Property Management API',
     version: '1.0.0',
@@ -848,21 +854,34 @@ app.put('/api/properties/:id', authMiddleware, async (c) => {
     const propertyId = c.req.param('id');
     const body = await c.req.json();
     
+    console.log('[DEBUG] Received update data:', body);
+    
     const supabase = getSupabaseClient(c.env);
+    
+    // Prepare update data with only fields that exist in the database
+    const updateData = {
+      name: body.name,
+      address: body.address,
+      city: body.city,
+      state: body.state,
+      zipCode: body.zipCode,
+      description: body.description,
+      notes: body.notes,
+      propertyType: body.propertyType,
+      yearBuilt: body.yearBuilt,
+      sqft: body.sqft,
+      lotSize: body.lotSize,
+      amenities: body.amenities,
+      images: body.images,
+      propertyManagerId: body.propertyManager || body.managerId || null,
+      updatedAt: new Date().toISOString(),
+    };
+    
+    console.log('[DEBUG] Update data prepared:', updateData);
     
     const { data: property, error } = await supabase
       .from('properties')
-      .update({
-        name: body.name,
-        address: body.address,
-        city: body.city,
-        state: body.state,
-        zipCode: body.zipCode,
-        description: body.description,
-        notes: body.notes,
-        managerId: body.managerId || null,
-        updatedAt: new Date().toISOString(),
-      })
+      .update(updateData)
       .eq('id', propertyId)
       .select()
       .single();
@@ -2587,6 +2606,7 @@ app.post('/api/properties/:id/images', authMiddleware, async (c) => {
           
           // Create document record for tracking
           const documentData = {
+            id: `doc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             fileName: file.name,
             fileUrl: uploadResult.url,
             fileType: file.type,

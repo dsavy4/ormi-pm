@@ -42,6 +42,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { useAuth } from '@/contexts/AuthContext';
+import { getFileUrl } from '@/lib/utils';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -168,7 +169,7 @@ export function Settings() {
                 {/* Avatar Section */}
                 <div className="flex items-center space-x-4">
                   <Avatar className="h-20 w-20">
-                    <AvatarImage src={profileData.avatar || undefined} />
+                    <AvatarImage src={getFileUrl(profileData.avatar || '')} />
                     <AvatarFallback className="text-lg">
                       {profileData.firstName[0]}{profileData.lastName[0]}
                     </AvatarFallback>
