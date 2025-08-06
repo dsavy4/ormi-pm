@@ -17,13 +17,13 @@ const statusBadgeVariants = cva(
     variants: {
       variant: {
         occupied:
-          "border-green-200 bg-green-50 text-green-700 dark:border-green-800/30 dark:bg-green-900/20 dark:text-green-400",
+          "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800/30 dark:bg-emerald-900/20 dark:text-emerald-300",
         vacant:
-          "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800/30 dark:bg-blue-900/20 dark:text-blue-400",
+          "border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700/30 dark:bg-slate-800/20 dark:text-slate-300",
         maintenance:
-          "border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-800/30 dark:bg-orange-900/20 dark:text-orange-400",
+          "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800/30 dark:bg-amber-900/20 dark:text-amber-300",
         reserved:
-          "border-purple-200 bg-purple-50 text-purple-700 dark:border-purple-800/30 dark:bg-purple-900/20 dark:text-purple-400",
+          "border-indigo-200 bg-indigo-50 text-indigo-800 dark:border-indigo-800/30 dark:bg-indigo-900/20 dark:text-indigo-300",
         default:
           "border-gray-200 bg-gray-50 text-gray-700 dark:border-gray-800/30 dark:bg-gray-900/20 dark:text-gray-400",
       },
