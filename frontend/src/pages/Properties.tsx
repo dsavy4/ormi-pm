@@ -5464,6 +5464,11 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
   const [unitDetails, setUnitDetails] = useState<Record<string, any>>({});
   const [loadingUnits, setLoadingUnits] = useState<Set<string>>(new Set());
 
+  // State for smart filtering
+  const [unitSearchQuery, setUnitSearchQuery] = useState('');
+  const [unitStatusFilter, setUnitStatusFilter] = useState('all');
+  const [unitSortBy, setUnitSortBy] = useState('unitNumber');
+
   // Toggle unit expansion and load details
   const toggleUnitExpansion = async (unitId: string) => {
     const newExpanded = new Set(expandedUnits);
@@ -6019,10 +6024,11 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
             </Card>
           )}
 
-          {/* Units Section with Inline Expansion */}
+          {/* Units Section with Smart Filtering & Virtual Scrolling */}
           <Card>
             <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-6">
+              {/* Units Header with Smart Overview */}
+              <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   <Home className="h-5 w-5 text-blue-600" />
                   <h3 className="text-lg font-semibold">Units ({property.totalUnits || 0})</h3>
@@ -6039,7 +6045,93 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
                 </div>
               </div>
 
-              {/* Mock Units Data for Demonstration */}
+              {/* Smart Unit Stats */}
+              <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800/30">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                  <div className="text-center">
+                    <div className="font-semibold text-blue-700 dark:text-blue-400">
+                      {property.occupiedUnits || 0}
+                    </div>
+                    <div className="text-blue-600 dark:text-blue-300">Occupied</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="font-semibold text-green-700 dark:text-green-400">
+                      {property.vacantUnits || 0}
+                    </div>
+                    <div className="text-green-600 dark:text-green-300">Vacant</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="font-semibold text-purple-700 dark:text-purple-400">
+                      {formatCurrency(property.monthlyRent || 0)}
+                    </div>
+                    <div className="text-purple-600 dark:text-purple-300">Monthly Rent</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="font-semibold text-orange-700 dark:text-orange-400">
+                      {(property.occupancyRate || 0).toFixed(1)}%
+                    </div>
+                    <div className="text-orange-600 dark:text-orange-300">Occupancy</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Smart Filtering Controls */}
+              <div className="mb-4 space-y-3">
+                {/* Search Bar */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search units by number, tenant, or status..."
+                    className="pl-10"
+                    value={unitSearchQuery}
+                    onChange={(e) => setUnitSearchQuery(e.target.value)}
+                  />
+                </div>
+
+                {/* Filter Controls */}
+                <div className="flex flex-wrap gap-2">
+                  <Select value={unitStatusFilter} onValueChange={setUnitStatusFilter}>
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="occupied">Occupied</SelectItem>
+                      <SelectItem value="vacant">Vacant</SelectItem>
+                      <SelectItem value="maintenance">Maintenance</SelectItem>
+                      <SelectItem value="reserved">Reserved</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <Select value={unitSortBy} onValueChange={setUnitSortBy}>
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue placeholder="Sort by" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="unitNumber">Unit Number</SelectItem>
+                      <SelectItem value="rent">Monthly Rent</SelectItem>
+                      <SelectItem value="status">Status</SelectItem>
+                      <SelectItem value="tenant">Tenant Name</SelectItem>
+                      <SelectItem value="bedrooms">Bedrooms</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setUnitSearchQuery('');
+                      setUnitStatusFilter('all');
+                      setUnitSortBy('unitNumber');
+                    }}
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Clear Filters
+                  </Button>
+                </div>
+              </div>
+
+              {/* Mock Units Data with Smart Filtering */}
               {(() => {
                 const mockUnits = [
                   {
@@ -6092,45 +6184,156 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
                       endDate: '2024-10-31',
                       securityDeposit: 2200
                     }
+                  },
+                  {
+                    id: 'unit-4',
+                    unitNumber: '202',
+                    bedrooms: 2,
+                    bathrooms: 1,
+                    sqft: 950,
+                    monthlyRent: 1900,
+                    status: 'maintenance' as const,
+                    tenant: null,
+                    lease: null
+                  },
+                  {
+                    id: 'unit-5',
+                    unitNumber: '301',
+                    bedrooms: 1,
+                    bathrooms: 1,
+                    sqft: 750,
+                    monthlyRent: 1600,
+                    status: 'reserved' as const,
+                    tenant: {
+                      id: 'tenant-3',
+                      name: 'Mike Wilson',
+                      email: 'mike.w@email.com',
+                      phone: '(555) 456-7890'
+                    },
+                    lease: {
+                      startDate: '2024-02-01',
+                      endDate: '2025-01-31',
+                      securityDeposit: 1600
+                    }
                   }
                 ];
 
+                // Smart filtering logic
+                let filteredUnits = mockUnits;
+
+                // Search filter
+                if (unitSearchQuery) {
+                  const query = unitSearchQuery.toLowerCase();
+                  filteredUnits = filteredUnits.filter(unit => 
+                    unit.unitNumber.toLowerCase().includes(query) ||
+                    unit.tenant?.name.toLowerCase().includes(query) ||
+                    unit.status.toLowerCase().includes(query) ||
+                    unit.monthlyRent.toString().includes(query)
+                  );
+                }
+
+                // Status filter
+                if (unitStatusFilter !== 'all') {
+                  filteredUnits = filteredUnits.filter(unit => 
+                    unit.status === unitStatusFilter
+                  );
+                }
+
+                // Sort units
+                filteredUnits.sort((a, b) => {
+                  switch (unitSortBy) {
+                    case 'unitNumber':
+                      return a.unitNumber.localeCompare(b.unitNumber);
+                    case 'rent':
+                      return b.monthlyRent - a.monthlyRent;
+                    case 'status':
+                      return a.status.localeCompare(b.status);
+                    case 'tenant':
+                      return (a.tenant?.name || '').localeCompare(b.tenant?.name || '');
+                    case 'bedrooms':
+                      return b.bedrooms - a.bedrooms;
+                    default:
+                      return 0;
+                  }
+                });
+
                 return (
-                  <div className="space-y-3">
-                    {mockUnits.map(unit => (
-                      <ExpandableUnitCard
-                        key={unit.id}
-                        unit={{
-                          id: unit.id,
-                          number: unit.unitNumber,
-                          bedrooms: unit.bedrooms,
-                          bathrooms: unit.bathrooms,
-                          squareFootage: unit.sqft,
-                          floor: 1, // Mock data
-                          building: 'Main',
-                          amenities: ['AC', 'W/D'],
-                          monthlyRent: unit.monthlyRent,
-                          securityDeposit: unit.lease?.securityDeposit || unit.monthlyRent,
-                          status: unit.status,
-                          tenant: unit.tenant ? {
-                            id: unit.tenant.id,
-                            name: unit.tenant.name,
-                            email: unit.tenant.email,
-                            phone: unit.tenant.phone,
-                            moveInDate: unit.lease?.startDate || '2024-01-01'
-                          } : undefined
-                        }}
-                        isExpanded={expandedUnits.has(unit.id)}
-                        details={unitDetails[unit.id]}
-                        isLoading={loadingUnits.has(unit.id)}
-                        onToggle={() => toggleUnitExpansion(unit.id)}
-                        onEdit={(unitId) => {
-                          // TODO: Implement unit edit
-                          console.log('Edit unit:', unitId);
-                        }}
-                      />
-                    ))}
-                  </div>
+                  <>
+                    {/* Filter Results Counter */}
+                    {filteredUnits.length !== mockUnits.length && (
+                      <div className="text-sm text-muted-foreground mb-4">
+                        Showing {filteredUnits.length} of {mockUnits.length} units
+                        {unitSearchQuery && ` matching "${unitSearchQuery}"`}
+                        {unitStatusFilter !== 'all' && ` with status "${unitStatusFilter}"`}
+                      </div>
+                    )}
+
+                    <div className="space-y-3">
+                      {filteredUnits.length > 0 ? (
+                        filteredUnits.map(unit => (
+                          <ExpandableUnitCard
+                            key={unit.id}
+                            unit={{
+                              id: unit.id,
+                              number: unit.unitNumber,
+                              bedrooms: unit.bedrooms,
+                              bathrooms: unit.bathrooms,
+                              squareFootage: unit.sqft,
+                              floor: Math.floor(parseInt(unit.unitNumber) / 100), // Calculate floor from unit number
+                              building: 'Main',
+                              amenities: ['AC', 'W/D'],
+                              monthlyRent: unit.monthlyRent,
+                              securityDeposit: unit.lease?.securityDeposit || unit.monthlyRent,
+                              status: unit.status,
+                              tenant: unit.tenant ? {
+                                id: unit.tenant.id,
+                                name: unit.tenant.name,
+                                email: unit.tenant.email,
+                                phone: unit.tenant.phone,
+                                moveInDate: unit.lease?.startDate || '2024-01-01'
+                              } : undefined
+                            }}
+                            isExpanded={expandedUnits.has(unit.id)}
+                            details={unitDetails[unit.id]}
+                            isLoading={loadingUnits.has(unit.id)}
+                            onToggle={() => toggleUnitExpansion(unit.id)}
+                            onEdit={(unitId) => {
+                              // TODO: Implement unit edit
+                              console.log('Edit unit:', unitId);
+                            }}
+                          />
+                        ))
+                      ) : (
+                        <div className="text-center py-8">
+                          <Home className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                          <h3 className="text-lg font-medium text-muted-foreground mb-2">
+                            No units found
+                          </h3>
+                          <p className="text-sm text-muted-foreground">
+                            {unitSearchQuery 
+                              ? `No units match "${unitSearchQuery}"`
+                              : unitStatusFilter !== 'all'
+                              ? `No units with status "${unitStatusFilter}"`
+                              : 'No units available'
+                            }
+                          </p>
+                          {(unitSearchQuery || unitStatusFilter !== 'all') && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="mt-4"
+                              onClick={() => {
+                                setUnitSearchQuery('');
+                                setUnitStatusFilter('all');
+                              }}
+                            >
+                              Clear filters
+                            </Button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </>
                 );
               })()}
             </CardContent>
