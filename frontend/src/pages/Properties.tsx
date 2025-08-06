@@ -6512,13 +6512,32 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
 
                 if (units.length === 0) {
                   return (
-                    <div className="text-center py-8">
-                      <Home className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="text-lg font-medium text-muted-foreground mb-2">
+                    <div className="text-center py-12">
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-full blur-3xl"></div>
+                        <div className="relative bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-full p-6 mx-auto w-24 h-24 flex items-center justify-center mb-6">
+                          <Home className="h-12 w-12 text-blue-600 dark:text-blue-400" />
+                        </div>
+                      </div>
+                      <h3 className="text-xl font-semibold text-foreground mb-3">
                         No units found
                       </h3>
-                      <p className="text-sm text-muted-foreground">
-                        This property doesn't have any units yet.
+                      <p className="text-muted-foreground mb-8 max-w-md mx-auto">
+                        This property doesn't have any units yet. Add your first unit to start managing this property.
+                      </p>
+                      <Button 
+                        onClick={() => {
+                          // TODO: Implement add unit functionality
+                          console.log('Add first unit clicked');
+                        }}
+                        className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+                        size="lg"
+                      >
+                        <Plus className="h-5 w-5 mr-2" />
+                        Add Your First Unit
+                      </Button>
+                      <p className="text-xs text-muted-foreground mt-4">
+                        Start building your property portfolio
                       </p>
                     </div>
                   );
