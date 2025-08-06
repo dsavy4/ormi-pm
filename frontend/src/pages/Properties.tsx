@@ -705,6 +705,7 @@ export function Properties() {
   };
 
   // Enhanced Selection Functions
+  // Enhanced Selection Functions with Keyboard Shortcuts
   const handleSelectAll = () => {
     if (selectedProperties.length === properties.length) {
       setSelectedProperties([]);
@@ -719,6 +720,71 @@ export function Properties() {
         ? prev.filter(id => id !== propertyId)
         : [...prev, propertyId]
     );
+  };
+
+  // Enhanced keyboard shortcuts for selection
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    // Only handle shortcuts when not in input fields
+    const target = e.target as HTMLElement;
+    if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+      return;
+    }
+
+    // Ctrl+A: Select all properties
+    if (e.ctrlKey && e.key === 'a') {
+      e.preventDefault();
+      handleSelectAll();
+      toast.success(selectedProperties.length === properties.length ? 'Deselected all properties' : 'Selected all properties');
+    }
+
+    // Ctrl+D: Deselect all properties
+    if (e.ctrlKey && e.key === 'd') {
+      e.preventDefault();
+      setSelectedProperties([]);
+      toast.success('Deselected all properties');
+    }
+
+    // Escape: Clear selection
+    if (e.key === 'Escape') {
+      setSelectedProperties([]);
+    }
+  }, [selectedProperties.length, properties.length]);
+
+  // Add keyboard event listeners
+  useEffect(() => {
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [handleKeyDown]);
+
+  // Smart selection based on filters
+  const handleSmartSelect = (filterType: 'occupied' | 'vacant' | 'maintenance' | 'expiring') => {
+    let filteredProperties: string[] = [];
+    
+    switch (filterType) {
+      case 'occupied':
+        filteredProperties = properties
+          .filter(p => p.occupancyRate > 0)
+          .map(p => p.id);
+        break;
+      case 'vacant':
+        filteredProperties = properties
+          .filter(p => p.occupancyRate === 0)
+          .map(p => p.id);
+        break;
+      case 'maintenance':
+        filteredProperties = properties
+          .filter(p => p.maintenanceRequests > 0)
+          .map(p => p.id);
+        break;
+      case 'expiring':
+        filteredProperties = properties
+          .filter(p => p.leasesExpiring > 0)
+          .map(p => p.id);
+        break;
+    }
+
+    setSelectedProperties(filteredProperties);
+    toast.success(`Selected ${filteredProperties.length} ${filterType} properties`);
   };
 
   // Navigation and Highlighting Functions
@@ -1177,6 +1243,7 @@ export function Properties() {
               <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
                 <span>Press ⌘K to search</span>
                 <span>⌘A to select all</span>
+                <span>⌘D to deselect all</span>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -1199,6 +1266,123 @@ export function Properties() {
               </Button>
             </div>
           </div>
+
+          {/* Enhanced Selection Header & Bulk Actions */}
+          <AnimatePresence>
+            {selectedProperties.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: -20, height: 0 }}
+                animate={{ opacity: 1, y: 0, height: 'auto' }}
+                exit={{ opacity: 0, y: -20, height: 0 }}
+                className="overflow-hidden"
+              >
+                <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-primary/10 dark:from-primary/10 dark:to-primary/20 shadow-lg">
+                  <CardContent className="p-6">
+                    <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                      {/* Selection Info */}
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-3">
+                          <ProCheckbox
+                            checked={selectedProperties.length === properties.length}
+                            onCheckedChange={handleSelectAll}
+                            size="lg"
+                            className="text-primary"
+                          />
+                          <div>
+                            <h3 className="text-lg font-semibold text-foreground">
+                              {selectedProperties.length} {selectedProperties.length === 1 ? 'Property' : 'Properties'} Selected
+                            </h3>
+                            <p className="text-sm text-muted-foreground">
+                              {selectedProperties.length === properties.length ? 'All properties selected' : `${properties.length - selectedProperties.length} remaining`}
+                            </p>
+                          </div>
+                        </div>
+                        
+                        {/* Quick Selection Actions */}
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleSmartSelect('occupied')}
+                            className="text-xs"
+                          >
+                            Select Occupied
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleSmartSelect('vacant')}
+                            className="text-xs"
+                          >
+                            Select Vacant
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleSmartSelect('maintenance')}
+                            className="text-xs"
+                          >
+                            Select Maintenance
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleSmartSelect('expiring')}
+                            className="text-xs"
+                          >
+                            Select Expiring
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Bulk Actions */}
+                      <div className="flex items-center gap-3">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setSelectedProperties([])}
+                          className="flex items-center gap-2"
+                        >
+                          <X className="h-4 w-4" />
+                          Clear Selection
+                        </Button>
+                        
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleAssignManager}
+                          className="flex items-center gap-2"
+                        >
+                          <UserPlus className="h-4 w-4" />
+                          Assign Manager
+                        </Button>
+                        
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleBulkExport}
+                          className="flex items-center gap-2"
+                        >
+                          <Download className="h-4 w-4" />
+                          Export
+                        </Button>
+                        
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={handleBulkArchive}
+                          className="flex items-center gap-2"
+                        >
+                          <Archive className="h-4 w-4" />
+                          Archive
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* AI-Powered Insights */}
           <motion.div variants={itemVariants}>
@@ -2066,26 +2250,39 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
         />
       )}
 
-      {/* Selection Checkbox - Highly Visible */}
+      {/* Enhanced Selection Checkbox - Professional Design */}
       <div className="absolute top-3 left-3 z-10">
         <button
           onClick={onSelect}
-          className={`flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all duration-200 cursor-pointer group ${
+          className={`flex items-center justify-center w-12 h-12 rounded-xl border-2 transition-all duration-300 cursor-pointer group backdrop-blur-sm ${
             isSelected 
-              ? 'bg-primary border-primary shadow-lg shadow-primary/25' 
-              : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 hover:border-primary/50 hover:shadow-md'
+              ? 'bg-primary border-primary shadow-lg shadow-primary/30 scale-110' 
+              : 'bg-white/90 dark:bg-gray-800/90 border-gray-300 dark:border-gray-600 hover:border-primary/60 hover:shadow-lg hover:scale-105'
           }`}
           aria-label={`Select ${property.name}`}
         >
           <ProCheckbox
             checked={isSelected}
             onCheckedChange={onSelect}
-            size="md"
-            className={`group-hover:scale-110 transition-transform duration-200 ${
-              isSelected ? 'text-white' : 'text-gray-600 dark:text-gray-400'
+            size="lg"
+            className={`transition-all duration-300 ${
+              isSelected 
+                ? 'text-white scale-110' 
+                : 'text-gray-600 dark:text-gray-400 group-hover:text-primary group-hover:scale-110'
             }`}
           />
         </button>
+        
+        {/* Selection Indicator */}
+        {isSelected && (
+          <motion.div
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="absolute -top-1 -right-1 w-6 h-6 bg-primary rounded-full flex items-center justify-center shadow-lg"
+          >
+            <CheckCircle2 className="h-4 w-4 text-white" />
+          </motion.div>
+        )}
       </div>
 
       {/* Property Rating */}
@@ -2310,26 +2507,39 @@ const PropertyListItem: React.FC<PropertyListItemProps> = ({
       )}
 
       <div className="grid grid-cols-12 gap-4 items-center relative z-10">
-        {/* Selection - Highly Visible */}
+        {/* Enhanced Selection - Professional Design */}
         <div className="col-span-1">
           <button
             onClick={onSelect}
-            className={`flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all duration-200 cursor-pointer group ${
+            className={`flex items-center justify-center w-12 h-12 rounded-xl border-2 transition-all duration-300 cursor-pointer group backdrop-blur-sm ${
               isSelected 
-                ? 'bg-primary border-primary shadow-lg shadow-primary/25' 
-                : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 hover:border-primary/50 hover:shadow-md'
+                ? 'bg-primary border-primary shadow-lg shadow-primary/30 scale-110' 
+                : 'bg-white/90 dark:bg-gray-800/90 border-gray-300 dark:border-gray-600 hover:border-primary/60 hover:shadow-lg hover:scale-105'
             }`}
             aria-label={`Select ${property.name}`}
           >
             <ProCheckbox
               checked={isSelected}
               onCheckedChange={onSelect}
-              size="md"
-              className={`group-hover:scale-110 transition-transform duration-200 ${
-                isSelected ? 'text-white' : 'text-gray-600 dark:text-gray-400'
+              size="lg"
+              className={`transition-all duration-300 ${
+                isSelected 
+                  ? 'text-white scale-110' 
+                  : 'text-gray-600 dark:text-gray-400 group-hover:text-primary group-hover:scale-110'
               }`}
             />
           </button>
+          
+          {/* Selection Indicator */}
+          {isSelected && (
+            <motion.div
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="absolute -top-1 -right-1 w-6 h-6 bg-primary rounded-full flex items-center justify-center shadow-lg"
+            >
+              <CheckCircle2 className="h-4 w-4 text-white" />
+            </motion.div>
+          )}
         </div>
 
         {/* Property Info */}
@@ -4530,8 +4740,21 @@ const ManagerAssignmentSheet: React.FC<ManagerAssignmentSheetProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedManager, setSelectedManager] = useState<PropertyManager | null>(null);
+  const [assignmentMode, setAssignmentMode] = useState<'individual' | 'bulk' | 'auto'>('individual');
+  const [workloadThreshold, setWorkloadThreshold] = useState(10);
   
-  // Fetch available managers
+  // Enhanced manager interface with workload data
+  interface EnhancedManager extends PropertyManager {
+    currentProperties: number;
+    workloadScore: number;
+    performanceRating: number;
+    avgResponseTime: number;
+    satisfactionScore: number;
+  }
+  
+  const [enhancedManagers, setEnhancedManagers] = useState<EnhancedManager[]>([]);
+  
+  // Fetch available managers with workload data
   useEffect(() => {
     if (isOpen) {
       fetchManagers();
@@ -4541,13 +4764,14 @@ const ManagerAssignmentSheet: React.FC<ManagerAssignmentSheetProps> = ({
   const fetchManagers = async () => {
     setIsLoading(true);
     try {
-      // API call to fetch users with property_manager role
-      const response = await fetch('/api/users?role=property_manager', {
+      // Enhanced API call to fetch managers with workload data
+      const response = await fetch('/api/managers?include=workload', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
         }
       });
       const data = await response.json();
+      setEnhancedManagers(data);
       setManagers(data);
     } catch (error) {
       console.error('Failed to fetch managers:', error);
@@ -4557,10 +4781,59 @@ const ManagerAssignmentSheet: React.FC<ManagerAssignmentSheetProps> = ({
     }
   };
   
-  const filteredManagers = managers.filter(manager =>
+  const filteredManagers = enhancedManagers.filter(manager =>
     manager.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     manager.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
+  
+  // Auto-assign based on workload balancing
+  const handleAutoAssign = () => {
+    const availableManagers = enhancedManagers.filter(m => m.currentProperties < workloadThreshold);
+    if (availableManagers.length === 0) {
+      toast.error('No managers available within workload threshold');
+      return;
+    }
+    
+    // Sort by workload score (ascending) and performance rating (descending)
+    const sortedManagers = availableManagers.sort((a, b) => {
+      if (a.workloadScore !== b.workloadScore) {
+        return a.workloadScore - b.workloadScore;
+      }
+      return b.performanceRating - a.performanceRating;
+    });
+    
+    const bestManager = sortedManagers[0];
+    setSelectedManager(bestManager);
+    toast.success(`Auto-assigned to ${bestManager.name} (Workload: ${bestManager.workloadScore}/10)`);
+  };
+  
+  // Bulk assign with workload distribution
+  const handleBulkAssign = () => {
+    const availableManagers = enhancedManagers.filter(m => m.currentProperties < workloadThreshold);
+    if (availableManagers.length === 0) {
+      toast.error('No managers available within workload threshold');
+      return;
+    }
+    
+    // Distribute properties among available managers
+    const sortedManagers = availableManagers.sort((a, b) => a.workloadScore - b.workloadScore);
+    const propertiesPerManager = Math.ceil(selectedProperties.length / sortedManagers.length);
+    
+    let assignedCount = 0;
+    sortedManagers.forEach((manager, index) => {
+      const startIndex = index * propertiesPerManager;
+      const endIndex = Math.min(startIndex + propertiesPerManager, selectedProperties.length);
+      const managerProperties = selectedProperties.slice(startIndex, endIndex);
+      
+      if (managerProperties.length > 0) {
+        onAssignManager(manager.id, managerProperties);
+        assignedCount += managerProperties.length;
+      }
+    });
+    
+    toast.success(`Distributed ${assignedCount} properties among ${sortedManagers.length} managers`);
+    onClose();
+  };
   
   const handleAssign = async () => {
     if (!selectedManager) return;
@@ -4593,6 +4866,52 @@ const ManagerAssignmentSheet: React.FC<ManagerAssignmentSheetProps> = ({
         </SheetHeader>
         
         <div className="mt-6 space-y-6">
+          {/* Assignment Mode Selection */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-4">
+              <h3 className="text-lg font-semibold">Assignment Mode</h3>
+              <div className="flex gap-2">
+                <Button
+                  variant={assignmentMode === 'individual' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setAssignmentMode('individual')}
+                >
+                  Individual
+                </Button>
+                <Button
+                  variant={assignmentMode === 'bulk' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setAssignmentMode('bulk')}
+                >
+                  Bulk Distribute
+                </Button>
+                <Button
+                  variant={assignmentMode === 'auto' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setAssignmentMode('auto')}
+                >
+                  Auto-Assign
+                </Button>
+              </div>
+            </div>
+            
+            {/* Workload Threshold */}
+            <div className="flex items-center gap-4">
+              <Label htmlFor="workload-threshold" className="text-sm font-medium">
+                Max Properties per Manager:
+              </Label>
+              <Input
+                id="workload-threshold"
+                type="number"
+                value={workloadThreshold}
+                onChange={(e) => setWorkloadThreshold(Number(e.target.value))}
+                className="w-20"
+                min="1"
+                max="50"
+              />
+            </div>
+          </div>
+
           {/* Search Bar */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -4625,34 +4944,70 @@ const ManagerAssignmentSheet: React.FC<ManagerAssignmentSheetProps> = ({
                 <p className="text-sm">Try adjusting your search or add new managers</p>
               </div>
             ) : (
-              filteredManagers.map((manager) => (
-                <button
-                  key={manager.id}
-                  onClick={() => setSelectedManager(manager)}
-                  className={`w-full flex items-center space-x-4 p-4 rounded-lg border transition-all ${
-                    selectedManager?.id === manager.id
-                      ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-500/20'
-                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                  }`}
-                >
-                  <Avatar className="h-12 w-12">
-                    <AvatarImage src={manager.avatar} alt={manager.name} />
-                    <AvatarFallback className="bg-blue-100 text-blue-600">
-                      {manager.name.split(' ').map(n => n[0]).join('')}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 text-left">
-                    <h4 className="font-semibold text-foreground">{manager.name}</h4>
-                    <p className="text-sm text-gray-500">{manager.email}</p>
-                    <p className="text-xs text-gray-400 mt-1">
-                      Managing {manager.properties.length} properties
-                    </p>
-                  </div>
-                  {selectedManager?.id === manager.id && (
-                    <CheckCircle2 className="h-5 w-5 text-blue-600" />
-                  )}
-                </button>
-              ))
+              filteredManagers.map((manager) => {
+                const enhancedManager = manager as EnhancedManager;
+                const isOverloaded = enhancedManager.currentProperties >= workloadThreshold;
+                const workloadPercentage = (enhancedManager.currentProperties / workloadThreshold) * 100;
+                
+                return (
+                  <button
+                    key={manager.id}
+                    onClick={() => setSelectedManager(manager)}
+                    className={`w-full flex items-center space-x-4 p-4 rounded-lg border transition-all ${
+                      selectedManager?.id === manager.id
+                        ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-500/20'
+                        : isOverloaded
+                        ? 'border-red-200 bg-red-50'
+                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    <Avatar className="h-12 w-12">
+                      <AvatarImage src={manager.avatar} alt={manager.name} />
+                      <AvatarFallback className="bg-blue-100 text-blue-600">
+                        {manager.name.split(' ').map(n => n[0]).join('')}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 text-left">
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-semibold text-foreground">{manager.name}</h4>
+                        {isOverloaded && (
+                          <Badge variant="destructive" className="text-xs">
+                            Overloaded
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-500">{manager.email}</p>
+                      
+                      {/* Workload Information */}
+                      <div className="mt-2 space-y-1">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-gray-600">Properties: {enhancedManager.currentProperties}/{workloadThreshold}</span>
+                          <span className="text-gray-600">Workload: {enhancedManager.workloadScore}/10</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-1.5">
+                          <div 
+                            className={`h-1.5 rounded-full transition-all ${
+                              workloadPercentage > 100 ? 'bg-red-500' : 
+                              workloadPercentage > 80 ? 'bg-yellow-500' : 'bg-green-500'
+                            }`}
+                            style={{ width: `${Math.min(workloadPercentage, 100)}%` }}
+                          />
+                        </div>
+                        
+                        {/* Performance Metrics */}
+                        <div className="flex items-center gap-4 text-xs text-gray-500 mt-2">
+                          <span>Performance: {enhancedManager.performanceRating}/5 ⭐</span>
+                          <span>Response: {enhancedManager.avgResponseTime}h</span>
+                          <span>Satisfaction: {enhancedManager.satisfactionScore}%</span>
+                        </div>
+                      </div>
+                    </div>
+                    {selectedManager?.id === manager.id && (
+                      <CheckCircle2 className="h-5 w-5 text-blue-600" />
+                    )}
+                  </button>
+                );
+              })
             )}
           </div>
           
@@ -4661,14 +5016,37 @@ const ManagerAssignmentSheet: React.FC<ManagerAssignmentSheetProps> = ({
             <Button variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button 
-              onClick={handleAssign}
-              disabled={!selectedManager}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              <UserPlus className="h-4 w-4 mr-2" />
-              Assign Manager
-            </Button>
+            
+            {assignmentMode === 'auto' && (
+              <Button 
+                onClick={handleAutoAssign}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                <Zap className="h-4 w-4 mr-2" />
+                Auto-Assign Best Manager
+              </Button>
+            )}
+            
+            {assignmentMode === 'bulk' && (
+              <Button 
+                onClick={handleBulkAssign}
+                className="bg-purple-600 hover:bg-purple-700"
+              >
+                <Users className="h-4 w-4 mr-2" />
+                Distribute Among Managers
+              </Button>
+            )}
+            
+            {assignmentMode === 'individual' && (
+              <Button 
+                onClick={handleAssign}
+                disabled={!selectedManager}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                <UserPlus className="h-4 w-4 mr-2" />
+                Assign Manager
+              </Button>
+            )}
           </div>
         </div>
       </SheetContent>
