@@ -1455,10 +1455,10 @@ export function Tenants() {
     const total = tenants.length;
     const active = tenants.filter(t => t.status === 'Active').length;
     const late = tenants.filter(t => t.status === 'Late').length;
-    const totalRent = tenants.reduce((sum, t) => sum + t.lease.monthlyRent, 0);
-    const totalBalance = tenants.reduce((sum, t) => sum + Math.abs(t.balance), 0);
-    const avgRating = tenants.reduce((sum, t) => sum + t.rating, 0) / total;
-    const expiringLeases = tenants.filter(t => t.lease.status === 'Expiring Soon').length;
+    const totalRent = tenants.reduce((sum, t) => sum + (t.lease?.monthlyRent || 0), 0);
+    const totalBalance = tenants.reduce((sum, t) => sum + Math.abs(t.balance || 0), 0);
+    const avgRating = tenants.reduce((sum, t) => sum + (t.rating || 0), 0) / total;
+    const expiringLeases = tenants.filter(t => t.lease?.status === 'Expiring Soon').length;
 
     return {
       total,

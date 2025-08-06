@@ -57,20 +57,23 @@ import { getFileUrl } from '@/lib/utils';
 // Types
 interface Document {
   id: string;
-  name: string;
+  name?: string; // Optional for backward compatibility
+  fileName?: string; // API returns this field
   fileType: string;
-  size: number;
+  fileSize?: number; // API returns this field
+  size?: number; // Legacy field
   category: string;
   tags: string[];
   uploadedAt: string;
   uploadedBy: string;
-  lastModified: string;
+  lastModified?: string;
   thumbnail?: string;
   preview?: string;
-  url: string;
-  status: 'active' | 'archived' | 'deleted';
-  version: number;
-  permissions: {
+  url?: string; // Optional for backward compatibility
+  fileUrl?: string; // API returns this field
+  status?: 'active' | 'archived' | 'deleted';
+  version?: number;
+  permissions?: {
     canView: boolean;
     canEdit: boolean;
     canDelete: boolean;
@@ -301,8 +304,12 @@ export default function Documents() {
   };
 
   const filteredDocuments = documents.filter((doc: Document) => {
-    const matchesSearch = doc.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         doc.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
+    // Handle the case where doc.name might be undefined (API returns fileName)
+    const docName = doc.name || doc.fileName || '';
+    const docTags = doc.tags || [];
+    
+    const matchesSearch = docName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         docTags.some(tag => tag && tag.toLowerCase().includes(searchQuery.toLowerCase()));
     const matchesCategory = selectedCategory === 'all' || doc.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
@@ -546,10 +553,10 @@ function DocumentCard({ document }: { document: Document }) {
       <CardContent className="p-4">
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">
-            <h3 className="font-medium text-sm truncate">{document.name}</h3>
-            <p className="text-xs text-muted-foreground mt-1">
-              {formatBytes(document.size)} • {formatDate(document.uploadedAt)}
-            </p>
+            <h3 className="font-medium text-sm truncate">{document.name || document.fileName || 'Untitled'}</h3>
+                          <p className="text-xs text-muted-foreground mt-1">
+                {formatBytes(document.size || document.fileSize || 0)} • {formatDate(document.uploadedAt)}
+              </p>
           </div>
         </div>
         
@@ -587,13 +594,13 @@ function DocumentListItem({ document }: { document: Document }) {
           
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <h3 className="font-medium truncate">{document.name}</h3>
+              <h3 className="font-medium truncate">{document.name || document.fileName || 'Untitled'}</h3>
               <Badge variant="outline" className={`text-xs ${getCategoryColor(document.category)}`}>
                 {document.category}
               </Badge>
             </div>
             <p className="text-sm text-muted-foreground truncate">
-              {formatBytes(document.size)} • {formatDate(document.uploadedAt)} • {document.uploadedBy}
+              {formatBytes(document.size || document.fileSize || 0)} • {formatDate(document.uploadedAt)} • {document.uploadedBy}
             </p>
           </div>
           
