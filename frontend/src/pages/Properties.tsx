@@ -5530,6 +5530,8 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
   const [unitStatusFilter, setUnitStatusFilter] = useState('all');
   const [unitOccupancyFilter, setUnitOccupancyFilter] = useState('all');
   const [unitBedroomsFilter, setUnitBedroomsFilter] = useState('all');
+  const [unitBedroomsMin, setUnitBedroomsMin] = useState<number | ''>('');
+  const [unitBedroomsMax, setUnitBedroomsMax] = useState<number | ''>('');
   const [unitFloorFilter, setUnitFloorFilter] = useState('all');
   const [unitSortBy, setUnitSortBy] = useState('unitNumber');
 
@@ -5574,6 +5576,8 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
                   status: unitStatusFilter,
                   occupancy: unitOccupancyFilter,
                   bedrooms: unitBedroomsFilter,
+                  bedroomsMin: unitBedroomsMin !== '' ? unitBedroomsMin : undefined,
+                  bedroomsMax: unitBedroomsMax !== '' ? unitBedroomsMax : undefined,
                   floor: unitFloorFilter,
                   sortBy: unitSortBy,
                   sortOrder: 'asc' as const
@@ -6273,14 +6277,16 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => {
-                        setUnitSearchQuery('');
-                        setUnitStatusFilter('all');
-                        setUnitOccupancyFilter('all');
-                        setUnitBedroomsFilter('all');
-                        setUnitFloorFilter('all');
-                        setUnitSortBy('unitNumber');
-                      }}
+                                        onClick={() => {
+                    setUnitSearchQuery('');
+                    setUnitStatusFilter('all');
+                    setUnitOccupancyFilter('all');
+                    setUnitBedroomsFilter('all');
+                    setUnitBedroomsMin('');
+                    setUnitBedroomsMax('');
+                    setUnitFloorFilter('all');
+                    setUnitSortBy('unitNumber');
+                  }}
                       className="h-8 px-3 text-xs"
                     >
                       <RefreshCw className="h-3 w-3 mr-1.5" />
@@ -6365,8 +6371,39 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
                           <SelectItem value="2" className="text-xs">2 Bedrooms</SelectItem>
                           <SelectItem value="3" className="text-xs">3 Bedrooms</SelectItem>
                           <SelectItem value="4" className="text-xs">4+ Bedrooms</SelectItem>
+                          <SelectItem value="custom" className="text-xs">Custom Range</SelectItem>
                         </SelectContent>
                       </Select>
+                      
+                      {/* Custom Bedroom Range */}
+                      {unitBedroomsFilter === 'custom' && (
+                        <div className="grid grid-cols-2 gap-2 mt-2">
+                          <div className="space-y-1">
+                            <label className="text-xs text-muted-foreground">Min</label>
+                            <Input
+                              type="number"
+                              min="0"
+                              max="20"
+                              placeholder="0"
+                              value={unitBedroomsMin}
+                              onChange={(e) => setUnitBedroomsMin(e.target.value === '' ? '' : parseInt(e.target.value))}
+                              className="h-8 text-xs"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-xs text-muted-foreground">Max</label>
+                            <Input
+                              type="number"
+                              min="0"
+                              max="20"
+                              placeholder="10"
+                              value={unitBedroomsMax}
+                              onChange={(e) => setUnitBedroomsMax(e.target.value === '' ? '' : parseInt(e.target.value))}
+                              className="h-8 text-xs"
+                            />
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* Floor Filter */}
@@ -6413,7 +6450,7 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
                   </div>
 
                   {/* Active Filters Summary */}
-                  {(unitSearchQuery || unitStatusFilter !== 'all' || unitOccupancyFilter !== 'all' || unitBedroomsFilter !== 'all' || unitFloorFilter !== 'all') && (
+                  {(unitSearchQuery || unitStatusFilter !== 'all' || unitOccupancyFilter !== 'all' || unitBedroomsFilter !== 'all' || unitFloorFilter !== 'all' || (unitBedroomsFilter === 'custom' && (unitBedroomsMin !== '' || unitBedroomsMax !== ''))) && (
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <Filter className="h-3 w-3" />
                       <span>Active filters:</span>
@@ -6433,9 +6470,19 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
                             Occupancy: {unitOccupancyFilter}
                           </Badge>
                         )}
-                        {unitBedroomsFilter !== 'all' && (
+                        {unitBedroomsFilter !== 'all' && unitBedroomsFilter !== 'custom' && (
                           <Badge variant="secondary" className="text-xs px-2 py-0.5">
                             {unitBedroomsFilter === '0' ? 'Studio' : `${unitBedroomsFilter}BR`}
+                          </Badge>
+                        )}
+                        {unitBedroomsFilter === 'custom' && (unitBedroomsMin !== '' || unitBedroomsMax !== '') && (
+                          <Badge variant="secondary" className="text-xs px-2 py-0.5">
+                            {unitBedroomsMin !== '' && unitBedroomsMax !== '' 
+                              ? `${unitBedroomsMin}-${unitBedroomsMax} BR`
+                              : unitBedroomsMin !== '' 
+                                ? `${unitBedroomsMin}+ BR`
+                                : `${unitBedroomsMax}- BR`
+                            }
                           </Badge>
                         )}
                         {unitFloorFilter !== 'all' && (
@@ -6514,7 +6561,24 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
                 if (unitBedroomsFilter !== 'all') {
                   filteredUnits = filteredUnits.filter(unit => {
                     const bedrooms = unit.bedrooms || 0;
-                    if (unitBedroomsFilter === '4') {
+                    
+                    if (unitBedroomsFilter === 'custom') {
+                      // Custom range filtering
+                      const min = unitBedroomsMin !== '' ? unitBedroomsMin : 0;
+                      const max = unitBedroomsMax !== '' ? unitBedroomsMax : Infinity;
+                      
+                      if (unitBedroomsMin !== '' && unitBedroomsMax !== '') {
+                        // Both min and max specified
+                        return bedrooms >= min && bedrooms <= max;
+                      } else if (unitBedroomsMin !== '') {
+                        // Only min specified
+                        return bedrooms >= min;
+                      } else if (unitBedroomsMax !== '') {
+                        // Only max specified
+                        return bedrooms <= max;
+                      }
+                      return true;
+                    } else if (unitBedroomsFilter === '4') {
                       return bedrooms >= 4;
                     }
                     return bedrooms === parseInt(unitBedroomsFilter);
@@ -6558,7 +6622,8 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
                                         {unitSearchQuery && ` matching "${unitSearchQuery}"`}
                 {unitStatusFilter !== 'all' && ` with status "${unitStatusFilter}"`}
                 {unitOccupancyFilter !== 'all' && ` ${unitOccupancyFilter}`}
-                {unitBedroomsFilter !== 'all' && ` ${unitBedroomsFilter === '0' ? 'Studio' : `${unitBedroomsFilter}BR`}`}
+                {unitBedroomsFilter !== 'all' && unitBedroomsFilter !== 'custom' && ` ${unitBedroomsFilter === '0' ? 'Studio' : `${unitBedroomsFilter}BR`}`}
+                {unitBedroomsFilter === 'custom' && (unitBedroomsMin !== '' || unitBedroomsMax !== '') && ` ${unitBedroomsMin !== '' && unitBedroomsMax !== '' ? `${unitBedroomsMin}-${unitBedroomsMax} BR` : unitBedroomsMin !== '' ? `${unitBedroomsMin}+ BR` : `${unitBedroomsMax}- BR`}`}
                 {unitFloorFilter !== 'all' && ` Floor ${unitFloorFilter}`}
                       </div>
                     )}

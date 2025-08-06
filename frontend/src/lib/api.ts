@@ -571,6 +571,8 @@ export const unitsApi = {
               status?: string;
               occupancy?: string;
               bedrooms?: string;
+              bedroomsMin?: number;
+              bedroomsMax?: number;
               floor?: string;
               sortBy?: string;
               sortOrder?: 'asc' | 'desc';
@@ -584,6 +586,8 @@ export const unitsApi = {
               if (filters?.status) params.append('status', filters.status);
               if (filters?.occupancy) params.append('occupancy', filters.occupancy);
               if (filters?.bedrooms) params.append('bedrooms', filters.bedrooms);
+              if (filters?.bedroomsMin !== undefined) params.append('bedroomsMin', filters.bedroomsMin.toString());
+              if (filters?.bedroomsMax !== undefined) params.append('bedroomsMax', filters.bedroomsMax.toString());
               if (filters?.floor) params.append('floor', filters.floor);
               if (filters?.sortBy) params.append('sortBy', filters.sortBy);
               if (filters?.sortOrder) params.append('sortOrder', filters.sortOrder);

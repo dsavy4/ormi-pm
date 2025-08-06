@@ -26,6 +26,8 @@ export class UnitController {
                   const status = c.req.query('status') || '';
                   const occupancy = c.req.query('occupancy') || '';
                   const bedrooms = c.req.query('bedrooms') || '';
+                  const bedroomsMin = c.req.query('bedroomsMin') || '';
+                  const bedroomsMax = c.req.query('bedroomsMax') || '';
                   const floor = c.req.query('floor') || '';
                   const sortBy = c.req.query('sortBy') || 'unitNumber';
                   const sortOrder = c.req.query('sortOrder') || 'asc';
@@ -88,7 +90,19 @@ export class UnitController {
                   }
 
                   if (bedrooms && bedrooms !== 'all') {
-                    query = query.eq('bedrooms', parseInt(bedrooms));
+                    if (bedrooms === '4') {
+                      query = query.gte('bedrooms', 4);
+                    } else {
+                      query = query.eq('bedrooms', parseInt(bedrooms));
+                    }
+                  }
+
+                  // Handle custom bedroom range
+                  if (bedroomsMin && bedroomsMin !== '') {
+                    query = query.gte('bedrooms', parseInt(bedroomsMin));
+                  }
+                  if (bedroomsMax && bedroomsMax !== '') {
+                    query = query.lte('bedrooms', parseInt(bedroomsMax));
                   }
 
                   if (floor && floor !== 'all') {
