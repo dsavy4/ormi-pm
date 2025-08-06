@@ -1150,33 +1150,17 @@ export function Properties() {
     
     if (property) {
       try {
-        // Try to fetch detailed property data from the API
-        const response = await fetch(`/api/properties/${propertyId}`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          },
-        });
+        // Use the API client to fetch detailed property data
+        const { propertiesApi } = await import('@/lib/api');
+        const detailedProperty = await propertiesApi.getById(propertyId);
         
-        if (response.ok) {
-          const detailedProperty = await response.json();
-          setPropertyViewData({
-            property: detailedProperty,
-            manager: undefined, // Will be enhanced later when we have proper manager data
-            units: detailedProperty.units || [],
-            recentActivity: [],
-            documents: []
-          });
-        } else {
-          // If API fails, use the basic property data from the list
-          console.log(`Property details API returned ${response.status}, using basic property data`);
-          setPropertyViewData({
-            property,
-            manager: undefined,
-            units: [],
-            recentActivity: [],
-            documents: []
-          });
-        }
+        setPropertyViewData({
+          property: detailedProperty,
+          manager: undefined, // Will be enhanced later when we have proper manager data
+          units: detailedProperty.units || [],
+          recentActivity: [],
+          documents: []
+        });
       } catch (error) {
         console.error('Failed to fetch property details:', error);
         // Fallback to basic property data
