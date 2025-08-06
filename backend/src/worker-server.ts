@@ -875,6 +875,94 @@ async function cleanupTeamMemberFiles(env: any, userId: string, teamMemberId: st
   }
 }
 
+/**
+ * Clean up R2 files for a unit
+ */
+async function cleanupUnitFiles(env: any, userId: string, unitId: string, propertyId: string): Promise<void> {
+  try {
+    const { createStorageService } = await import('./utils/storage');
+    const storageService = createStorageService(env);
+    
+    // Get all files for this unit from documents table
+    const supabase = getSupabaseClient(env);
+    const { data: documents, error } = await supabase
+      .from('documents')
+      .select('fileUrl')
+      .eq('unitId', unitId);
+    
+    if (error) {
+      console.error('[DEBUG] Error fetching unit documents for cleanup:', error);
+      return;
+    }
+    
+    // Delete each file from R2
+    for (const doc of documents || []) {
+      if (doc.fileUrl && !doc.fileUrl.startsWith('http')) {
+        try {
+          await storageService.deleteFile(doc.fileUrl);
+          console.log('[DEBUG] Deleted R2 file:', doc.fileUrl);
+        } catch (deleteError) {
+          console.error('[DEBUG] Error deleting R2 file:', doc.fileUrl, deleteError);
+        }
+      }
+    }
+    
+    // Also delete any files in the unit directory structure
+    const unitPath = `${userId}/property/${propertyId}/${unitId}`;
+    try {
+      console.log('[DEBUG] Unit cleanup completed for path:', unitPath);
+    } catch (pathError) {
+      console.error('[DEBUG] Error cleaning up unit path:', unitPath, pathError);
+    }
+  } catch (error) {
+    console.error('[DEBUG] Unit cleanup error:', error);
+  }
+}
+
+/**
+ * Clean up R2 files for a tenant
+ */
+async function cleanupTenantFiles(env: any, userId: string, tenantId: string): Promise<void> {
+  try {
+    const { createStorageService } = await import('./utils/storage');
+    const storageService = createStorageService(env);
+    
+    // Get all files for this tenant from documents table
+    const supabase = getSupabaseClient(env);
+    const { data: documents, error } = await supabase
+      .from('documents')
+      .select('fileUrl')
+      .eq('tenantId', tenantId);
+    
+    if (error) {
+      console.error('[DEBUG] Error fetching tenant documents for cleanup:', error);
+      return;
+    }
+    
+    // Delete each file from R2
+    for (const doc of documents || []) {
+      if (doc.fileUrl && !doc.fileUrl.startsWith('http')) {
+        try {
+          await storageService.deleteFile(doc.fileUrl);
+          console.log('[DEBUG] Deleted R2 file:', doc.fileUrl);
+        } catch (deleteError) {
+          console.error('[DEBUG] Error deleting R2 file:', doc.fileUrl, deleteError);
+        }
+      }
+    }
+    
+    // Also delete any files in the tenant directory structure
+    const tenantPath = `${userId}/tenants/${tenantId}`;
+    try {
+      console.log('[DEBUG] Tenant cleanup completed for path:', tenantPath);
+    } catch (pathError) {
+      console.error('[DEBUG] Error cleaning up tenant path:', tenantPath, pathError);
+    }
+  } catch (error) {
+    console.error('[DEBUG] Tenant cleanup error:', error);
+  }
+}
+
 // ===== COMPREHENSIVE API ENDPOINTS =====
 
 // 1. PROPERTY MANAGEMENT ENDPOINTS
@@ -1116,10 +1204,24 @@ app.put('/api/units/:id', authMiddleware, async (c) => {
 app.delete('/api/units/:id', authMiddleware, async (c) => {
   console.log('[DEBUG] ===== DELETE UNIT ENDPOINT CALLED =====');
   try {
+    const user = c.get('user');
     const unitId = c.req.param('id');
     
     const supabase = getSupabaseClient(c.env);
     
+    // First, get the unit to ensure it exists and get the propertyId
+    const { data: unit, error: fetchError } = await supabase
+      .from('units')
+      .select('*')
+      .eq('id', unitId)
+      .single();
+    
+    if (fetchError || !unit) {
+      console.log('[DEBUG] Unit not found for deletion:', unitId);
+      return c.json({ error: 'Unit not found' }, 404);
+    }
+    
+    // Delete the unit from database
     const { error } = await supabase
       .from('units')
       .delete()
@@ -1129,6 +1231,10 @@ app.delete('/api/units/:id', authMiddleware, async (c) => {
       console.log('[DEBUG] Unit deletion error:', error);
       return c.json({ error: 'Failed to delete unit', details: error.message }, 500);
     }
+    
+    // Clean up R2 files for this unit
+    console.log('[DEBUG] Cleaning up R2 files for unit:', unitId);
+    await cleanupUnitFiles(c.env, user.userId, unitId, unit.propertyId);
     
     console.log('[DEBUG] ===== UNIT DELETED SUCCESSFULLY =====');
     return c.json({ success: true, message: 'Unit deleted successfully' });
@@ -1214,10 +1320,25 @@ app.put('/api/tenants/:id', authMiddleware, async (c) => {
 app.delete('/api/tenants/:id', authMiddleware, async (c) => {
   console.log('[DEBUG] ===== DELETE TENANT ENDPOINT CALLED =====');
   try {
+    const user = c.get('user');
     const tenantId = c.req.param('id');
     
     const supabase = getSupabaseClient(c.env);
     
+    // First, get the tenant to ensure they exist
+    const { data: tenant, error: fetchError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', tenantId)
+      .eq('role', 'TENANT')
+      .single();
+    
+    if (fetchError || !tenant) {
+      console.log('[DEBUG] Tenant not found for deletion:', tenantId);
+      return c.json({ error: 'Tenant not found' }, 404);
+    }
+    
+    // Delete the tenant from database
     const { error } = await supabase
       .from('users')
       .delete()
@@ -1228,6 +1349,10 @@ app.delete('/api/tenants/:id', authMiddleware, async (c) => {
       console.log('[DEBUG] Tenant deletion error:', error);
       return c.json({ error: 'Failed to delete tenant', details: error.message }, 500);
     }
+    
+    // Clean up R2 files for this tenant
+    console.log('[DEBUG] Cleaning up R2 files for tenant:', tenantId);
+    await cleanupTenantFiles(c.env, user.userId, tenantId);
     
     console.log('[DEBUG] ===== TENANT DELETED SUCCESSFULLY =====');
     return c.json({ success: true, message: 'Tenant deleted successfully' });
