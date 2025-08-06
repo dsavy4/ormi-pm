@@ -6260,89 +6260,187 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
                   />
                 </div>
 
-                {/* Filter Controls */}
-                <div className="flex flex-wrap gap-2">
-                  <Select value={unitStatusFilter} onValueChange={setUnitStatusFilter}>
-                    <SelectTrigger className="w-[140px]">
-                      <SelectValue placeholder="Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Status</SelectItem>
-                      <SelectItem value="occupied">Occupied</SelectItem>
-                      <SelectItem value="vacant">Vacant</SelectItem>
-                      <SelectItem value="maintenance">Maintenance</SelectItem>
-                      <SelectItem value="reserved">Reserved</SelectItem>
-                    </SelectContent>
-                  </Select>
+                {/* Professional Filter Controls */}
+                <div className="space-y-4">
+                  {/* Filter Header */}
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-medium text-muted-foreground">Filter Units</h3>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setUnitSearchQuery('');
+                        setUnitStatusFilter('all');
+                        setUnitOccupancyFilter('all');
+                        setUnitBedroomsFilter('all');
+                        setUnitFloorFilter('all');
+                        setUnitSortBy('unitNumber');
+                      }}
+                      className="h-8 px-3 text-xs"
+                    >
+                      <RefreshCw className="h-3 w-3 mr-1.5" />
+                      Clear All
+                    </Button>
+                  </div>
 
-                  <Select value={unitOccupancyFilter} onValueChange={setUnitOccupancyFilter}>
-                    <SelectTrigger className="w-[140px]">
-                      <SelectValue placeholder="Occupancy" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All</SelectItem>
-                      <SelectItem value="occupied">Occupied</SelectItem>
-                      <SelectItem value="vacant">Vacant</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  {/* Mobile-Responsive Filter Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
+                    {/* Unit Status Filter */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                        <User className="h-3 w-3" />
+                        Unit Status
+                      </label>
+                      <Select value={unitStatusFilter} onValueChange={setUnitStatusFilter}>
+                        <SelectTrigger className="h-9 text-xs">
+                          <SelectValue placeholder="Filter by status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all" className="text-xs">All Statuses</SelectItem>
+                          <SelectItem value="occupied" className="text-xs">
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                              Occupied
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="vacant" className="text-xs">
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                              Vacant
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="maintenance" className="text-xs">
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 rounded-full bg-orange-500"></div>
+                              Maintenance
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="reserved" className="text-xs">
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 rounded-full bg-purple-500"></div>
+                              Reserved
+                            </div>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-                  <Select value={unitBedroomsFilter} onValueChange={setUnitBedroomsFilter}>
-                    <SelectTrigger className="w-[140px]">
-                      <SelectValue placeholder="Bedrooms" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All</SelectItem>
-                      <SelectItem value="0">Studio</SelectItem>
-                      <SelectItem value="1">1 Bedroom</SelectItem>
-                      <SelectItem value="2">2 Bedrooms</SelectItem>
-                      <SelectItem value="3">3 Bedrooms</SelectItem>
-                      <SelectItem value="4">4+ Bedrooms</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    {/* Occupancy Filter */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                        <Home className="h-3 w-3" />
+                        Occupancy
+                      </label>
+                      <Select value={unitOccupancyFilter} onValueChange={setUnitOccupancyFilter}>
+                        <SelectTrigger className="h-9 text-xs">
+                          <SelectValue placeholder="Filter by occupancy" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all" className="text-xs">All Units</SelectItem>
+                          <SelectItem value="occupied" className="text-xs">Currently Rented</SelectItem>
+                          <SelectItem value="vacant" className="text-xs">Available for Rent</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-                  <Select value={unitFloorFilter} onValueChange={setUnitFloorFilter}>
-                    <SelectTrigger className="w-[140px]">
-                      <SelectValue placeholder="Floor" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Floors</SelectItem>
-                      <SelectItem value="0">Ground Floor</SelectItem>
-                      <SelectItem value="1">1st Floor</SelectItem>
-                      <SelectItem value="2">2nd Floor</SelectItem>
-                      <SelectItem value="3">3rd Floor</SelectItem>
-                      <SelectItem value="4">4th Floor</SelectItem>
-                      <SelectItem value="5">5th Floor</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    {/* Bedrooms Filter */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                        <Bed className="h-3 w-3" />
+                        Bedrooms
+                      </label>
+                      <Select value={unitBedroomsFilter} onValueChange={setUnitBedroomsFilter}>
+                        <SelectTrigger className="h-9 text-xs">
+                          <SelectValue placeholder="Filter by bedrooms" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all" className="text-xs">All Sizes</SelectItem>
+                          <SelectItem value="0" className="text-xs">Studio</SelectItem>
+                          <SelectItem value="1" className="text-xs">1 Bedroom</SelectItem>
+                          <SelectItem value="2" className="text-xs">2 Bedrooms</SelectItem>
+                          <SelectItem value="3" className="text-xs">3 Bedrooms</SelectItem>
+                          <SelectItem value="4" className="text-xs">4+ Bedrooms</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-                  <Select value={unitSortBy} onValueChange={setUnitSortBy}>
-                    <SelectTrigger className="w-[140px]">
-                      <SelectValue placeholder="Sort by" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="unitNumber">Unit Number</SelectItem>
-                      <SelectItem value="rent">Monthly Rent</SelectItem>
-                      <SelectItem value="status">Status</SelectItem>
-                      <SelectItem value="tenant">Tenant Name</SelectItem>
-                      <SelectItem value="bedrooms">Bedrooms</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    {/* Floor Filter */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                        <Building className="h-3 w-3" />
+                        Floor
+                      </label>
+                      <Select value={unitFloorFilter} onValueChange={setUnitFloorFilter}>
+                        <SelectTrigger className="h-9 text-xs">
+                          <SelectValue placeholder="Filter by floor" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all" className="text-xs">All Floors</SelectItem>
+                          <SelectItem value="0" className="text-xs">Ground Floor</SelectItem>
+                          <SelectItem value="1" className="text-xs">1st Floor</SelectItem>
+                          <SelectItem value="2" className="text-xs">2nd Floor</SelectItem>
+                          <SelectItem value="3" className="text-xs">3rd Floor</SelectItem>
+                          <SelectItem value="4" className="text-xs">4th Floor</SelectItem>
+                          <SelectItem value="5" className="text-xs">5th Floor</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setUnitSearchQuery('');
-                      setUnitStatusFilter('all');
-                      setUnitOccupancyFilter('all');
-                      setUnitBedroomsFilter('all');
-                      setUnitFloorFilter('all');
-                      setUnitSortBy('unitNumber');
-                    }}
-                  >
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                    Clear Filters
-                  </Button>
+                    {/* Sort By */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                        <Filter className="h-3 w-3" />
+                        Sort By
+                      </label>
+                      <Select value={unitSortBy} onValueChange={setUnitSortBy}>
+                        <SelectTrigger className="h-9 text-xs">
+                          <SelectValue placeholder="Sort units by" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="unitNumber" className="text-xs">Unit Number</SelectItem>
+                          <SelectItem value="rent" className="text-xs">Monthly Rent</SelectItem>
+                          <SelectItem value="status" className="text-xs">Status</SelectItem>
+                          <SelectItem value="tenant" className="text-xs">Tenant Name</SelectItem>
+                          <SelectItem value="bedrooms" className="text-xs">Bedrooms</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Active Filters Summary */}
+                  {(unitSearchQuery || unitStatusFilter !== 'all' || unitOccupancyFilter !== 'all' || unitBedroomsFilter !== 'all' || unitFloorFilter !== 'all') && (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Filter className="h-3 w-3" />
+                      <span>Active filters:</span>
+                      <div className="flex flex-wrap gap-1">
+                        {unitSearchQuery && (
+                          <Badge variant="secondary" className="text-xs px-2 py-0.5">
+                            Search: "{unitSearchQuery}"
+                          </Badge>
+                        )}
+                        {unitStatusFilter !== 'all' && (
+                          <Badge variant="secondary" className="text-xs px-2 py-0.5">
+                            Status: {unitStatusFilter}
+                          </Badge>
+                        )}
+                        {unitOccupancyFilter !== 'all' && (
+                          <Badge variant="secondary" className="text-xs px-2 py-0.5">
+                            Occupancy: {unitOccupancyFilter}
+                          </Badge>
+                        )}
+                        {unitBedroomsFilter !== 'all' && (
+                          <Badge variant="secondary" className="text-xs px-2 py-0.5">
+                            {unitBedroomsFilter === '0' ? 'Studio' : `${unitBedroomsFilter}BR`}
+                          </Badge>
+                        )}
+                        {unitFloorFilter !== 'all' && (
+                          <Badge variant="secondary" className="text-xs px-2 py-0.5">
+                            Floor {unitFloorFilter}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
