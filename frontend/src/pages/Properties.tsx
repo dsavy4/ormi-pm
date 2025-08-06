@@ -83,7 +83,18 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
-import { Skeleton } from '@/components/ui/skeleton';
+import { 
+  Skeleton, 
+  UnitCardSkeleton, 
+  UnitsListSkeleton, 
+  PropertyCardSkeleton, 
+  PropertiesGridSkeleton,
+  SearchBarSkeleton,
+  FilterBarSkeleton,
+  PaginationSkeleton,
+  LoadMoreSkeleton,
+  StatsGridSkeleton
+} from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
@@ -1463,17 +1474,7 @@ export function Properties() {
           {/* AI-Powered Insights */}
           <motion.div variants={itemVariants}>
             {insightsLoading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {Array.from({ length: 4 }).map((_, index) => (
-                  <Card key={index} className="animate-pulse">
-                    <CardContent className="p-6">
-                      <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
-                      <div className="h-8 bg-muted rounded w-1/2 mb-2"></div>
-                      <div className="h-3 bg-muted rounded w-full"></div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+              <StatsGridSkeleton count={4} />
             ) : insightsError ? (
               <Card className="border-destructive">
                 <CardContent className="pt-6">
@@ -1895,80 +1896,151 @@ export function Properties() {
                 >
                   {/* Grid View */}
                   {viewMode === 'grid' && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {filteredProperties.map((property) => (
-                        <PropertyCard
-                          key={property.id}
-                          property={property}
-                          isHighlighted={highlightedProperty === property.id}
-                          isSelected={selectedProperties.includes(property.id)}
-                          onSelect={() => handleSelectProperty(property.id)}
-                          onView={handleViewProperty}
-                          onEdit={handleEditProperty}
-                          onArchive={handleArchiveProperty}
-                          onDelete={handleDeleteProperty}
-                          formatCurrency={formatCurrency}
-                          getOccupancyBadgeColor={getOccupancyBadgeColor}
-                        />
-                      ))}
-                    </div>
+                    <>
+                      {propertiesLoading ? (
+                        <PropertiesGridSkeleton count={6} />
+                      ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                          {filteredProperties.map((property) => (
+                            <PropertyCard
+                              key={property.id}
+                              property={property}
+                              isHighlighted={highlightedProperty === property.id}
+                              isSelected={selectedProperties.includes(property.id)}
+                              onSelect={() => handleSelectProperty(property.id)}
+                              onView={handleViewProperty}
+                              onEdit={handleEditProperty}
+                              onArchive={handleArchiveProperty}
+                              onDelete={handleDeleteProperty}
+                              formatCurrency={formatCurrency}
+                              getOccupancyBadgeColor={getOccupancyBadgeColor}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </>
                   )}
 
                   {/* List View */}
                   {viewMode === 'list' && (
-                    <div className="space-y-4">
-                      {/* Enhanced List Header */}
-                      <div className="bg-gradient-to-r from-muted/30 to-muted/50 rounded-lg p-4 border">
-                        <div className="grid grid-cols-12 gap-4 items-center text-sm font-medium text-muted-foreground">
-                          <div className="col-span-1">
-                            <ProCheckbox
-                              checked={selectedProperties.length === properties.length && properties.length > 0}
-                              onCheckedChange={handleSelectAll}
-                              size="md"
-                            />
+                    <>
+                      {propertiesLoading ? (
+                        <div className="space-y-4">
+                          <div className="bg-gradient-to-r from-muted/30 to-muted/50 rounded-lg p-4 border">
+                            <div className="grid grid-cols-12 gap-4 items-center text-sm font-medium text-muted-foreground">
+                              <div className="col-span-1">
+                                <Skeleton className="h-4 w-4" />
+                              </div>
+                              <div className="col-span-3 flex items-center gap-2">
+                                <Skeleton className="h-4 w-4" />
+                                <Skeleton className="h-4 w-24" />
+                              </div>
+                              <div className="col-span-2 flex items-center gap-2">
+                                <Skeleton className="h-4 w-4" />
+                                <Skeleton className="h-4 w-12" />
+                              </div>
+                              <div className="col-span-2 flex items-center gap-2">
+                                <Skeleton className="h-4 w-4" />
+                                <Skeleton className="h-4 w-20" />
+                              </div>
+                              <div className="col-span-2 flex items-center gap-2">
+                                <Skeleton className="h-4 w-4" />
+                                <Skeleton className="h-4 w-20" />
+                              </div>
+                              <div className="col-span-2 flex items-center gap-2">
+                                <Skeleton className="h-4 w-4" />
+                                <Skeleton className="h-4 w-16" />
+                              </div>
+                            </div>
                           </div>
-                          <div className="col-span-3 flex items-center gap-2">
-                            <Building2 className="h-4 w-4" />
-                            Property Name
-                          </div>
-                          <div className="col-span-2 flex items-center gap-2">
-                            <Home className="h-4 w-4" />
-                            Units
-                          </div>
-                          <div className="col-span-2 flex items-center gap-2">
-                            <DollarSign className="h-4 w-4" />
-                            Net Income
-                          </div>
-                          <div className="col-span-2 flex items-center gap-2">
-                            <Users className="h-4 w-4" />
-                            Occupancy
-                          </div>
-                          <div className="col-span-2 flex items-center gap-2">
-                            <Settings className="h-4 w-4" />
-                            Actions
+                          <div className="space-y-2">
+                            {Array.from({ length: 5 }).map((_, i) => (
+                              <div key={i} className="border rounded-lg p-4">
+                                <div className="grid grid-cols-12 gap-4 items-center">
+                                  <div className="col-span-1">
+                                    <Skeleton className="h-4 w-4" />
+                                  </div>
+                                  <div className="col-span-3">
+                                    <Skeleton className="h-5 w-32 mb-2" />
+                                    <Skeleton className="h-4 w-24" />
+                                  </div>
+                                  <div className="col-span-2">
+                                    <Skeleton className="h-6 w-12" />
+                                  </div>
+                                  <div className="col-span-2">
+                                    <Skeleton className="h-6 w-20" />
+                                  </div>
+                                  <div className="col-span-2">
+                                    <Skeleton className="h-6 w-16" />
+                                  </div>
+                                  <div className="col-span-2">
+                                    <div className="flex space-x-2">
+                                      <Skeleton className="h-8 w-8 rounded" />
+                                      <Skeleton className="h-8 w-8 rounded" />
+                                      <Skeleton className="h-8 w-8 rounded" />
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
                           </div>
                         </div>
-                      </div>
+                      ) : (
+                        <div className="space-y-4">
+                          {/* Enhanced List Header */}
+                          <div className="bg-gradient-to-r from-muted/30 to-muted/50 rounded-lg p-4 border">
+                            <div className="grid grid-cols-12 gap-4 items-center text-sm font-medium text-muted-foreground">
+                              <div className="col-span-1">
+                                <ProCheckbox
+                                  checked={selectedProperties.length === properties.length && properties.length > 0}
+                                  onCheckedChange={handleSelectAll}
+                                  size="md"
+                                />
+                              </div>
+                              <div className="col-span-3 flex items-center gap-2">
+                                <Building2 className="h-4 w-4" />
+                                Property Name
+                              </div>
+                              <div className="col-span-2 flex items-center gap-2">
+                                <Home className="h-4 w-4" />
+                                Units
+                              </div>
+                              <div className="col-span-2 flex items-center gap-2">
+                                <DollarSign className="h-4 w-4" />
+                                Net Income
+                              </div>
+                              <div className="col-span-2 flex items-center gap-2">
+                                <Users className="h-4 w-4" />
+                                Occupancy
+                              </div>
+                              <div className="col-span-2 flex items-center gap-2">
+                                <Settings className="h-4 w-4" />
+                                Actions
+                              </div>
+                            </div>
+                          </div>
 
-                      {/* Enhanced List Items */}
-                      <div className="space-y-2">
-                        {filteredProperties.map((property) => (
-                          <PropertyListItem
-                            key={property.id}
-                            property={property}
-                            isSelected={selectedProperties.includes(property.id)}
-                            onSelect={() => handleSelectProperty(property.id)}
-                            isHighlighted={highlightedProperty === property.id}
-                            onView={handleViewProperty}
-                            onEdit={handleEditProperty}
-                            onArchive={handleArchiveProperty}
-                            onDelete={handleDeleteProperty}
-                            formatCurrency={formatCurrency}
-                            getOccupancyBadgeColor={getOccupancyBadgeColor}
-                          />
-                        ))}
-                      </div>
-                    </div>
+                          {/* Enhanced List Items */}
+                          <div className="space-y-2">
+                            {filteredProperties.map((property) => (
+                              <PropertyListItem
+                                key={property.id}
+                                property={property}
+                                isSelected={selectedProperties.includes(property.id)}
+                                onSelect={() => handleSelectProperty(property.id)}
+                                isHighlighted={highlightedProperty === property.id}
+                                onView={handleViewProperty}
+                                onEdit={handleEditProperty}
+                                onArchive={handleArchiveProperty}
+                                onDelete={handleDeleteProperty}
+                                formatCurrency={formatCurrency}
+                                getOccupancyBadgeColor={getOccupancyBadgeColor}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </>
                   )}
 
                   {/* Enhanced Map View */}
@@ -5479,7 +5551,14 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
     totalPages: 1,
     hasNextPage: false,
     hasPrevPage: false,
-    showing: '0 of 0 units'
+    showing: '0 of 0 units',
+    hasMoreUnits: false
+  });
+
+  const [loadingStrategy, setLoadingStrategy] = useState<'progressive' | 'pagination'>('pagination');
+  const [propertyInfo, setPropertyInfo] = useState({
+    totalUnits: 0,
+    useProgressiveLoading: false
   });
 
   // Load units data when property changes
@@ -5490,14 +5569,34 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
   }, [property?.id]);
 
   // Load units from API
-  const loadUnitsData = async (page: number = 1) => {
+  const loadUnitsData = async (page: number = 1, append: boolean = false) => {
     if (!property?.id) return;
     
     setLoadingUnitsData(true);
     try {
       const { unitsApi } = await import('@/lib/api');
-      const response = await unitsApi.getByProperty(property.id, page, 20);
-      setUnits(response.data || []);
+      
+      // Apply current filters
+      const filters = {
+        search: unitSearchQuery,
+        status: unitStatusFilter,
+        sortBy: unitSortBy,
+        sortOrder: 'asc' as const
+      };
+
+      const response = await unitsApi.getByProperty(property.id, page, 20, filters);
+      
+      // Update loading strategy and property info
+      setLoadingStrategy(response.loadingStrategy || 'pagination');
+      setPropertyInfo(response.propertyInfo || { totalUnits: 0, useProgressiveLoading: false });
+      
+      // Handle progressive loading (append units) vs pagination (replace units)
+      if (append && response.loadingStrategy === 'progressive') {
+        setUnits(prev => [...prev, ...(response.data || [])]);
+      } else {
+        setUnits(response.data || []);
+      }
+      
       setPagination(response.pagination || {
         page: 1,
         limit: 20,
@@ -5505,7 +5604,8 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
         totalPages: 1,
         hasNextPage: false,
         hasPrevPage: false,
-        showing: '0 of 0 units'
+        showing: '0 of 0 units',
+        hasMoreUnits: false
       });
     } catch (error) {
       console.error('Failed to load units:', error);
@@ -6217,9 +6317,12 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
               {(() => {
                 if (loadingUnitsData) {
                   return (
-                    <div className="text-center py-8">
-                      <Loader className="h-8 w-8 animate-spin mx-auto mb-4" />
-                      <p className="text-muted-foreground">Loading units...</p>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <Skeleton className="h-6 w-48" />
+                        <Skeleton className="h-8 w-32" />
+                      </div>
+                      <UnitsListSkeleton count={5} />
                     </div>
                   );
                 }
@@ -6290,9 +6393,18 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
                       </div>
                     )}
 
-                    {/* Pagination Info */}
+                    {/* Smart Loading Info */}
                     <div className="text-sm text-muted-foreground mb-4">
-                      {pagination.showing} • Page {pagination.page} of {pagination.totalPages}
+                      {loadingStrategy === 'progressive' ? (
+                        <>
+                          {units.length} of {propertyInfo.totalUnits} units loaded
+                          {propertyInfo.totalUnits > units.length && ` • ${propertyInfo.totalUnits - units.length} more available`}
+                        </>
+                      ) : (
+                        <>
+                          {pagination.showing} • Page {pagination.page} of {pagination.totalPages}
+                        </>
+                      )}
                     </div>
 
                     <div className="space-y-3">
@@ -6360,48 +6472,72 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
                         </div>
                       )}
 
-                      {/* Pagination Controls */}
-                      {pagination.totalPages > 1 && (
+                      {/* Smart Loading Controls */}
+                      {loadingStrategy === 'progressive' && pagination.hasMoreUnits && (
+                        <div className="flex items-center justify-center mt-6 pt-4 border-t">
+                          {loadingUnitsData ? (
+                            <LoadMoreSkeleton />
+                          ) : (
+                            <Button
+                              onClick={() => loadUnitsData(pagination.page + 1, true)}
+                              variant="outline"
+                              size="lg"
+                              className="w-full max-w-md"
+                            >
+                              <Loader className="h-4 w-4 mr-2" />
+                              Load More Units ({units.length} of {propertyInfo.totalUnits} loaded)
+                            </Button>
+                          )}
+                        </div>
+                      )}
+
+                      {loadingStrategy === 'pagination' && pagination.totalPages > 1 && (
                         <div className="flex items-center justify-between mt-6 pt-4 border-t">
-                          <div className="text-sm text-muted-foreground">
-                            {pagination.showing}
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => loadUnitsData(pagination.page - 1)}
-                              disabled={!pagination.hasPrevPage}
-                            >
-                              <ChevronLeft className="h-4 w-4" />
-                              Previous
-                            </Button>
-                            <div className="flex items-center space-x-1">
-                              {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
-                                const pageNum = i + 1;
-                                return (
-                                  <Button
-                                    key={pageNum}
-                                    variant={pagination.page === pageNum ? "default" : "outline"}
-                                    size="sm"
-                                    onClick={() => loadUnitsData(pageNum)}
-                                    className="w-8 h-8"
-                                  >
-                                    {pageNum}
-                                  </Button>
-                                );
-                              })}
-                            </div>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => loadUnitsData(pagination.page + 1)}
-                              disabled={!pagination.hasNextPage}
-                            >
-                              Next
-                              <ChevronRight className="h-4 w-4" />
-                            </Button>
-                          </div>
+                          {loadingUnitsData ? (
+                            <PaginationSkeleton />
+                          ) : (
+                            <>
+                              <div className="text-sm text-muted-foreground">
+                                {pagination.showing}
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => loadUnitsData(pagination.page - 1)}
+                                  disabled={!pagination.hasPrevPage}
+                                >
+                                  <ChevronLeft className="h-4 w-4" />
+                                  Previous
+                                </Button>
+                                <div className="flex items-center space-x-1">
+                                  {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                                    const pageNum = i + 1;
+                                    return (
+                                      <Button
+                                        key={pageNum}
+                                        variant={pagination.page === pageNum ? "default" : "outline"}
+                                        size="sm"
+                                        onClick={() => loadUnitsData(pageNum)}
+                                        className="w-8 h-8"
+                                      >
+                                        {pageNum}
+                                      </Button>
+                                    );
+                                  })}
+                                </div>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => loadUnitsData(pagination.page + 1)}
+                                  disabled={!pagination.hasNextPage}
+                                >
+                                  Next
+                                  <ChevronRight className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </>
+                          )}
                         </div>
                       )}
                     </div>

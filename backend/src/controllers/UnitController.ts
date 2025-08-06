@@ -19,15 +19,36 @@ export class UnitController {
         return c.json({ error: 'Property ID is required' }, 400);
       }
 
-      // Get pagination parameters
+      // Get query parameters
       const page = parseInt(c.req.query('page') || '1');
       const limit = parseInt(c.req.query('limit') || '20');
-      const offset = (page - 1) * limit;
-
-      console.log(`[DEBUG] About to query database with Supabase - Page: ${page}, Limit: ${limit}, Offset: ${offset}`);
+      const search = c.req.query('search') || '';
+      const status = c.req.query('status') || '';
+      const sortBy = c.req.query('sortBy') || 'unitNumber';
+      const sortOrder = c.req.query('sortOrder') || 'asc';
       
-      // Query units with Supabase and pagination
-      const { data: units, error: unitsError, count } = await supabase
+      // Get property info to determine loading strategy
+      const { data: property, error: propertyError } = await supabase
+        .from('properties')
+        .select('totalUnits')
+        .eq('id', propertyId)
+        .single();
+
+      if (propertyError) {
+        console.error('Property query error:', propertyError);
+        throw new Error(`Property not found: ${propertyError.message}`);
+      }
+
+      const totalUnits = property?.totalUnits || 0;
+      const useProgressiveLoading = totalUnits < 500;
+      const actualLimit = useProgressiveLoading ? 50 : limit;
+      const offset = (page - 1) * actualLimit;
+
+      console.log(`[DEBUG] Property has ${totalUnits} units, using ${useProgressiveLoading ? 'progressive' : 'pagination'} loading`);
+      console.log(`[DEBUG] Query params - Page: ${page}, Limit: ${actualLimit}, Offset: ${offset}, Search: "${search}", Status: "${status}"`);
+
+      // Build query
+      let query = supabase
         .from('units')
         .select(`
           *,
@@ -44,9 +65,32 @@ export class UnitController {
           )
         `, { count: 'exact' })
         .eq('propertyId', propertyId)
-        .eq('isActive', true)
-        .range(offset, offset + limit - 1)
-        .order('unitNumber', { ascending: true });
+        .eq('isActive', true);
+
+      // Add filters
+      if (search) {
+        query = query.or(`unitNumber.ilike.%${search}%,tenant.firstName.ilike.%${search}%,tenant.lastName.ilike.%${search}%`);
+      }
+
+      if (status && status !== 'all') {
+        query = query.eq('status', status.toUpperCase());
+      }
+
+      // Add sorting
+      if (sortBy === 'unitNumber') {
+        query = query.order('unitNumber', { ascending: sortOrder === 'asc' });
+      } else if (sortBy === 'monthlyRent') {
+        query = query.order('monthlyRent', { ascending: sortOrder === 'asc' });
+      } else if (sortBy === 'status') {
+        query = query.order('status', { ascending: sortOrder === 'asc' });
+      } else {
+        query = query.order('unitNumber', { ascending: true });
+      }
+
+      // Add pagination
+      query = query.range(offset, offset + actualLimit - 1);
+
+      const { data: units, error: unitsError, count } = await query;
 
       if (unitsError) {
         console.error('Supabase units query error:', unitsError);
@@ -77,21 +121,27 @@ export class UnitController {
         openMaintenanceRequests: 0 // Will be loaded separately if needed
       }));
 
-      const totalPages = Math.ceil((count || 0) / limit);
+      const totalPages = Math.ceil((count || 0) / actualLimit);
       const hasNextPage = page < totalPages;
       const hasPrevPage = page > 1;
 
       return c.json({
         success: true,
         data: transformedUnits,
+        loadingStrategy: useProgressiveLoading ? 'progressive' : 'pagination',
+        propertyInfo: {
+          totalUnits,
+          useProgressiveLoading
+        },
         pagination: {
           page,
-          limit,
+          limit: actualLimit,
           total: count || 0,
           totalPages,
           hasNextPage,
           hasPrevPage,
-          showing: `${offset + 1}-${Math.min(offset + limit, count || 0)} of ${count || 0} units`
+          showing: `${offset + 1}-${Math.min(offset + actualLimit, count || 0)} of ${count || 0} units`,
+          hasMoreUnits: useProgressiveLoading ? hasNextPage : false
         }
       });
 
