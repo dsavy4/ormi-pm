@@ -6530,7 +6530,7 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
                           // TODO: Implement add unit functionality
                           console.log('Add first unit clicked');
                         }}
-                        className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+                        className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 dark:from-blue-400 dark:to-purple-400 dark:hover:from-blue-500 dark:hover:to-purple-500 dark:text-white"
                         size="lg"
                       >
                         <Plus className="h-5 w-5 mr-2" />
