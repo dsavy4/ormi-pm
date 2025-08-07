@@ -98,6 +98,10 @@ import {
   LoadMoreSkeleton,
   StatsGridSkeleton
 } from '@/components/ui/skeleton';
+
+// Import new unit components
+import { UnitCard } from '@/components/units/UnitCard';
+import { EnhancedUnitDetailsSheet } from '@/components/units/EnhancedUnitDetailsSheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
@@ -5681,6 +5685,12 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
     totalUnits: 0,
     useProgressiveLoading: false
   });
+
+  // State for new unit details modal
+  const [showUnitDetailsModal, setShowUnitDetailsModal] = useState(false);
+  const [selectedUnit, setSelectedUnit] = useState<any>(null);
+  const [selectedUnitDetails, setSelectedUnitDetails] = useState<any>(null);
+  const [isLoadingUnitDetails, setIsLoadingUnitDetails] = useState(false);
 
   // Load units data when property changes
   useEffect(() => {
