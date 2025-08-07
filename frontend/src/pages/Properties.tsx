@@ -2504,8 +2504,40 @@ const ExpandableUnitCard: React.FC<ExpandableUnitCardProps> = ({
 
 // Unit Expanded Details Component with ShadCN styling
 const UnitExpandedDetails: React.FC<{ unit: any; details: any }> = ({ unit, details }) => {
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleUploadDocument = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    try {
+      // TODO: Implement actual file upload to Cloudflare R2
+      console.log('Uploading document:', file.name);
+      
+      // Simulate upload delay
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      toast.success(`Document "${file.name}" uploaded successfully`);
+    } catch (error) {
+      toast.error('Failed to upload document');
+      console.error('Upload error:', error);
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleEditUnit = () => {
+    // TODO: Implement edit unit functionality
+    toast.info('Edit unit functionality coming soon');
+  };
+
   return (
-    <div className="p-6 space-y-8">
+    <div className="p-4 md:p-6 space-y-6 md:space-y-8 max-h-[80vh] overflow-y-auto">
       {/* Unit Information Section */}
       <div className="space-y-4">
         <h4 className="font-semibold text-lg flex items-center gap-2">
@@ -2631,9 +2663,44 @@ const UnitExpandedDetails: React.FC<{ unit: any; details: any }> = ({ unit, deta
           <FileText className="h-5 w-5" />
           Documents & Files
         </h4>
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <FileText className="h-4 w-4" />
-          <span>No documents available</span>
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <FileText className="h-4 w-4" />
+            <span>No documents uploaded</span>
+          </div>
+          
+          {/* Upload Document Button */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.txt"
+              onChange={handleUploadDocument}
+              className="hidden"
+            />
+            <Button
+              variant="outline"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploading}
+              className="flex items-center gap-2 w-full sm:w-auto"
+            >
+              {isUploading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <ArrowUpRight className="h-4 w-4" />
+              )}
+              {isUploading ? 'Uploading...' : 'Upload Document'}
+            </Button>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2 w-full sm:w-auto"
+            >
+              <FileText className="h-4 w-4" />
+              View All Documents
+            </Button>
+          </div>
         </div>
       </div>
 
