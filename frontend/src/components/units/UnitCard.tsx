@@ -30,8 +30,8 @@ export const UnitCard: React.FC<UnitCardProps> = ({ unit, onViewDetails }) => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'occupied': return 'text-green-600 dark:text-green-400';
-      case 'vacant': return 'text-blue-600 dark:text-blue-400';
+      case 'occupied': return 'text-rose-700 dark:text-rose-500';
+      case 'vacant': return 'text-green-600 dark:text-green-400';
       case 'maintenance': return 'text-amber-600 dark:text-amber-400';
       case 'reserved': return 'text-purple-600 dark:text-purple-400';
       default: return 'text-muted-foreground';
