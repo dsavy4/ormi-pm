@@ -2410,10 +2410,25 @@ const ExpandableUnitCard: React.FC<ExpandableUnitCardProps> = ({
                     <span>${unit.monthlyRent}/month</span>
                   </div>
                 </>
-              ) : (
-                <div className="flex items-center gap-1 text-amber-600">
-                  <User className="h-4 w-4" />
+              ) : unit.status === 'vacant' ? (
+                <div className="flex items-center gap-1 text-green-600">
+                  <Home className="h-4 w-4" />
                   <span>Available</span>
+                </div>
+              ) : unit.status === 'maintenance' ? (
+                <div className="flex items-center gap-1 text-amber-600">
+                  <Wrench className="h-4 w-4" />
+                  <span>Under Maintenance</span>
+                </div>
+              ) : unit.status === 'reserved' ? (
+                <div className="flex items-center gap-1 text-purple-600">
+                  <Clock className="h-4 w-4" />
+                  <span>Reserved</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1 text-muted-foreground">
+                  <AlertCircle className="h-4 w-4" />
+                  <span>No Status</span>
                 </div>
               )}
               
@@ -3695,11 +3710,11 @@ const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({ dialog, onClose
           </Button>
         </DialogFooter>
       </DialogContent>
-    </Dialog>
-  );
-}; 
-
-// IncomeAnalyticsModal Component
+          </Dialog>
+    ); 
+  }; 
+  
+  // IncomeAnalyticsModal Component
 interface IncomeAnalyticsModalProps {
   isOpen: boolean;
   onClose: () => void;
