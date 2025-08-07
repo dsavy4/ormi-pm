@@ -21,7 +21,7 @@ const statusBadgeVariants = cva(
         vacant:
           "border-green-700 bg-green-700 text-white dark:border-green-600 dark:bg-green-600 dark:text-white shadow-green-700/30 dark:shadow-green-600/30",
         maintenance:
-          "border-orange-700 bg-orange-700 text-white dark:border-orange-600 dark:bg-orange-600 dark:text-white shadow-orange-700/30 dark:shadow-orange-600/30",
+          "border-amber-700 bg-amber-700 text-white dark:border-amber-600 dark:bg-amber-600 dark:text-white shadow-amber-700/30 dark:shadow-amber-600/30",
         reserved:
           "border-purple-700 bg-purple-700 text-white dark:border-purple-600 dark:bg-purple-600 dark:text-white shadow-purple-700/30 dark:shadow-purple-600/30",
         default:
