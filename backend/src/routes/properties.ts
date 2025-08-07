@@ -41,19 +41,19 @@ router.get('/',
 // GET /api/properties/insights - Get property insights
 router.get('/insights', propertyController.getInsights);
 
-// GET /api/properties/:id - Get property by ID
+// GET /api/properties/:propertyId/units - Get units for a specific property
+router.get('/:propertyId/units', 
+  param('propertyId').notEmpty().withMessage('Property ID is required'),
+  UnitController.getUnitsByProperty
+);
+
+// GET /api/properties/:id - Get property by ID (must come after more specific routes)
 router.get('/:id', 
   param('id').notEmpty().withMessage('Property ID is required'),
   (req, res) => {
     console.log(`[DEBUG] Property route hit - ID: ${req.params.id}`);
     propertyController.getById(req, res);
   }
-);
-
-// GET /api/properties/:propertyId/units - Get units for a specific property
-router.get('/:propertyId/units', 
-  param('propertyId').notEmpty().withMessage('Property ID is required'),
-  unitController.getByPropertyId
 );
 
 // POST /api/properties - Create new property

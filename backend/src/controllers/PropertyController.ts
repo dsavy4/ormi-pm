@@ -9,8 +9,8 @@ const prisma = new PrismaClient();
 
 // Use Supabase client for getById method specifically
 const supabase = createClient(
-  'https://kmhmgutrhkzjnsgifsrl.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImttaG1ndXRyaGt6am5zZ2lmc3JsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1MDYwNTYsImV4cCI6MjA2NzA4MjA1Nn0.Yeg2TBq3K9jddh-LQFHadr1rv_GaYS-SBVTfnZS6z3c'
+  process.env.SUPABASE_URL || 'https://kmhmgutrhkzjnsgifsrl.supabase.co',
+  process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImttaG1ndXRyaGt6am5zZ2lmc3JsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1MDYwNTYsImV4cCI6MjA2NzA4MjA1Nn0.Yeg2TBq3K9jddh-LQFHadr1rv_GaYS-SBVTfnZS6z3c'
 );
 
 export class PropertyController {
@@ -164,15 +164,19 @@ export class PropertyController {
       console.log(`[DEBUG] getById - SIMPLIFIED propertyWhere:`, JSON.stringify(propertyWhere));
 
       // Use Supabase for getById to avoid Prisma issues in Cloudflare Workers
+      console.log(`[DEBUG] getById - Using Supabase client with URL: ${process.env.SUPABASE_URL || 'fallback'}`);
+      
       const { data: property, error } = await supabase
         .from('properties')
         .select('*')
         .eq('id', propertyId)
         .single();
 
+      console.log(`[DEBUG] getById - Supabase response:`, { data: property, error });
+
       if (error) {
         console.error('Supabase getById error:', error);
-        res.status(404).json({ error: 'Property not found' });
+        res.status(404).json({ error: 'Property not found', details: error.message });
         return;
       }
 
