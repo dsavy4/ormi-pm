@@ -12,20 +12,20 @@ import {
 } from "lucide-react"
 
 const statusBadgeVariants = cva(
-  "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+  "inline-flex items-center gap-1.5 rounded-full border-2 px-3 py-1.5 text-xs font-bold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 shadow-sm",
   {
     variants: {
       variant: {
         occupied:
-          "border-blue-200 bg-blue-100 text-blue-800 dark:border-blue-700/50 dark:bg-blue-900/30 dark:text-blue-300 shadow-sm",
+          "border-blue-600 bg-blue-600 text-white dark:border-blue-500 dark:bg-blue-500 dark:text-white shadow-blue-600/25 dark:shadow-blue-500/25",
         vacant:
-          "border-green-200 bg-green-100 text-green-800 dark:border-green-700/50 dark:bg-green-900/30 dark:text-green-300 shadow-sm",
+          "border-green-600 bg-green-600 text-white dark:border-green-500 dark:bg-green-500 dark:text-white shadow-green-600/25 dark:shadow-green-500/25",
         maintenance:
-          "border-orange-200 bg-orange-100 text-orange-800 dark:border-orange-700/50 dark:bg-orange-900/30 dark:text-orange-300 shadow-sm",
+          "border-orange-600 bg-orange-600 text-white dark:border-orange-500 dark:bg-orange-500 dark:text-white shadow-orange-600/25 dark:shadow-orange-500/25",
         reserved:
-          "border-purple-200 bg-purple-100 text-purple-800 dark:border-purple-700/50 dark:bg-purple-900/30 dark:text-purple-300 shadow-sm",
+          "border-purple-600 bg-purple-600 text-white dark:border-purple-500 dark:bg-purple-500 dark:text-white shadow-purple-600/25 dark:shadow-purple-500/25",
         default:
-          "border-gray-200 bg-gray-100 text-gray-700 dark:border-gray-700/50 dark:bg-gray-800/30 dark:text-gray-300 shadow-sm",
+          "border-gray-600 bg-gray-600 text-white dark:border-gray-500 dark:bg-gray-500 dark:text-white shadow-gray-600/25 dark:shadow-gray-500/25",
       },
       size: {
         sm: "px-2 py-1 text-xs",
