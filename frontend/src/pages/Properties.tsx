@@ -2409,7 +2409,7 @@ const ExpandableUnitCard: React.FC<ExpandableUnitCardProps> = ({
             <div className="mt-2 flex items-center gap-4 text-sm">
               {unit.status === 'occupied' ? (
                 <>
-                  <div className="flex items-center gap-1 text-blue-600">
+                  <div className="flex items-center gap-1 text-rose-700 dark:text-rose-500">
                     <User className="h-4 w-4" />
                     <span>Occupied</span>
                   </div>
