@@ -1438,13 +1438,13 @@ export function Tenants() {
   const filteredTenants = useMemo(() => {
     return tenants.filter(tenant => {
       const matchesSearch = 
-        tenant.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        tenant.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        tenant.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        tenant.unit.number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        tenant.unit.property.name.toLowerCase().includes(searchTerm.toLowerCase());
+        (tenant.firstName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+        (tenant.lastName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+        (tenant.email?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+        (tenant.unit?.number?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+        (tenant.unit?.property?.name?.toLowerCase() || '').includes(searchTerm.toLowerCase());
       
-      const matchesStatus = filterStatus === 'all' || tenant.status.toLowerCase() === filterStatus.toLowerCase();
+      const matchesStatus = filterStatus === 'all' || (tenant.status?.toLowerCase() || '') === filterStatus.toLowerCase();
       
       return matchesSearch && matchesStatus;
     });
