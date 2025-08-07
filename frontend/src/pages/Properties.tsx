@@ -2505,107 +2505,140 @@ const ExpandableUnitCard: React.FC<ExpandableUnitCardProps> = ({
 // Unit Expanded Details Component with ShadCN styling
 const UnitExpandedDetails: React.FC<{ unit: any; details: any }> = ({ unit, details }) => {
   return (
-    <div className="p-4 space-y-6">
-      {/* Unit Information Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Unit Information Section */}
-        <div className="space-y-2">
-          <h4 className="font-medium text-sm text-muted-foreground">Unit Information</h4>
-          <div className="space-y-1 text-sm">
-            <div className="flex justify-between">
-              <span>Square Footage:</span>
-              <span>{unit.squareFootage} sq ft</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Floor:</span>
-              <span>{unit.floor}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Building:</span>
-              <span>{unit.building || 'Main'}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Amenities:</span>
-              <span>{unit.amenities?.join(', ') || 'None'}</span>
-            </div>
+    <div className="p-6 space-y-8">
+      {/* Unit Information Section */}
+      <div className="space-y-4">
+        <h4 className="font-semibold text-lg flex items-center gap-2">
+          <Building className="h-5 w-5" />
+          Unit Information
+        </h4>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="space-y-1">
+            <span className="text-sm text-muted-foreground">Unit Number</span>
+            <p className="font-medium">{unit.number}</p>
+          </div>
+          <div className="space-y-1">
+            <span className="text-sm text-muted-foreground">Floor</span>
+            <p className="font-medium">{unit.floor || 'N/A'}</p>
+          </div>
+          <div className="space-y-1">
+            <span className="text-sm text-muted-foreground">Bedrooms</span>
+            <p className="font-medium">{unit.bedrooms}</p>
+          </div>
+          <div className="space-y-1">
+            <span className="text-sm text-muted-foreground">Bathrooms</span>
+            <p className="font-medium">{unit.bathrooms}</p>
+          </div>
+          <div className="space-y-1">
+            <span className="text-sm text-muted-foreground">Square Footage</span>
+            <p className="font-medium">{unit.squareFootage ? `${unit.squareFootage} sqft` : 'N/A'}</p>
+          </div>
+          <div className="space-y-1">
+            <span className="text-sm text-muted-foreground">Parking Spaces</span>
+            <p className="font-medium">N/A</p>
           </div>
         </div>
-
-        {/* Tenant Details Section */}
+        
+        {/* Amenities */}
         <div className="space-y-2">
-          <h4 className="font-medium text-sm text-muted-foreground">Tenant Details</h4>
-          {unit.tenant ? (
-            <div className="space-y-1 text-sm">
-              <div className="flex justify-between">
-                <span>Name:</span>
-                <span>{unit.tenant.name}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Email:</span>
-                <span>{unit.tenant.email}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Phone:</span>
-                <span>{unit.tenant.phone}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Move-in:</span>
-                <span>{new Date(unit.tenant.moveInDate).toLocaleDateString()}</span>
-              </div>
-            </div>
-          ) : (
-            <div className="text-sm text-amber-600">
-              <User className="h-4 w-4 inline mr-1" />
-              Available for rent
-            </div>
-          )}
-        </div>
-
-        {/* Financial Information Section */}
-        <div className="space-y-2">
-          <h4 className="font-medium text-sm text-muted-foreground">Financial Info</h4>
-          <div className="space-y-1 text-sm">
-            <div className="flex justify-between">
-              <span>Monthly Rent:</span>
-              <span>${unit.monthlyRent}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Security Deposit:</span>
-              <span>${unit.securityDeposit}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Last Payment:</span>
-              <span>{details.lastPayment ? new Date(details.lastPayment.date).toLocaleDateString() : 'N/A'}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Payment History:</span>
-              <span>{details.paymentHistory?.length || 0} payments</span>
-            </div>
+          <span className="text-sm text-muted-foreground">Amenities</span>
+          <div className="flex flex-wrap gap-2">
+            {unit.amenities && unit.amenities.length > 0 ? (
+              unit.amenities.map((amenity: string, index: number) => (
+                <Badge key={index} variant="secondary" className="text-xs">
+                  {amenity}
+                </Badge>
+              ))
+            ) : (
+              <span className="text-sm text-muted-foreground">None</span>
+            )}
           </div>
         </div>
+      </div>
 
-        {/* Maintenance Section */}
+      {/* Financial Details Section */}
+      <div className="space-y-4">
+        <h4 className="font-semibold text-lg flex items-center gap-2">
+          <DollarSign className="h-5 w-5" />
+          Financial Details
+        </h4>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="space-y-1">
+            <span className="text-sm text-muted-foreground">Monthly Rent</span>
+            <p className="font-medium">${unit.monthlyRent}</p>
+          </div>
+          <div className="space-y-1">
+            <span className="text-sm text-muted-foreground">Security Deposit</span>
+            <p className="font-medium">${unit.securityDeposit || 0}</p>
+          </div>
+          <div className="space-y-1">
+            <span className="text-sm text-muted-foreground">Pet Deposit</span>
+            <p className="font-medium">$0</p>
+          </div>
+          <div className="space-y-1">
+            <span className="text-sm text-muted-foreground">Utilities Included</span>
+            <p className="font-medium">No</p>
+          </div>
+        </div>
+        
+        {/* Rent History */}
         <div className="space-y-2">
-          <h4 className="font-medium text-sm text-muted-foreground">Maintenance</h4>
-          <div className="space-y-1 text-sm">
-            <div className="flex justify-between">
-              <span>Open Requests:</span>
-              <span>{details.maintenanceRequests?.filter((r: any) => r.status === 'open').length || 0}</span>
+          <span className="text-sm text-muted-foreground">Rent History</span>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-1">
+              <span className="text-xs text-muted-foreground">Current Rate</span>
+              <p className="font-medium">${unit.monthlyRent}</p>
             </div>
-            <div className="flex justify-between">
-              <span>Last Service:</span>
-              <span>{details.lastMaintenance ? new Date(details.lastMaintenance.date).toLocaleDateString() : 'N/A'}</span>
+            <div className="space-y-1">
+              <span className="text-xs text-muted-foreground">Previous Rate</span>
+              <p className="font-medium">$0</p>
             </div>
-            <div className="flex justify-between">
-              <span>Next Inspection:</span>
-              <span>{details.nextInspection ? new Date(details.nextInspection).toLocaleDateString() : 'Due'}</span>
+            <div className="space-y-1">
+              <span className="text-xs text-muted-foreground">Last Increase</span>
+              <p className="font-medium">N/A</p>
             </div>
           </div>
         </div>
       </div>
 
+      {/* Tenant History Section */}
+      <div className="space-y-4">
+        <h4 className="font-semibold text-lg flex items-center gap-2">
+          <User className="h-5 w-5" />
+          Tenant History
+        </h4>
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <RefreshCw className="h-4 w-4" />
+          <span>No tenant history available</span>
+        </div>
+      </div>
+
+      {/* Maintenance History Section */}
+      <div className="space-y-4">
+        <h4 className="font-semibold text-lg flex items-center gap-2">
+          <Wrench className="h-5 w-5" />
+          Maintenance History
+        </h4>
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <Wrench className="h-4 w-4" />
+          <span>No maintenance history</span>
+        </div>
+      </div>
+
+      {/* Documents & Files Section */}
+      <div className="space-y-4">
+        <h4 className="font-semibold text-lg flex items-center gap-2">
+          <FileText className="h-5 w-5" />
+          Documents & Files
+        </h4>
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <FileText className="h-4 w-4" />
+          <span>No documents available</span>
+        </div>
+      </div>
+
       {/* Action Buttons */}
-      <div className="flex items-center justify-between pt-4 border-t">
+      <div className="flex items-center justify-between pt-6 border-t">
         <div className="flex gap-2">
           <Button variant="outline" size="sm">
             <Edit className="h-4 w-4 mr-2" />
