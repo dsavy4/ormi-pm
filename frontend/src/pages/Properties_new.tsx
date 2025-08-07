@@ -6801,7 +6801,7 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
                     <div className="space-y-3">
                       {filteredUnits.length > 0 ? (
                         filteredUnits.map(unit => (
-                          <UnitCard
+                          <ExpandableUnitCard
                             key={unit.id}
                             unit={{
                               id: unit.id,
@@ -6823,13 +6823,13 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
                                 moveInDate: unit.createdAt.split('T')[0] // Using creation date as move-in date
                               } : undefined
                             }}
-                            onViewDetails={() => {
-                              // TODO: Implement unit details modal
-                              console.log('View unit details:', unit.id);
-                            }}
-                            onEdit={() => {
+                            isExpanded={expandedUnits.has(unit.id)}
+                            details={unitDetails[unit.id]}
+                            isLoading={loadingUnits.has(unit.id)}
+                            onToggle={() => toggleUnitExpansion(unit.id)}
+                            onEdit={(unitId) => {
                               // TODO: Implement unit edit
-                              console.log('Edit unit:', unit.id);
+                              console.log('Edit unit:', unitId);
                             }}
                           />
                         ))
