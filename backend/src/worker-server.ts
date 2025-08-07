@@ -1132,13 +1132,13 @@ app.put('/api/properties/:id', authMiddleware, async (c) => {
     
     // Prepare update data with only fields that exist in the database
     const updateData = {
-      name: body.name,
-      address: body.address,
-      city: body.city,
-      state: body.state,
-      zipCode: body.zipCode,
-      description: body.description,
-      notes: body.notes,
+        name: body.name,
+        address: body.address,
+        city: body.city,
+        state: body.state,
+        zipCode: body.zipCode,
+        description: body.description,
+        notes: body.notes,
       propertyType: body.propertyType,
       yearBuilt: body.yearBuilt,
       sqft: body.sqft,
@@ -1146,7 +1146,7 @@ app.put('/api/properties/:id', authMiddleware, async (c) => {
       amenities: body.amenities,
       images: body.images,
       propertyManagerId: body.propertyManager || body.managerId || null,
-      updatedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
     };
     
     console.log('[DEBUG] Update data prepared:', updateData);

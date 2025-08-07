@@ -1169,13 +1169,13 @@ export function Properties() {
         const { propertiesApi } = await import('@/lib/api');
         const detailedProperty = await propertiesApi.getById(propertyId);
         
-        setPropertyViewData({
-          property: detailedProperty,
-          manager: undefined, // Will be enhanced later when we have proper manager data
-          units: detailedProperty.units || [],
-          recentActivity: [],
-          documents: []
-        });
+          setPropertyViewData({
+            property: detailedProperty,
+            manager: undefined, // Will be enhanced later when we have proper manager data
+            units: detailedProperty.units || [],
+            recentActivity: [],
+            documents: []
+          });
       } catch (error) {
         console.error('Failed to fetch property details:', error);
         // Fallback to basic property data
@@ -1363,7 +1363,7 @@ export function Properties() {
                 className="overflow-hidden"
               >
                 <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-primary/10 dark:from-primary/10 dark:to-primary/20 shadow-lg">
-                  <CardContent className="p-6">
+                    <CardContent className="p-6">
                     <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                       {/* Selection Info */}
                       <div className="flex items-center gap-4">
@@ -1464,8 +1464,8 @@ export function Properties() {
                         </Button>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
               </motion.div>
             )}
           </AnimatePresence>
@@ -1899,23 +1899,23 @@ export function Properties() {
                       {propertiesLoading ? (
                         <PropertiesGridSkeleton count={6} />
                       ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                          {filteredProperties.map((property) => (
-                            <PropertyCard
-                              key={property.id}
-                              property={property}
-                              isHighlighted={highlightedProperty === property.id}
-                              isSelected={selectedProperties.includes(property.id)}
-                              onSelect={() => handleSelectProperty(property.id)}
-                              onView={handleViewProperty}
-                              onEdit={handleEditProperty}
-                              onArchive={handleArchiveProperty}
-                              onDelete={handleDeleteProperty}
-                              formatCurrency={formatCurrency}
-                              getOccupancyBadgeColor={getOccupancyBadgeColor}
-                            />
-                          ))}
-                        </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {filteredProperties.map((property) => (
+                        <PropertyCard
+                          key={property.id}
+                          property={property}
+                          isHighlighted={highlightedProperty === property.id}
+                          isSelected={selectedProperties.includes(property.id)}
+                          onSelect={() => handleSelectProperty(property.id)}
+                          onView={handleViewProperty}
+                          onEdit={handleEditProperty}
+                          onArchive={handleArchiveProperty}
+                          onDelete={handleDeleteProperty}
+                          formatCurrency={formatCurrency}
+                          getOccupancyBadgeColor={getOccupancyBadgeColor}
+                        />
+                      ))}
+                    </div>
                       )}
                     </>
                   )}
@@ -1985,59 +1985,59 @@ export function Properties() {
                           </div>
                         </div>
                       ) : (
-                        <div className="space-y-4">
-                          {/* Enhanced List Header */}
-                          <div className="bg-gradient-to-r from-muted/30 to-muted/50 rounded-lg p-4 border">
-                            <div className="grid grid-cols-12 gap-4 items-center text-sm font-medium text-muted-foreground">
-                              <div className="col-span-1">
-                                <ProCheckbox
-                                  checked={selectedProperties.length === properties.length && properties.length > 0}
-                                  onCheckedChange={handleSelectAll}
-                                  size="md"
-                                />
-                              </div>
-                              <div className="col-span-3 flex items-center gap-2">
-                                <Building2 className="h-4 w-4" />
-                                Property Name
-                              </div>
-                              <div className="col-span-2 flex items-center gap-2">
-                                <Home className="h-4 w-4" />
-                                Units
-                              </div>
-                              <div className="col-span-2 flex items-center gap-2">
-                                <DollarSign className="h-4 w-4" />
-                                Net Income
-                              </div>
-                              <div className="col-span-2 flex items-center gap-2">
-                                <Users className="h-4 w-4" />
-                                Occupancy
-                              </div>
-                              <div className="col-span-2 flex items-center gap-2">
-                                <Settings className="h-4 w-4" />
-                                Actions
-                              </div>
-                            </div>
+                    <div className="space-y-4">
+                      {/* Enhanced List Header */}
+                      <div className="bg-gradient-to-r from-muted/30 to-muted/50 rounded-lg p-4 border">
+                        <div className="grid grid-cols-12 gap-4 items-center text-sm font-medium text-muted-foreground">
+                          <div className="col-span-1">
+                            <ProCheckbox
+                              checked={selectedProperties.length === properties.length && properties.length > 0}
+                              onCheckedChange={handleSelectAll}
+                              size="md"
+                            />
                           </div>
-
-                          {/* Enhanced List Items */}
-                          <div className="space-y-2">
-                            {filteredProperties.map((property) => (
-                              <PropertyListItem
-                                key={property.id}
-                                property={property}
-                                isSelected={selectedProperties.includes(property.id)}
-                                onSelect={() => handleSelectProperty(property.id)}
-                                isHighlighted={highlightedProperty === property.id}
-                                onView={handleViewProperty}
-                                onEdit={handleEditProperty}
-                                onArchive={handleArchiveProperty}
-                                onDelete={handleDeleteProperty}
-                                formatCurrency={formatCurrency}
-                                getOccupancyBadgeColor={getOccupancyBadgeColor}
-                              />
-                            ))}
+                          <div className="col-span-3 flex items-center gap-2">
+                            <Building2 className="h-4 w-4" />
+                            Property Name
+                          </div>
+                          <div className="col-span-2 flex items-center gap-2">
+                            <Home className="h-4 w-4" />
+                            Units
+                          </div>
+                          <div className="col-span-2 flex items-center gap-2">
+                            <DollarSign className="h-4 w-4" />
+                            Net Income
+                          </div>
+                          <div className="col-span-2 flex items-center gap-2">
+                            <Users className="h-4 w-4" />
+                            Occupancy
+                          </div>
+                          <div className="col-span-2 flex items-center gap-2">
+                            <Settings className="h-4 w-4" />
+                            Actions
                           </div>
                         </div>
+                      </div>
+
+                      {/* Enhanced List Items */}
+                      <div className="space-y-2">
+                        {filteredProperties.map((property) => (
+                          <PropertyListItem
+                            key={property.id}
+                            property={property}
+                            isSelected={selectedProperties.includes(property.id)}
+                            onSelect={() => handleSelectProperty(property.id)}
+                            isHighlighted={highlightedProperty === property.id}
+                            onView={handleViewProperty}
+                            onEdit={handleEditProperty}
+                            onArchive={handleArchiveProperty}
+                            onDelete={handleDeleteProperty}
+                            formatCurrency={formatCurrency}
+                            getOccupancyBadgeColor={getOccupancyBadgeColor}
+                          />
+                        ))}
+                      </div>
+                    </div>
                       )}
                     </>
                   )}
@@ -5396,33 +5396,33 @@ const ManagerAssignmentSheet: React.FC<ManagerAssignmentSheetProps> = ({
                 const workloadPercentage = (enhancedManager.currentProperties / workloadThreshold) * 100;
                 
                 return (
-                  <button
-                    key={manager.id}
-                    onClick={() => setSelectedManager(manager)}
-                    className={`w-full flex items-center space-x-4 p-4 rounded-lg border transition-all ${
-                      selectedManager?.id === manager.id
-                        ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-500/20'
+                <button
+                  key={manager.id}
+                  onClick={() => setSelectedManager(manager)}
+                  className={`w-full flex items-center space-x-4 p-4 rounded-lg border transition-all ${
+                    selectedManager?.id === manager.id
+                      ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-500/20'
                         : isOverloaded
                         ? 'border-red-200 bg-red-50'
-                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                    }`}
-                  >
-                    <Avatar className="h-12 w-12">
-                      <AvatarImage src={manager.avatar} alt={manager.name} />
-                      <AvatarFallback className="bg-blue-100 text-blue-600">
-                        {manager.name.split(' ').map(n => n[0]).join('')}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 text-left">
+                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  <Avatar className="h-12 w-12">
+                    <AvatarImage src={manager.avatar} alt={manager.name} />
+                    <AvatarFallback className="bg-blue-100 text-blue-600">
+                      {manager.name.split(' ').map(n => n[0]).join('')}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 text-left">
                       <div className="flex items-center gap-2">
-                        <h4 className="font-semibold text-foreground">{manager.name}</h4>
+                    <h4 className="font-semibold text-foreground">{manager.name}</h4>
                         {isOverloaded && (
                           <Badge variant="destructive" className="text-xs">
                             Overloaded
                           </Badge>
                         )}
                       </div>
-                      <p className="text-sm text-gray-500">{manager.email}</p>
+                    <p className="text-sm text-gray-500">{manager.email}</p>
                       
                       {/* Workload Information */}
                       <div className="mt-2 space-y-1">
@@ -5447,11 +5447,11 @@ const ManagerAssignmentSheet: React.FC<ManagerAssignmentSheetProps> = ({
                           <span>Satisfaction: {enhancedManager.satisfactionScore}%</span>
                         </div>
                       </div>
-                    </div>
-                    {selectedManager?.id === manager.id && (
-                      <CheckCircle2 className="h-5 w-5 text-blue-600" />
-                    )}
-                  </button>
+                  </div>
+                  {selectedManager?.id === manager.id && (
+                    <CheckCircle2 className="h-5 w-5 text-blue-600" />
+                  )}
+                </button>
                 );
               })
             )}
@@ -5484,14 +5484,14 @@ const ManagerAssignmentSheet: React.FC<ManagerAssignmentSheetProps> = ({
             )}
             
             {assignmentMode === 'individual' && (
-              <Button 
-                onClick={handleAssign}
-                disabled={!selectedManager}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                <UserPlus className="h-4 w-4 mr-2" />
-                Assign Manager
-              </Button>
+            <Button 
+              onClick={handleAssign}
+              disabled={!selectedManager}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <UserPlus className="h-4 w-4 mr-2" />
+              Assign Manager
+            </Button>
             )}
           </div>
         </div>

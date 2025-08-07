@@ -109,7 +109,7 @@ export function TableRowSkeleton({ columns = 5 }: { columns?: number }) {
 // Table Skeleton
 export function TableSkeleton({ rows = 5, columns = 5 }: { rows?: number; columns?: number }) {
   return (
-    <div className="space-y-2">
+          <div className="space-y-2">
       {Array.from({ length: rows }).map((_, i) => (
         <TableRowSkeleton key={i} columns={columns} />
       ))}
@@ -153,14 +153,14 @@ export function StatsGridSkeleton({ count = 4 }: { count?: number }) {
       {Array.from({ length: count }).map((_, i) => (
         <StatsCardSkeleton key={i} />
       ))}
-    </div>
+          </div>
   )
 }
 
 // Form Field Skeleton
 export function FormFieldSkeleton() {
   return (
-    <div className="space-y-2">
+          <div className="space-y-2">
       <Skeleton className="h-4 w-20" />
       <Skeleton className="h-10 w-full" />
     </div>
@@ -177,8 +177,8 @@ export function FormSkeleton({ fields = 6 }: { fields?: number }) {
       <div className="flex space-x-4">
         <Skeleton className="h-10 w-24" />
         <Skeleton className="h-10 w-24" />
-      </div>
-    </div>
+          </div>
+        </div>
   )
 }
 
@@ -238,8 +238,8 @@ export function SidebarSkeleton() {
         {Array.from({ length: 8 }).map((_, i) => (
           <Skeleton key={i} className="h-10 w-full" />
         ))}
-      </div>
-    </div>
+          </div>
+        </div>
   )
 }
 
@@ -251,8 +251,8 @@ export function HeaderSkeleton() {
       <div className="flex items-center space-x-4">
         <Skeleton className="h-8 w-8 rounded-full" />
         <Skeleton className="h-8 w-32" />
-      </div>
-    </div>
+          </div>
+          </div>
   )
 }
 

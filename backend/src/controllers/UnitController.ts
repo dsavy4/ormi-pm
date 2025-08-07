@@ -38,7 +38,7 @@ export class UnitController {
         .select('totalUnits')
         .eq('id', propertyId)
         .single();
-
+      
       if (propertyError) {
         console.error('Property query error:', propertyError);
         throw new Error(`Property not found: ${propertyError.message}`);
@@ -299,4 +299,4 @@ export class UnitController {
       return c.json({ error: 'Failed to fetch unit details' }, 500);
     }
   }
-} 
+}

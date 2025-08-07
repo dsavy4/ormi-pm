@@ -12,20 +12,20 @@ import {
 } from "lucide-react"
 
 const statusBadgeVariants = cva(
-  "inline-flex items-center gap-1.5 rounded-full border-2 px-3 py-1.5 text-xs font-bold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 shadow-sm",
+  "inline-flex items-center gap-1.5 rounded-full border-2 px-3 py-1.5 text-xs font-extrabold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 shadow-sm text-shadow-sm",
   {
     variants: {
       variant: {
         occupied:
-          "border-blue-600 bg-blue-600 text-white dark:border-blue-500 dark:bg-blue-500 dark:text-white shadow-blue-600/25 dark:shadow-blue-500/25",
+          "border-blue-700 bg-blue-700 text-white dark:border-blue-600 dark:bg-blue-600 dark:text-white shadow-blue-700/30 dark:shadow-blue-600/30",
         vacant:
-          "border-green-600 bg-green-600 text-white dark:border-green-500 dark:bg-green-500 dark:text-white shadow-green-600/25 dark:shadow-green-500/25",
+          "border-green-700 bg-green-700 text-white dark:border-green-600 dark:bg-green-600 dark:text-white shadow-green-700/30 dark:shadow-green-600/30",
         maintenance:
-          "border-orange-600 bg-orange-600 text-white dark:border-orange-500 dark:bg-orange-500 dark:text-white shadow-orange-600/25 dark:shadow-orange-500/25",
+          "border-orange-700 bg-orange-700 text-white dark:border-orange-600 dark:bg-orange-600 dark:text-white shadow-orange-700/30 dark:shadow-orange-600/30",
         reserved:
-          "border-purple-600 bg-purple-600 text-white dark:border-purple-500 dark:bg-purple-500 dark:text-white shadow-purple-600/25 dark:shadow-purple-500/25",
+          "border-purple-700 bg-purple-700 text-white dark:border-purple-600 dark:bg-purple-600 dark:text-white shadow-purple-700/30 dark:shadow-purple-600/30",
         default:
-          "border-gray-600 bg-gray-600 text-white dark:border-gray-500 dark:bg-gray-500 dark:text-white shadow-gray-600/25 dark:shadow-gray-500/25",
+          "border-gray-700 bg-gray-700 text-white dark:border-gray-600 dark:bg-gray-600 dark:text-white shadow-gray-700/30 dark:shadow-gray-600/30",
       },
       size: {
         sm: "px-2 py-1 text-xs",
@@ -115,7 +115,7 @@ function StatusBadge({
       {showIcon && (
         <IconComponent className="h-3.5 w-3.5 flex-shrink-0" />
       )}
-      <span className="font-semibold">{config.label}</span>
+      <span className="font-extrabold">{config.label}</span>
     </div>
   )
 }
