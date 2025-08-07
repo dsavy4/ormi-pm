@@ -79,7 +79,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { StatusBadge } from '@/components/ui/status-badge';
+
 import { ProCheckbox } from '@/components/ui/pro-checkbox';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -1177,8 +1177,15 @@ export function Properties() {
             recentActivity: [],
             documents: []
           });
-      } catch (error) {
-        console.error('Failed to fetch property details:', error);
+      } catch (error: any) {
+        // Handle 404 errors silently (property doesn't exist in database)
+        if (error?.message?.includes('404')) {
+          console.log(`Property ${propertyId} not found in database, using basic data`);
+        } else {
+          console.error('Failed to fetch property details:', error);
+          toast.error('Failed to load detailed property information');
+        }
+        
         // Fallback to basic property data
         setPropertyViewData({
           property,
@@ -2400,12 +2407,17 @@ const ExpandableUnitCard: React.FC<ExpandableUnitCardProps> = ({
             </div>
             
             <div className="mt-2 flex items-center gap-4 text-sm">
-              {unit.tenant ? (
+              {unit.status === 'occupied' ? (
                 <>
-                  <div className="flex items-center gap-1">
-                    <User className="h-4 w-4 text-muted-foreground" />
-                    <span>{unit.tenant.name}</span>
+                  <div className="flex items-center gap-1 text-blue-600">
+                    <User className="h-4 w-4" />
+                    <span>Occupied</span>
                   </div>
+                  {unit.tenant && (
+                    <div className="flex items-center gap-1">
+                      <span className="text-muted-foreground">{unit.tenant.name}</span>
+                    </div>
+                  )}
                   <div className="flex items-center gap-1">
                     <DollarSign className="h-4 w-4 text-muted-foreground" />
                     <span>${unit.monthlyRent}/month</span>
@@ -2432,8 +2444,6 @@ const ExpandableUnitCard: React.FC<ExpandableUnitCardProps> = ({
                   <span>No Status</span>
                 </div>
               )}
-              
-              <StatusBadge status={unit.status} size="sm" />
             </div>
           </div>
 
