@@ -129,6 +129,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { unitsApi, propertiesApi, Unit, Property } from '@/lib/api';
 import { getFileUrl } from '@/lib/utils';
 import { toast } from 'react-hot-toast';
+import { StatusBadge } from "@/components/ui/status-badge";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -709,6 +710,10 @@ export function PropertyUnits() {
             style: 'currency',
             currency: 'USD',
           }).format(amount)}
+          onRefresh={() => {
+            // TODO: Implement refresh functionality
+            console.log('Refresh property data');
+          }}
         />
       </div>
     </TooltipProvider>
@@ -723,22 +728,9 @@ function UnitCard({ unit, isSelected, onSelect, onView, onViewProperty }: {
   onView: () => void;
   onViewProperty: () => void;
 }) {
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'LEASED': return 'bg-green-600';
-      case 'VACANT': return 'bg-amber-600';
-      case 'MAINTENANCE': return 'bg-red-600';
-      default: return 'bg-gray-600';
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'LEASED': return 'Occupied';
-      case 'VACANT': return 'Available';
-      case 'MAINTENANCE': return 'Maintenance';
-      default: return status;
-    }
+  const getStatusType = (unit: Unit) => {
+    if (unit.tenantId) return 'occupied';
+    return 'vacant';
   };
 
   return (
@@ -752,7 +744,7 @@ function UnitCard({ unit, isSelected, onSelect, onView, onViewProperty }: {
               className={`w-4 h-4 rounded border-2 cursor-pointer transition-colors flex items-center justify-center ${
                 isSelected 
                   ? 'bg-blue-600 border-blue-600' 
-                  : 'bg-white border-gray-300 hover:border-blue-400'
+                  : 'bg-white border-gray-300 hover:border-blue-400 dark:bg-gray-800 dark:border-gray-600 dark:hover:border-blue-400'
               }`}
               onClick={(e) => {
                 e.stopPropagation();
@@ -764,47 +756,45 @@ function UnitCard({ unit, isSelected, onSelect, onView, onViewProperty }: {
               )}
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-gray-900">Unit {unit.unitNumber}</h3>
-              <p className="text-sm text-gray-600">{unit.property?.name}</p>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Unit {unit.unitNumber}</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">{unit.property?.name}</p>
             </div>
           </div>
-          <Badge 
-            className={`${getStatusColor(unit.tenantId ? 'LEASED' : 'VACANT')} flex items-center gap-1 hover:no-underline`}
-            style={{ backgroundColor: unit.tenantId ? '#059669' : '#d97706' }}
-          >
-            {unit.tenantId ? <UserCheck className="h-3 w-3" /> : <Home className="h-3 w-3" />}
-            {getStatusText(unit.tenantId ? 'LEASED' : 'VACANT')}
-          </Badge>
+          <StatusBadge 
+            status={getStatusType(unit)}
+            size="sm"
+            className="flex-shrink-0"
+          />
         </div>
 
         {unit.bedrooms && unit.bathrooms && unit.sqft && (
           <div className="grid grid-cols-3 gap-4 mb-4 text-center">
             <div>
               <div className="flex items-center justify-center mb-1">
-                <Bed className="h-4 w-4 text-gray-600" />
+                <Bed className="h-4 w-4 text-gray-600 dark:text-gray-400" />
               </div>
-              <p className="text-sm font-medium">{unit.bedrooms} BR</p>
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{unit.bedrooms} BR</p>
             </div>
             <div>
               <div className="flex items-center justify-center mb-1">
-                <Bath className="h-4 w-4 text-gray-600" />
+                <Bath className="h-4 w-4 text-gray-600 dark:text-gray-400" />
               </div>
-              <p className="text-sm font-medium">{unit.bathrooms} BA</p>
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{unit.bathrooms} BA</p>
             </div>
             <div>
               <div className="flex items-center justify-center mb-1">
-                <Square className="h-4 w-4 text-gray-600" />
+                <Square className="h-4 w-4 text-gray-600 dark:text-gray-400" />
               </div>
-              <p className="text-sm font-medium">{unit.sqft} sqft</p>
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{unit.sqft} sqft</p>
             </div>
           </div>
         )}
 
         <div className="text-center mb-4">
-          <p className="text-2xl font-bold text-gray-900">
+          <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
             ${Number(unit.monthlyRent).toLocaleString()}
           </p>
-          <p className="text-sm text-gray-600">Monthly Rent</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400">Monthly Rent</p>
         </div>
 
         {unit.tenant && (
@@ -815,10 +805,10 @@ function UnitCard({ unit, isSelected, onSelect, onView, onViewProperty }: {
               </AvatarFallback>
             </Avatar>
             <div>
-              <p className="text-sm font-medium text-gray-900">
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                 {unit.tenant.firstName} {unit.tenant.lastName}
               </p>
-              <p className="text-xs text-gray-600">Current Tenant</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">Current Tenant</p>
             </div>
           </div>
         )}
@@ -892,22 +882,9 @@ function UnitListItem({ unit, isSelected, onSelect, onView }: {
   onSelect: (selected: boolean) => void;
   onView: () => void;
 }) {
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'LEASED': return 'bg-green-600';
-      case 'VACANT': return 'bg-amber-600';
-      case 'MAINTENANCE': return 'bg-red-600';
-      default: return 'bg-gray-600';
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'LEASED': return 'Occupied';
-      case 'VACANT': return 'Available';
-      case 'MAINTENANCE': return 'Maintenance';
-      default: return status;
-    }
+  const getStatusType = (unit: Unit) => {
+    if (unit.tenantId) return 'occupied';
+    return 'vacant';
   };
 
   return (
@@ -921,7 +898,7 @@ function UnitListItem({ unit, isSelected, onSelect, onView }: {
               className={`w-4 h-4 rounded border-2 cursor-pointer transition-colors flex items-center justify-center ${
                 isSelected 
                   ? 'bg-blue-600 border-blue-600' 
-                  : 'bg-white border-gray-300 hover:border-blue-400'
+                  : 'bg-white border-gray-300 hover:border-blue-400 dark:bg-gray-800 dark:border-gray-600 dark:hover:border-blue-400'
               }`}
               onClick={(e) => {
                 e.stopPropagation();
@@ -934,75 +911,26 @@ function UnitListItem({ unit, isSelected, onSelect, onView }: {
             </div>
             <div className="flex items-center space-x-4">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">Unit {unit.unitNumber}</h3>
-                <p className="text-sm text-gray-600">{unit.property?.name}</p>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Unit {unit.unitNumber}</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{unit.property?.name}</p>
               </div>
               <div className="flex items-center space-x-4">
                 {unit.bedrooms && unit.bathrooms && (
-                  <span className="text-sm text-gray-600">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
                     {unit.bedrooms}BR/{unit.bathrooms}BA
                   </span>
                 )}
                 {unit.sqft && (
-                  <span className="text-sm text-gray-600">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
                     {unit.sqft} sqft
                   </span>
                 )}
-                <Badge 
-                  className={getStatusColor(unit.tenantId ? 'LEASED' : 'VACANT')}
-                  style={{ backgroundColor: unit.tenantId ? '#059669' : '#d97706' }}
-                >
-                  {getStatusText(unit.tenantId ? 'LEASED' : 'VACANT')}
-                </Badge>
+                <StatusBadge 
+                  status={getStatusType(unit)}
+                  size="sm"
+                  className="flex-shrink-0"
+                />
               </div>
-            </div>
-          </div>
-          
-          <div className="flex items-center space-x-4">
-            <div className="text-right">
-              <p className="text-lg font-bold text-gray-900">
-                ${Number(unit.monthlyRent).toLocaleString()}
-              </p>
-              <p className="text-sm text-gray-600">Monthly Rent</p>
-            </div>
-            
-            {unit.tenant && (
-              <div className="flex items-center space-x-2">
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback>
-                    {unit.tenant.firstName?.[0]}{unit.tenant.lastName?.[0]}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <p className="text-sm font-medium text-gray-900">
-                    {unit.tenant.firstName} {unit.tenant.lastName}
-                  </p>
-                  <p className="text-xs text-gray-600">Current Tenant</p>
-                </div>
-              </div>
-            )}
-            
-            <div className="flex items-center space-x-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onView();
-                }}
-              >
-                <Eye className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  // Handle edit
-                }}
-              >
-                <Edit className="h-4 w-4" />
-              </Button>
             </div>
           </div>
         </div>
@@ -1368,20 +1296,20 @@ function UnitDetailsSheet({ isOpen, onClose, unit, onUpdate }: {
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
                       <Label className="text-xs font-medium">Lease Start</Label>
-                      <p className="text-gray-600">{unit.leaseStartDate || 'N/A'}</p>
+                      <p className="text-gray-600 dark:text-gray-400">{unit.leaseStart || 'N/A'}</p>
                     </div>
                     <div>
                       <Label className="text-xs font-medium">Lease End</Label>
-                      <p className="text-gray-600">{unit.leaseEndDate || 'N/A'}</p>
+                      <p className="text-gray-600 dark:text-gray-400">{unit.leaseEnd || 'N/A'}</p>
                     </div>
                     <div>
                       <Label className="text-xs font-medium">Rent Due</Label>
-                      <p className="text-gray-600">{unit.rentDueDate || 'N/A'}</p>
+                      <p className="text-gray-600 dark:text-gray-400">Monthly</p>
                     </div>
                     <div>
                       <Label className="text-xs font-medium">Payment Status</Label>
-                      <Badge variant={unit.paymentStatus === 'PAID' ? 'default' : 'destructive'}>
-                        {unit.paymentStatus || 'UNKNOWN'}
+                      <Badge variant="default">
+                        Active
                       </Badge>
                     </div>
                   </div>
@@ -1399,18 +1327,18 @@ function UnitDetailsSheet({ isOpen, onClose, unit, onUpdate }: {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {unit.tenantHistory?.map((tenant, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  {unit.tenant ? (
+                    <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                       <div>
-                        <p className="font-medium">{tenant.name}</p>
-                        <p className="text-sm text-gray-600">{tenant.period}</p>
+                        <p className="font-medium text-gray-900 dark:text-gray-100">{unit.tenant.firstName} {unit.tenant.lastName}</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">Current Tenant</p>
                       </div>
-                      <Badge variant="outline">{tenant.status}</Badge>
+                      <Badge variant="outline">Active</Badge>
                     </div>
-                  )) || (
+                  ) : (
                     <div className="text-center py-4">
                       <History className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                      <p className="text-sm text-gray-500">No tenant history available</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">No tenant history available</p>
                     </div>
                   )}
                 </div>
@@ -1427,22 +1355,10 @@ function UnitDetailsSheet({ isOpen, onClose, unit, onUpdate }: {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {unit.maintenanceHistory?.map((maintenance, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div>
-                        <p className="font-medium">{maintenance.title}</p>
-                        <p className="text-sm text-gray-600">{maintenance.date}</p>
-                      </div>
-                      <Badge variant={maintenance.status === 'COMPLETED' ? 'default' : 'secondary'}>
-                        {maintenance.status}
-                      </Badge>
-                    </div>
-                  )) || (
-                    <div className="text-center py-4">
-                      <Wrench className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                      <p className="text-sm text-gray-500">No maintenance history</p>
-                    </div>
-                  )}
+                  <div className="text-center py-4">
+                    <Wrench className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                    <p className="text-sm text-gray-500 dark:text-gray-400">No maintenance history available</p>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -1457,29 +1373,14 @@ function UnitDetailsSheet({ isOpen, onClose, unit, onUpdate }: {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {unit.documents?.map((doc, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-gray-600" />
-                        <div>
-                          <p className="font-medium">{doc.name}</p>
-                          <p className="text-sm text-gray-600">{doc.date}</p>
-                        </div>
-                      </div>
-                      <Button variant="outline" size="sm">
-                        <Download className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  )) || (
-                    <div className="text-center py-4">
-                      <FileText className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                      <p className="text-sm text-gray-500">No documents uploaded</p>
-                      <Button variant="outline" size="sm" className="mt-2">
-                        <Upload className="h-4 w-4 mr-2" />
-                        Upload Document
-                      </Button>
-                    </div>
-                  )}
+                  <div className="text-center py-4">
+                    <FileText className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                    <p className="text-sm text-gray-500 dark:text-gray-400">No documents available</p>
+                    <Button variant="outline" size="sm" className="mt-2">
+                      <Upload className="h-4 w-4 mr-2" />
+                      Upload Document
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>

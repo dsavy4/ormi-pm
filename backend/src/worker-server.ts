@@ -623,6 +623,8 @@ app.post('/api/units/:id/images', authMiddleware, async (c) => {
   try {
     const unitId = c.req.param('id');
     const user = c.get('user');
+    console.log('[DEBUG] User ID:', user.userId);
+    console.log('[DEBUG] Unit ID:', unitId);
 
     // Verify unit exists and user has access
     const supabase = getSupabaseClient(c.env);
@@ -630,27 +632,45 @@ app.post('/api/units/:id/images', authMiddleware, async (c) => {
       .from('units')
       .select(`
         id,
+        propertyId,
         images,
-        property:properties!units_property_id_fkey (
+        property:properties!units_propertyId_fkey (
           id,
-          owner_id
+          ownerId,
+          propertyManagerId
         )
       `)
       .eq('id', unitId)
       .single();
 
     if (unitError || !unit) {
+      console.error('[DEBUG] Unit not found:', unitError);
       return c.json({ error: 'Unit not found' }, 404);
     }
 
-    // Type assertion for the property relationship  
-    const unitWithPropertyImg = unit as any;
-    if (!unitWithPropertyImg.property || unitWithPropertyImg.property.owner_id !== user.userId) {
+    // Ensure property is a single object, not an array
+    const property = Array.isArray(unit.property) ? unit.property[0] : unit.property;
+
+    if (unitError || !unit) {
+      console.log('[DEBUG] Unit not found (duplicate check)');
+      return c.json({ error: 'Unit not found' }, 404);
+    }
+
+    // Check access permissions - user must be owner, property manager, or have admin/manager role
+    const hasOwnership = property.ownerId === user.userId;
+    const isPropertyManager = property.propertyManagerId === user.userId;
+    const hasAdminAccess = ['SUPER_ADMIN', 'ADMIN', 'MANAGER'].includes(user.role);
+    const hasManagerAccess = ['PROPERTY_MANAGER', 'ASSISTANT_MANAGER', 'REGIONAL_MANAGER', 'SENIOR_MANAGER'].includes(user.role);
+
+    if (!hasOwnership && !isPropertyManager && !hasAdminAccess && !hasManagerAccess) {
+      console.log('[DEBUG] Access denied - user:', user.userId, 'role:', user.role);
+      console.log('[DEBUG] Property owner:', property.ownerId, 'manager:', property.propertyManagerId);
       return c.json({ error: 'Access denied' }, 403);
     }
 
     const formData = await c.req.formData();
     const files = formData.getAll('images') as File[];
+    console.log('[DEBUG] Number of files received:', files.length);
 
     if (!files || files.length === 0) {
       return c.json({ error: 'No images provided' }, 400);
@@ -659,50 +679,79 @@ app.post('/api/units/:id/images', authMiddleware, async (c) => {
     // Import storage service
     const { createStorageService } = await import('./utils/storage');
     const storageService = createStorageService(c.env);
+    console.log('[DEBUG] Storage service created with env vars');
     const uploadedImages = [];
 
     for (const file of files) {
       if (file && file.size > 0) {
-        // Upload to R2 with optimized account-based path
-        const buffer = await file.arrayBuffer();
-        const user = c.get('user');
-        const filePath = `${user.userId}/property/${unitWithPropertyImg.propertyId}/${unitId}`;
-        const uploadResult = await storageService.uploadFile(Buffer.from(buffer), file.name, file.type, filePath);
+        try {
+          console.log('[DEBUG] Processing file:', file.name, 'Size:', file.size);
+          
+          // Upload to R2 with optimized account-based path
+          const buffer = await file.arrayBuffer();
+          const filePath = `${user.userId}/property/${unit.propertyId}/${unitId}`;
+          console.log('[DEBUG] Uploading to optimized path:', filePath);
+          
+          const uploadResult = await storageService.uploadFile(new Uint8Array(buffer), file.name, file.type, filePath);
+          console.log('[DEBUG] Upload successful, URL:', uploadResult.url);
 
-        uploadedImages.push(uploadResult.url);
-        
-        // Create document record for tracking
-        const documentData = {
-          fileName: file.name,
-          fileUrl: uploadResult.url,
-          fileType: file.type,
-          fileSize: file.size,
-          category: 'property',
-          accountId: user.userId,
-          uploadedBy: user.userId,
-          propertyId: unitWithPropertyImg.propertyId,
-          unitId: unitId,
-          tags: ['unit', 'image', 'property'],
-          description: `Unit image for unit ${unitId}`,
-          isPublic: false,
-          uploadedAt: new Date().toISOString(),
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        };
-        
-        await supabase.from('documents').insert(documentData);
+          uploadedImages.push(uploadResult.url);
+          
+          // Create document record for tracking
+          try {
+            const documentData = {
+              fileName: file.name,
+              fileUrl: uploadResult.url,
+              fileType: file.type,
+              fileSize: file.size,
+              category: 'property',
+              accountId: user.userId,
+              uploadedBy: user.userId,
+              propertyId: unit.propertyId,
+              unitId: unitId,
+              tags: ['unit', 'image', 'property'],
+              description: `Unit image for unit ${unitId}`,
+              isPublic: false,
+              uploadedAt: new Date().toISOString(),
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString()
+            };
+            
+            const { error: docError } = await supabase.from('documents').insert(documentData);
+            if (docError) {
+              console.error('[DEBUG] Document creation error:', docError);
+              // Don't fail the upload if document creation fails
+            } else {
+              console.log('[DEBUG] Document record created successfully');
+            }
+          } catch (docError) {
+            console.error('[DEBUG] Document creation error (caught):', docError);
+            // Don't fail the upload if document creation fails
+          }
+        } catch (fileError) {
+          console.error('[DEBUG] Error processing file:', file.name, fileError);
+          console.error('[DEBUG] File details:', {
+            name: file.name,
+            size: file.size,
+            type: file.type
+          });
+          throw fileError;
+        }
       }
     }
 
     // Update unit with new images
-    const existingImages = unitWithPropertyImg.images || [];
+    const existingImages = unit.images || [];
     const allImages = [...existingImages, ...uploadedImages];
+
+    console.log('[DEBUG] Updating unit with', uploadedImages.length, 'new images');
+    console.log('[DEBUG] Total images after update:', allImages.length);
 
     const { error: updateError } = await supabase
       .from('units')
       .update({ 
         images: allImages,
-        updated_at: new Date().toISOString()
+        updatedAt: new Date().toISOString()
       })
       .eq('id', unitId);
 
@@ -721,6 +770,134 @@ app.post('/api/units/:id/images', authMiddleware, async (c) => {
     });
   } catch (error) {
     console.error('[DEBUG] Unit image upload error:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+// Delete unit image endpoint
+app.delete('/api/units/:id/images/:imageUrl', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== DELETE UNIT IMAGE ENDPOINT CALLED =====');
+  try {
+    const unitId = c.req.param('id');
+    const imageUrl = decodeURIComponent(c.req.param('imageUrl'));
+    const user = c.get('user');
+    
+    console.log('[DEBUG] User ID:', user.userId);
+    console.log('[DEBUG] Unit ID:', unitId);
+    console.log('[DEBUG] Image URL:', imageUrl);
+
+    // Verify unit exists and user has access
+    const supabase = getSupabaseClient(c.env);
+    const { data: unit, error: unitError } = await supabase
+      .from('units')
+      .select(`
+        id,
+        propertyId,
+        images,
+        property:properties!units_propertyId_fkey (
+          id,
+          ownerId,
+          propertyManagerId
+        )
+      `)
+      .eq('id', unitId)
+      .single();
+
+    if (unitError || !unit) {
+      console.error('[DEBUG] Unit not found:', unitError);
+      return c.json({ error: 'Unit not found' }, 404);
+    }
+
+    // Ensure property is a single object, not an array
+    const property = Array.isArray(unit.property) ? unit.property[0] : unit.property;
+
+    if (!property) {
+      console.log('[DEBUG] Property not found for unit');
+      return c.json({ error: 'Property not found' }, 404);
+    }
+
+    // Check access permissions - user must be owner, property manager, or have admin/manager role
+    const hasOwnership = property.ownerId === user.userId;
+    const isPropertyManager = property.propertyManagerId === user.userId;
+    const hasAdminAccess = ['SUPER_ADMIN', 'ADMIN', 'MANAGER'].includes(user.role);
+    const hasManagerAccess = ['PROPERTY_MANAGER', 'ASSISTANT_MANAGER', 'REGIONAL_MANAGER', 'SENIOR_MANAGER'].includes(user.role);
+
+    if (!hasOwnership && !isPropertyManager && !hasAdminAccess && !hasManagerAccess) {
+      console.log('[DEBUG] Access denied - user:', user.userId, 'role:', user.role);
+      console.log('[DEBUG] Property owner:', property.ownerId, 'manager:', property.propertyManagerId);
+      return c.json({ error: 'Access denied' }, 403);
+    }
+
+    // Check if image exists in unit images
+    const currentImages = unit.images || [];
+    if (!currentImages.includes(imageUrl)) {
+      console.log('[DEBUG] Image not found in unit images');
+      return c.json({ error: 'Image not found' }, 404);
+    }
+
+    // Remove image from unit
+    const updatedImages = currentImages.filter(img => img !== imageUrl);
+    
+    console.log('[DEBUG] Updating unit - removing image:', imageUrl);
+    console.log('[DEBUG] Images after removal:', updatedImages.length);
+
+    const { error: updateError } = await supabase
+      .from('units')
+      .update({ 
+        images: updatedImages,
+        updatedAt: new Date().toISOString()
+      })
+      .eq('id', unitId);
+
+    if (updateError) {
+      console.error('[DEBUG] Unit image update error:', updateError);
+      return c.json({ error: 'Failed to update unit images' }, 500);
+    }
+
+    // Delete from R2 storage
+    try {
+      const { createStorageService } = await import('./utils/storage');
+      const storageService = createStorageService(c.env);
+      
+      // Extract the key from the imageUrl (remove the base URL part)
+      const key = imageUrl.replace('https://cdn.ormi.com/', '');
+      console.log('[DEBUG] Deleting file from R2 with key:', key);
+      
+      await storageService.deleteFile(key);
+      console.log('[DEBUG] File deleted from R2 successfully');
+    } catch (storageError) {
+      console.error('[DEBUG] R2 deletion error:', storageError);
+      // Don't fail the request if storage deletion fails
+    }
+
+    // Remove document record
+    try {
+      const { error: docError } = await supabase
+        .from('documents')
+        .delete()
+        .eq('fileUrl', imageUrl)
+        .eq('unitId', unitId);
+
+      if (docError) {
+        console.error('[DEBUG] Document deletion error:', docError);
+      } else {
+        console.log('[DEBUG] Document record deleted successfully');
+      }
+    } catch (docError) {
+      console.error('[DEBUG] Document deletion error:', docError);
+      // Don't fail the request if document deletion fails
+    }
+
+    console.log('[DEBUG] ===== UNIT IMAGE DELETED SUCCESSFULLY =====');
+    return c.json({
+      success: true,
+      data: {
+        message: 'Image deleted successfully',
+        remainingImages: updatedImages.length
+      }
+    });
+  } catch (error) {
+    console.error('[DEBUG] Unit image deletion error:', error);
     return c.json({ error: 'Internal server error' }, 500);
   }
 });
@@ -1272,6 +1449,7 @@ app.put('/api/units/:id', authMiddleware, async (c) => {
         leaseStart: body.leaseStart || null,
         leaseEnd: body.leaseEnd || null,
         notes: body.notes,
+        images: body.images,
         tenantId: body.tenantId || null,
         updatedAt: new Date().toISOString(),
       })
@@ -3105,6 +3283,122 @@ app.post('/api/properties/:id/images', authMiddleware, async (c) => {
     });
   } catch (error) {
     console.error('[DEBUG] Property image upload error:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+// Delete property image endpoint
+app.delete('/api/properties/:id/images/:imageUrl', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== DELETE PROPERTY IMAGE ENDPOINT CALLED =====');
+  try {
+    const propertyId = c.req.param('id');
+    const imageUrl = decodeURIComponent(c.req.param('imageUrl'));
+    const user = c.get('user');
+    
+    console.log('[DEBUG] User ID:', user.userId);
+    console.log('[DEBUG] Property ID:', propertyId);
+    console.log('[DEBUG] Image URL:', imageUrl);
+
+    // Verify property exists and user has access
+    const supabase = getSupabaseClient(c.env);
+    const { data: property, error: propertyError } = await supabase
+      .from('properties')
+      .select(`
+        id,
+        ownerId,
+        propertyManagerId,
+        images
+      `)
+      .eq('id', propertyId)
+      .single();
+
+    if (propertyError || !property) {
+      console.error('[DEBUG] Property not found:', propertyError);
+      return c.json({ error: 'Property not found' }, 404);
+    }
+
+    // Check access permissions - user must be owner, property manager, or have admin/manager role
+    const hasOwnership = property.ownerId === user.userId;
+    const isPropertyManager = property.propertyManagerId === user.userId;
+    const hasAdminAccess = ['SUPER_ADMIN', 'ADMIN', 'MANAGER'].includes(user.role);
+    const hasManagerAccess = ['PROPERTY_MANAGER', 'ASSISTANT_MANAGER', 'REGIONAL_MANAGER', 'SENIOR_MANAGER'].includes(user.role);
+
+    if (!hasOwnership && !isPropertyManager && !hasAdminAccess && !hasManagerAccess) {
+      console.log('[DEBUG] Access denied - user:', user.userId, 'role:', user.role);
+      console.log('[DEBUG] Property owner:', property.ownerId, 'manager:', property.propertyManagerId);
+      return c.json({ error: 'Access denied' }, 403);
+    }
+
+    // Check if image exists in property images
+    const currentImages = property.images || [];
+    if (!currentImages.includes(imageUrl)) {
+      console.log('[DEBUG] Image not found in property images');
+      return c.json({ error: 'Image not found' }, 404);
+    }
+
+    // Remove image from property
+    const updatedImages = currentImages.filter(img => img !== imageUrl);
+    
+    console.log('[DEBUG] Updating property - removing image:', imageUrl);
+    console.log('[DEBUG] Images after removal:', updatedImages.length);
+
+    const { error: updateError } = await supabase
+      .from('properties')
+      .update({ 
+        images: updatedImages,
+        updatedAt: new Date().toISOString()
+      })
+      .eq('id', propertyId);
+
+    if (updateError) {
+      console.error('[DEBUG] Property image update error:', updateError);
+      return c.json({ error: 'Failed to update property images' }, 500);
+    }
+
+    // Delete from R2 storage
+    try {
+      const { createStorageService } = await import('./utils/storage');
+      const storageService = createStorageService(c.env);
+      
+      // Extract the key from the imageUrl (remove the base URL part)
+      const key = imageUrl.replace('https://cdn.ormi.com/', '');
+      console.log('[DEBUG] Deleting file from R2 with key:', key);
+      
+      await storageService.deleteFile(key);
+      console.log('[DEBUG] File deleted from R2 successfully');
+    } catch (storageError) {
+      console.error('[DEBUG] R2 deletion error:', storageError);
+      // Don't fail the request if storage deletion fails
+    }
+
+    // Remove document record
+    try {
+      const { error: docError } = await supabase
+        .from('documents')
+        .delete()
+        .eq('fileUrl', imageUrl)
+        .eq('propertyId', propertyId);
+
+      if (docError) {
+        console.error('[DEBUG] Document deletion error:', docError);
+      } else {
+        console.log('[DEBUG] Document record deleted successfully');
+      }
+    } catch (docError) {
+      console.error('[DEBUG] Document deletion error:', docError);
+      // Don't fail the request if document deletion fails
+    }
+
+    console.log('[DEBUG] ===== PROPERTY IMAGE DELETED SUCCESSFULLY =====');
+    return c.json({
+      success: true,
+      data: {
+        message: 'Image deleted successfully',
+        remainingImages: updatedImages.length
+      }
+    });
+  } catch (error) {
+    console.error('[DEBUG] Property image deletion error:', error);
     return c.json({ error: 'Internal server error' }, 500);
   }
 });

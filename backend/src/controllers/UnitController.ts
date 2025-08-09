@@ -222,12 +222,26 @@ export class UnitController {
         return c.json({ error: 'Unit not found' }, 404);
       }
 
-      // Transform to match frontend expectations (simplified for now)
+      // Get additional data for the unit
+      const { data: documents } = await supabase
+        .from('documents')
+        .select('*')
+        .eq('unitId', unitId);
+
+      const { data: maintenance } = await supabase
+        .from('maintenance_requests')
+        .select('*')
+        .eq('unitId', unitId)
+        .order('createdAt', { ascending: false });
+
+      // Transform to match frontend expectations
       const unitDetails = {
+        ...unit, // Include all unit data including images
+        documents: documents || [],
+        maintenance: maintenance || [],
         lastPayment: null, // Will be loaded separately if needed
         paymentHistory: [], // Will be loaded separately if needed
-        maintenanceRequests: [], // Will be loaded separately if needed
-        lastMaintenance: null, // Will be loaded separately if needed
+        lastMaintenance: maintenance?.[0] || null,
         nextInspection: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] // 30 days from now
       };
 

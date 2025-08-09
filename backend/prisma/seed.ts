@@ -159,6 +159,125 @@ async function main() {
     },
   });
 
+  // Create a detailed Downtown Lofts unit with rich occupancy history
+  const downtownUnit101 = await prisma.unit.create({
+    data: {
+      unitNumber: '101',
+      propertyId: property2.id,
+      tenantId: tenant1.id, // Currently occupied by John Doe
+      bedrooms: 2,
+      bathrooms: 1,
+      squareFootage: 1100,
+      monthlyRent: 2800.00,
+      status: 'OCCUPIED',
+      images: [
+        'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop',
+        'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800&h=600&fit=crop',
+        'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=800&h=600&fit=crop'
+      ],
+      amenities: ['Balcony', 'Walk-in Closet', 'Dishwasher', 'Hardwood Floors'],
+      isActive: true,
+    },
+  });
+
+  // Create additional tenants for occupancy history
+  const tenant3 = await prisma.user.create({
+    data: {
+      email: 'tenant3@ormi.com',
+      firstName: 'Sarah',
+      lastName: 'Johnson',
+      password: 'tenant123',
+      role: 'TENANT',
+      phoneNumber: '+1-555-0202',
+      isActive: true,
+      emailVerified: true,
+    },
+  });
+
+  const tenant4 = await prisma.user.create({
+    data: {
+      email: 'tenant4@ormi.com',
+      firstName: 'Michael',
+      lastName: 'Chen',
+      password: 'tenant123',
+      role: 'TENANT',
+      phoneNumber: '+1-555-0203',
+      isActive: true,
+      emailVerified: true,
+    },
+  });
+
+  // Create occupancy history records (we'll need to add this to the schema)
+  // For now, we'll create maintenance requests to show activity
+  const maintenance1 = await prisma.maintenanceRequest.create({
+    data: {
+      title: 'HVAC System Maintenance',
+      description: 'Annual HVAC system inspection and filter replacement',
+      priority: 'MEDIUM',
+      status: 'COMPLETED',
+      unitId: downtownUnit101.id,
+      tenantId: tenant1.id,
+      propertyId: property2.id,
+      estimatedCost: 150.00,
+      actualCost: 120.00,
+      completedAt: new Date('2024-01-15'),
+      createdAt: new Date('2024-01-10'),
+    },
+  });
+
+  const maintenance2 = await prisma.maintenanceRequest.create({
+    data: {
+      title: 'Kitchen Sink Repair',
+      description: 'Kitchen sink was clogged, plumber cleared the drain',
+      priority: 'HIGH',
+      status: 'COMPLETED',
+      unitId: downtownUnit101.id,
+      tenantId: tenant1.id,
+      propertyId: property2.id,
+      estimatedCost: 200.00,
+      actualCost: 180.00,
+      completedAt: new Date('2024-01-20'),
+      createdAt: new Date('2024-01-18'),
+    },
+  });
+
+  // Create documents for the unit
+  const document1 = await prisma.document.create({
+    data: {
+      fileName: 'Lease_Agreement_Unit101_2024.pdf',
+      fileUrl: 'https://example.com/documents/lease_101_2024.pdf',
+      fileType: 'LEASE',
+      fileSize: 245760,
+      category: 'property',
+      accountId: admin.id,
+      uploadedBy: admin.id,
+      propertyId: property2.id,
+      unitId: downtownUnit101.id,
+      tags: ['lease', 'legal', '2024'],
+      description: 'Current lease agreement for Unit 101',
+      isPublic: false,
+      uploadedAt: new Date('2024-01-01'),
+    },
+  });
+
+  const document2 = await prisma.document.create({
+    data: {
+      fileName: 'Move-in_Checklist_Unit101.pdf',
+      fileUrl: 'https://example.com/documents/checklist_101.pdf',
+      fileType: 'OTHER',
+      fileSize: 102400,
+      category: 'property',
+      accountId: admin.id,
+      uploadedBy: admin.id,
+      propertyId: property2.id,
+      unitId: downtownUnit101.id,
+      tags: ['checklist', 'move-in', 'inspection'],
+      description: 'Move-in inspection checklist for Unit 101',
+      isPublic: false,
+      uploadedAt: new Date('2024-01-01'),
+    },
+  });
+
   // Create payments
   const payment1 = await prisma.payment.create({
     data: {
@@ -206,7 +325,7 @@ async function main() {
   });
 
   // Create maintenance requests
-  const maintenance1 = await prisma.maintenanceRequest.create({
+  const maintenance3 = await prisma.maintenanceRequest.create({
     data: {
       title: 'Leaky Faucet',
       description: 'Kitchen faucet is leaking and needs repair',
@@ -223,7 +342,7 @@ async function main() {
     },
   });
 
-  const maintenance2 = await prisma.maintenanceRequest.create({
+  const maintenance4 = await prisma.maintenanceRequest.create({
     data: {
       title: 'AC Not Working',
       description: 'Air conditioning unit is not cooling properly',
@@ -237,7 +356,7 @@ async function main() {
   });
 
   // Create documents
-  const document1 = await prisma.document.create({
+  const document3 = await prisma.document.create({
     data: {
       fileName: 'Lease_Agreement_Unit_101.pdf',
       fileUrl: 'https://example.com/documents/lease-unit-101.pdf',
@@ -253,7 +372,7 @@ async function main() {
     },
   });
 
-  const document2 = await prisma.document.create({
+  const document4 = await prisma.document.create({
     data: {
       fileName: 'Rent_Receipt_January_2024.pdf',
       fileUrl: 'https://example.com/documents/receipt-jan-2024.pdf',

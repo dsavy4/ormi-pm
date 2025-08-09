@@ -551,6 +551,15 @@ export const propertiesApi = {
     });
     return handleResponse(response);
   },
+
+  // Property image deletion
+  deletePropertyImage: async (propertyId: string, imageUrl: string) => {
+    const response = await fetch(`${API_BASE_URL}/api/properties/${propertyId}/images/${encodeURIComponent(imageUrl)}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
 };
 
 // Unit Management API
@@ -661,6 +670,29 @@ export const unitsApi = {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify({ tenantId: null }),
+    });
+    return handleResponse(response);
+  },
+
+  // Unit image upload
+  uploadUnitImages: async (unitId: string, files: File[]) => {
+    const formData = new FormData();
+    // Backend expects field name 'images'
+    files.forEach(file => formData.append('images', file));
+    const response = await fetch(`${API_BASE_URL}/api/units/${unitId}/images`, {
+      method: 'POST',
+      headers: getAuthHeadersForFormData(),
+      body: formData,
+    });
+    return handleResponse(response);
+  },
+
+  // Unit image delete
+  deleteUnitImage: async (unitId: string, imageUrl: string) => {
+    const encodedImageUrl = encodeURIComponent(imageUrl);
+    const response = await fetch(`${API_BASE_URL}/api/units/${unitId}/images/${encodedImageUrl}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
     });
     return handleResponse(response);
   },

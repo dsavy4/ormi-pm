@@ -1,14 +1,9 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/ui/status-badge';
 import { 
   Building, 
-  User, 
-  Home, 
-  Wrench, 
-  Clock, 
-  AlertCircle, 
   Eye 
 } from 'lucide-react';
 
@@ -18,34 +13,12 @@ interface UnitCardProps {
 }
 
 export const UnitCard: React.FC<UnitCardProps> = ({ unit, onViewDetails }) => {
-  const getStatusVariant = (status: string) => {
-    switch (status) {
-      case 'occupied': return 'default';
-      case 'vacant': return 'secondary';
-      case 'maintenance': return 'destructive';
-      case 'reserved': return 'outline';
-      default: return 'secondary';
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'occupied': return 'text-gray-600 dark:text-gray-400';
-      case 'vacant': return 'text-gray-600 dark:text-gray-400';
-      case 'maintenance': return 'text-gray-600 dark:text-gray-400';
-      case 'reserved': return 'text-gray-600 dark:text-gray-400';
-      default: return 'text-muted-foreground';
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'occupied': return <User className="h-4 w-4" />;
-      case 'vacant': return <Home className="h-4 w-4" />;
-      case 'maintenance': return <Wrench className="h-4 w-4" />;
-      case 'reserved': return <Clock className="h-4 w-4" />;
-      default: return <AlertCircle className="h-4 w-4" />;
-    }
+  const getStatusType = (unit: any) => {
+    if (unit.status === 'occupied') return 'occupied';
+    if (unit.status === 'vacant') return 'vacant';
+    if (unit.status === 'maintenance') return 'maintenance';
+    if (unit.status === 'reserved') return 'reserved';
+    return 'default';
   };
 
   return (
@@ -58,18 +31,11 @@ export const UnitCard: React.FC<UnitCardProps> = ({ unit, onViewDetails }) => {
             </div>
             <h3 className="font-semibold text-foreground">Unit {unit.number}</h3>
           </div>
-          <Badge 
-            variant={getStatusVariant(unit.status)}
-            className={`flex items-center gap-1 ${getStatusColor(unit.status)}`}
-          >
-            {getStatusIcon(unit.status)}
-            <span className="hidden sm:inline">
-              {unit.status === 'occupied' ? 'Occupied' : 
-               unit.status === 'vacant' ? 'Available' : 
-               unit.status === 'maintenance' ? 'Maintenance' : 
-               unit.status === 'reserved' ? 'Reserved' : 'No Status'}
-            </span>
-          </Badge>
+          <StatusBadge 
+            status={getStatusType(unit)}
+            size="sm"
+            className="flex-shrink-0"
+          />
         </div>
         
         <div className="space-y-3">

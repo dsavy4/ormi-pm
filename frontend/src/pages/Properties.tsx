@@ -80,12 +80,17 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 import { ProCheckbox } from '@/components/ui/pro-checkbox';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
+import { StatusBadge } from '@/components/ui/status-badge';
+import { PropertyImageGallery } from '@/components/properties/PropertyImageGallery';
+import { PropertyImageUpload } from '@/components/properties/PropertyImageUpload';
+import { useAuth } from '@/contexts/AuthContext';
 import { 
   Skeleton, 
   UnitCardSkeleton, 
@@ -106,13 +111,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -122,14 +120,6 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { ConfirmationDialog as UnsavedChangesDialog } from '@/components/ui/confirmation-dialog';
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from '@/components/ui/sheet';
 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Slider } from '@/components/ui/slider';
@@ -2276,6 +2266,7 @@ export function Properties() {
           onEdit={handleEditProperty}
           onArchive={handleArchiveProperty}
           formatCurrency={formatCurrency}
+          onRefresh={mutateProperties}
         />
 
         {/* Advanced Filters Sheet */}
@@ -2389,7 +2380,14 @@ const ExpandableUnitCard: React.FC<ExpandableUnitCardProps> = ({
   onToggle,
   onEdit
 }) => {
-  // Status badge configuration is now handled by the StatusBadge component
+  // Get the proper status for StatusBadge
+  const getStatusType = (unit: any) => {
+    if (unit.status === 'occupied') return 'occupied';
+    if (unit.status === 'vacant') return 'vacant';
+    if (unit.status === 'maintenance') return 'maintenance';
+    if (unit.status === 'reserved') return 'reserved';
+    return 'default';
+  };
 
   return (
     <Card className={`transition-all duration-300 ${
@@ -2402,7 +2400,7 @@ const ExpandableUnitCard: React.FC<ExpandableUnitCardProps> = ({
             <div className="flex items-center gap-3">
               <Home className="h-5 w-5 text-blue-600" />
               <div>
-                <h3 className="font-semibold text-lg">
+                <h3 className="font-semibold text-lg text-gray-900 dark:text-gray-100">
                   Unit {unit.number}
                 </h3>
                 <p className="text-sm text-muted-foreground">
@@ -2412,43 +2410,22 @@ const ExpandableUnitCard: React.FC<ExpandableUnitCardProps> = ({
             </div>
             
             <div className="mt-2 flex items-center gap-4 text-sm">
-              {unit.status === 'occupied' ? (
-                <>
-                  <div className="flex items-center gap-1 text-rose-700 dark:text-rose-500">
-                    <User className="h-4 w-4" />
-                    <span>Occupied</span>
-                  </div>
-                  {unit.tenant && (
-                    <div className="flex items-center gap-1">
-                      <span className="text-muted-foreground">{unit.tenant.name}</span>
-                    </div>
-                  )}
-                  <div className="flex items-center gap-1">
-                    <DollarSign className="h-4 w-4 text-muted-foreground" />
-                    <span>${unit.monthlyRent}/month</span>
-                  </div>
-                </>
-              ) : unit.status === 'vacant' ? (
-                <div className="flex items-center gap-1 text-green-600">
-                  <Home className="h-4 w-4" />
-                  <span>Available</span>
-                </div>
-              ) : unit.status === 'maintenance' ? (
-                <div className="flex items-center gap-1 text-amber-600">
-                  <Wrench className="h-4 w-4" />
-                  <span>Under Maintenance</span>
-                </div>
-              ) : unit.status === 'reserved' ? (
-                <div className="flex items-center gap-1 text-purple-600">
-                  <Clock className="h-4 w-4" />
-                  <span>Reserved</span>
-                </div>
-              ) : (
-                <div className="flex items-center gap-1 text-muted-foreground">
-                  <AlertCircle className="h-4 w-4" />
-                  <span>No Status</span>
+              <StatusBadge 
+                status={getStatusType(unit)}
+                size="sm"
+                className="flex-shrink-0"
+              />
+              
+              {unit.status === 'occupied' && unit.tenant && (
+                <div className="flex items-center gap-1">
+                  <span className="text-muted-foreground">{unit.tenant.name}</span>
                 </div>
               )}
+              
+              <div className="flex items-center gap-1">
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+                <span className="text-gray-900 dark:text-gray-100">${unit.monthlyRent}/month</span>
+              </div>
             </div>
           </div>
 
@@ -5640,6 +5617,7 @@ interface PropertyViewSheetProps {
   onEdit: (propertyId: string) => void;
   onArchive: (propertyId: string) => void;
   formatCurrency: (amount: number) => string;
+  onRefresh: () => void;
 }
 
 export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({ 
@@ -5649,8 +5627,16 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
   propertyViewData, 
   onEdit, 
   onArchive, 
-  formatCurrency 
+  formatCurrency,
+  onRefresh
 }) => {
+  const { user } = useAuth();
+  const [propertyImages, setPropertyImages] = useState<string[]>([]);
+
+  // Sync local images state with incoming property
+  useEffect(() => {
+    setPropertyImages(property?.images || []);
+  }, [property?.id, property?.images]);
   // State for inline unit expansion
   const [expandedUnits, setExpandedUnits] = useState<Set<string>>(new Set());
   const [unitDetails, setUnitDetails] = useState<Record<string, any>>({});
@@ -5817,9 +5803,43 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
     }
   };
 
+  // Unit details modal handlers
+  const handleOpenUnitDetails = (apiUnit: any) => {
+    const transformedUnit = {
+      id: apiUnit.id,
+      number: apiUnit.unitNumber,
+      bedrooms: apiUnit.bedrooms,
+      bathrooms: apiUnit.bathrooms,
+      squareFootage: apiUnit.squareFootage,
+      floor: Math.floor(parseInt(apiUnit.unitNumber) / 100),
+      building: 'Main',
+      amenities: apiUnit.amenities || ['AC', 'W/D'],
+      monthlyRent: parseFloat(apiUnit.monthlyRent?.toString?.() ?? `${apiUnit.monthlyRent ?? 0}`),
+      securityDeposit: parseFloat(apiUnit.monthlyRent?.toString?.() ?? `${apiUnit.monthlyRent ?? 0}`),
+      status: (apiUnit.status?.toLowerCase?.() ?? 'vacant') as 'occupied' | 'vacant' | 'maintenance' | 'reserved',
+      tenant: apiUnit.tenant
+        ? {
+            id: apiUnit.tenant.id,
+            name: `${apiUnit.tenant.firstName} ${apiUnit.tenant.lastName}`,
+            email: apiUnit.tenant.email,
+            phone: apiUnit.tenant.phoneNumber || '',
+            moveInDate: apiUnit.createdAt?.split?.('T')?.[0]
+          }
+        : undefined
+    };
+    setSelectedUnit(transformedUnit);
+    setShowUnitDetailsModal(true);
+  };
+
+  const handleCloseUnitDetails = () => {
+    setShowUnitDetailsModal(false);
+    setSelectedUnit(null);
+  };
+
   if (!property) return null;
   
   return (
+    <>
     <Sheet open={isOpen} onOpenChange={onClose}>
       <SheetContent side="right" className="w-full sm:w-[45%] md:w-[40%] flex flex-col h-full p-0 gap-0">
         {/* Header with Property Identity */}
@@ -5931,45 +5951,79 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
           {/* Property Images - Enhanced UX */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Property Images</h3>
-            {property.images && property.images.length > 0 ? (
-              <div className="grid grid-cols-2 gap-4">
-                {/* Primary image - larger */}
-                <div className="col-span-2">
-                  <PropertyImage 
-                    property={{ ...property, images: [property.images[0]] }}
-                    className="aspect-[16/9] rounded-lg overflow-hidden shadow-lg"
+            
+            {/* Property Image Gallery - Display existing images */}
+            {(() => {
+              const allowedRoles = new Set([
+                'SUPER_ADMIN',
+                'ADMIN',
+                'MANAGER',
+                'PROPERTY_MANAGER',
+                'ASSISTANT_MANAGER',
+                'REGIONAL_MANAGER',
+                'SENIOR_MANAGER',
+              ] as const);
+              const isOwner = user && property?.ownerId && user.id === property.ownerId;
+              const isPropertyManager = user && (property as any)?.propertyManagerId && user.id === (property as any).propertyManagerId;
+              const hasRole = user && allowedRoles.has(user.role as any);
+              const canManageImages = Boolean(isOwner || isPropertyManager || hasRole);
+
+              return (
+                <PropertyImageGallery
+                  propertyId={property.id}
+                  images={propertyImages}
+                  onImagesChange={async (newImages) => {
+                    setPropertyImages(newImages);
+                    // Persist order/state
+                    try {
+                      await propertiesApi.update(property.id, { images: newImages });
+                    } catch (e) {
+                      // non-blocking
+                    }
+                  }}
+                  onCoverChange={async (newCoverImage) => {
+                    // Refresh the properties listing to update the card thumbnail
+                    onRefresh();
+                  }}
+                  canDelete={canManageImages}
+                  className="mb-6"
+                />
+              );
+            })()}
+            
+            {/* Property Image Upload - Add new images (RBAC) */}
+            {(() => {
+              const allowedRoles = new Set([
+                'SUPER_ADMIN',
+                'ADMIN',
+                'MANAGER',
+                'PROPERTY_MANAGER',
+                'ASSISTANT_MANAGER',
+                'REGIONAL_MANAGER',
+                'SENIOR_MANAGER',
+              ] as const);
+              const isOwner = user && property?.ownerId && user.id === property.ownerId;
+              const isPropertyManager = user && (property as any)?.propertyManagerId && user.id === (property as any).propertyManagerId;
+              const hasRole = user && allowedRoles.has(user.role as any);
+              const canManageImages = Boolean(isOwner || isPropertyManager || hasRole);
+
+              return (
+                canManageImages ? (
+                  <PropertyImageUpload
+                    propertyId={property.id}
+                    currentImages={propertyImages}
+                    onImagesChange={async (newImages) => {
+                      setPropertyImages(newImages);
+                      try {
+                        await propertiesApi.update(property.id, { images: newImages });
+                      } catch (e) {
+                        // non-blocking
+                      }
+                    }}
                   />
-                </div>
-                {/* Secondary images - smaller grid */}
-                {property.images.slice(1, 5).map((image, index) => (
-                  <PropertyImage 
-                    key={index + 1}
-                    property={{ ...property, images: [image] }}
-                    className="aspect-square rounded-lg overflow-hidden shadow-md"
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-4">
-                {/* Primary placeholder - larger */}
-                <div className="col-span-2 aspect-[16/9] bg-muted rounded-lg flex items-center justify-center shadow-lg">
-                  <div className="text-center">
-                    <ImageIcon className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-lg font-medium text-muted-foreground">No property images</p>
-                    <p className="text-sm text-muted-foreground">Add images to showcase this property</p>
-                  </div>
-                </div>
-                {/* Secondary placeholders */}
-                {[1, 2, 3, 4].map((index) => (
-                  <div key={index} className="aspect-square bg-muted rounded-lg flex items-center justify-center shadow-md">
-                    <div className="text-center">
-                      <ImageIcon className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                      <p className="text-xs text-muted-foreground">No image</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+                ) : null
+              );
+            })()}
           </div>
           
           {/* Key Metrics */}
@@ -6753,7 +6807,10 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
                 filteredUnits.sort((a, b) => {
                   switch (unitSortBy) {
                     case 'unitNumber':
-                      return a.unitNumber.localeCompare(b.unitNumber);
+                      // Sort unit numbers numerically instead of lexicographically
+                      const aNum = parseInt(a.unitNumber) || 0;
+                      const bNum = parseInt(b.unitNumber) || 0;
+                      return aNum - bNum;
                     case 'rent':
                       return parseFloat(b.monthlyRent.toString()) - parseFloat(a.monthlyRent.toString());
                     case 'status':
@@ -6823,10 +6880,7 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
                                 moveInDate: unit.createdAt.split('T')[0] // Using creation date as move-in date
                               } : undefined
                             }}
-                            onViewDetails={() => {
-                              // TODO: Implement unit details modal
-                              console.log('View unit details:', unit.id);
-                            }}
+                            onViewDetails={() => handleOpenUnitDetails(unit)}
                             onEdit={() => {
                               // TODO: Implement unit edit
                               console.log('Edit unit:', unit.id);
@@ -6950,6 +7004,15 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
         </div>
       </SheetContent>
     </Sheet>
+
+    {/* Unit Details Drawer */}
+    <EnhancedUnitDetailsSheet
+      isOpen={showUnitDetailsModal}
+      onClose={handleCloseUnitDetails}
+      unit={selectedUnit}
+      onUpdate={() => loadUnitsData(pagination.page)}
+    />
+    </>
   );
 };
 
