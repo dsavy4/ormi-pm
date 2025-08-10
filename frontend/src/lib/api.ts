@@ -257,6 +257,21 @@ function getAuthToken(): string | null {
 }
 
 // Enhanced response handler with better error handling
+// Custom error class to preserve API error details
+class ApiError extends Error {
+  public status: number;
+  public details?: string;
+  public originalError?: any;
+
+  constructor(message: string, status: number, details?: string, originalError?: any) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.details = details;
+    this.originalError = originalError;
+  }
+}
+
 async function handleResponse<T>(response: Response): Promise<T> {
   console.log('[DEBUG] handleResponse called with status:', response.status);
   console.log('[DEBUG] Response headers:', Object.fromEntries(response.headers.entries()));
@@ -266,10 +281,13 @@ async function handleResponse<T>(response: Response): Promise<T> {
     try {
       const errorData = await response.json();
       console.log('[DEBUG] Error data parsed:', errorData);
-      throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+      
+      // Create custom error that preserves all the details
+      const errorMessage = errorData.error || `HTTP ${response.status}: ${response.statusText}`;
+      throw new ApiError(errorMessage, response.status, errorData.details, errorData);
     } catch (parseError) {
       console.log('[DEBUG] Failed to parse error response:', parseError);
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      throw new ApiError(`HTTP ${response.status}: ${response.statusText}`, response.status);
     }
   }
 

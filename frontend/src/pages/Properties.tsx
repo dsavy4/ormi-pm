@@ -256,6 +256,16 @@ const getOccupancyBadgeColor = (rate: number) => {
   return 'bg-red-100 text-red-800 border-red-200';
 };
 
+// Helper function to convert property health score to star rating
+const getStarRating = (healthScore: number): { stars: number; displayStars: string } => {
+  if (healthScore >= 90) return { stars: 5, displayStars: '⭐⭐⭐⭐⭐' };
+  if (healthScore >= 80) return { stars: 4, displayStars: '⭐⭐⭐⭐' };
+  if (healthScore >= 70) return { stars: 3, displayStars: '⭐⭐⭐' };
+  if (healthScore >= 60) return { stars: 2, displayStars: '⭐⭐' };
+  if (healthScore >= 50) return { stars: 1, displayStars: '⭐' };
+  return { stars: 0, displayStars: 'No Rating' };
+};
+
 // Step-based validation schemas
 const step1Schema = z.object({
   name: z.string().min(1, 'Property name is required').max(100, 'Property name must be less than 100 characters'),
@@ -677,7 +687,7 @@ export function Properties() {
     if (propertyId && properties && properties.length > 0) {
       const property = properties.find(p => p.id === propertyId);
       if (property) {
-        handleViewProperty(propertyId);
+        handleViewProperty(propertyId, false);
       }
     }
   }, [propertyId, properties]);
@@ -1153,41 +1163,57 @@ export function Properties() {
     }
   };
 
-  const handleViewProperty = async (propertyId: string) => {
+  const handleViewProperty = async (propertyId: string, fetchDetails: boolean = false) => {
     const property = properties.find(p => p.id === propertyId);
     setSelectedProperty(property || null);
     setShowPropertyView(true);
     
     if (property) {
-      try {
-        // Use the API client to fetch detailed property data
-        const { propertiesApi } = await import('@/lib/api');
-        const detailedProperty = await propertiesApi.getById(propertyId);
-        
+      // Set initial data with what we already have
+      setPropertyViewData({
+        property,
+        manager: undefined, // Will be enhanced later when we have proper manager data
+        units: property.units || [],
+        recentActivity: [],
+        documents: []
+      });
+
+      // Only fetch detailed data if explicitly requested or if we need fresh data
+      if (fetchDetails) {
+        try {
+          // Use the API client to fetch detailed property data
+          const { propertiesApi } = await import('@/lib/api');
+          const detailedProperty = await propertiesApi.getById(propertyId);
+          
           setPropertyViewData({
             property: detailedProperty,
-            manager: undefined, // Will be enhanced later when we have proper manager data
+            manager: undefined,
             units: detailedProperty.units || [],
             recentActivity: [],
             documents: []
           });
-      } catch (error: any) {
-        // Handle 404 errors silently (property doesn't exist in database)
-        if (error?.message?.includes('404')) {
-          console.log(`Property ${propertyId} not found in database, using basic data`);
-        } else {
-          console.error('Failed to fetch property details:', error);
-          toast.error('Failed to load detailed property information');
+        } catch (error: any) {
+          // Handle 404 errors - property doesn't exist in database
+          if (error?.message?.includes('404') || error?.message?.includes('Property not found')) {
+            console.log(`Property ${propertyId} not found in database`);
+            
+            // Remove the non-existent property from local state
+            const updatedProperties = properties.filter(p => p.id !== propertyId);
+            setProperties(updatedProperties);
+            
+            // Close the property view
+            setShowPropertyView(false);
+            setSelectedProperty(null);
+            
+            // Show user message and refresh data
+            toast.error('Property not found. The property list has been refreshed.');
+            await mutateProperties();
+            return;
+          } else {
+            console.error('Failed to fetch property details:', error);
+            toast.error('Failed to load detailed property information');
+          }
         }
-        
-        // Fallback to basic property data
-        setPropertyViewData({
-          property,
-          manager: undefined,
-          units: [],
-          recentActivity: [],
-          documents: []
-        });
       }
     }
   };
@@ -1212,19 +1238,34 @@ export function Properties() {
       type: 'destructive',
       onConfirm: async () => {
         try {
-          await fetch(`/api/properties/${propertyId}`, {
-            method: 'DELETE',
-            headers: {
-              'Authorization': `Bearer ${localStorage.getItem('token')}`,
-            },
-          });
+          await propertiesApi.delete(propertyId);
           
           await mutateProperties();
           setConfirmDialog(prev => ({ ...prev, isOpen: false }));
           toast.success('Property deleted successfully');
-        } catch (error) {
+        } catch (error: any) {
           console.error('Failed to delete property:', error);
-          toast.error('Failed to delete property');
+          
+          // Handle specific error cases using the new ApiError structure
+          if (error.name === 'ApiError') {
+            // Use the detailed error message from the API
+            if (error.message?.includes('Cannot delete property with existing units')) {
+              toast.error('Cannot delete property with existing units. Please delete all units first.');
+            } else if (error.message?.includes('Cannot delete property with existing maintenance requests')) {
+              toast.error('Cannot delete property with existing maintenance requests. Please resolve all maintenance requests first.');
+            } else if (error.message?.includes('Property not found')) {
+              toast.error('Property not found or already deleted.');
+            } else {
+              // Show the specific error message from the API
+              toast.error(error.message || 'Cannot delete property. Please check if it has units or maintenance requests.');
+            }
+          } else {
+            // Fallback for non-ApiError errors
+            toast.error('Failed to delete property. Please try again.');
+          }
+          
+          // Always close the dialog after showing error
+          setConfirmDialog(prev => ({ ...prev, isOpen: false }));
         }
       }
     });
@@ -2120,7 +2161,7 @@ export function Properties() {
                                       View Details
                                     </button>
                                     <button
-                                      onClick={() => handleViewProperty(property.id)}
+                                      onClick={() => handleViewProperty(property.id, false)}
                                       className="flex-1 bg-secondary text-secondary-foreground px-3 py-1.5 rounded text-xs hover:bg-secondary/90 transition-colors font-medium"
                                     >
                                       Quick View
@@ -2343,7 +2384,12 @@ const PropertyImage: React.FC<PropertyImageProps> = ({ property, className, onVi
 
   if (imageError) {
     return (
-      <div className={`bg-muted flex items-center justify-center ${className}`}>
+      <div 
+        className={`bg-muted flex items-center justify-center ${className} cursor-pointer overflow-hidden rounded-2xl`}
+        onClick={(e) => { e.stopPropagation(); onView?.(property.id); }}
+        role="button"
+        aria-label={`View ${property.name}`}
+      >
         <div className="text-center">
           <ImageIcon className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
           <p className="text-xs text-muted-foreground">Image unavailable</p>
@@ -2354,18 +2400,18 @@ const PropertyImage: React.FC<PropertyImageProps> = ({ property, className, onVi
 
   return (
     <div 
-      className={`relative ${className} cursor-pointer`}
+      className={`relative ${className} cursor-pointer overflow-hidden rounded-2xl`}
       onClick={(e) => { e.stopPropagation(); onView?.(property.id); }}
       role="button"
       aria-label={`View ${property.name}`}
     >
       {isLoading && (
-        <div className="absolute inset-0 bg-muted animate-pulse rounded-lg" />
+        <div className="absolute inset-0 bg-muted animate-pulse rounded-2xl" />
       )}
       <img
         src={property.images?.[0] ? getFileUrl(property.images[0]) : '/api/placeholder/400/300'}
         alt={property.name}
-        className={`w-full h-full object-cover rounded-lg ${isLoading ? 'opacity-0' : 'opacity-100'}`}
+        className={`w-full h-full object-cover rounded-2xl ${isLoading ? 'opacity-0' : 'opacity-100'}`}
         onError={handleImageError}
         onLoad={handleImageLoad}
         loading="lazy"
@@ -2840,11 +2886,12 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
           <TooltipTrigger asChild>
             <div className="flex items-center gap-1 bg-card/90 backdrop-blur-sm rounded-full px-2 py-1 text-xs font-medium">
               <Star className="h-3 w-3 text-yellow-500 fill-current" />
-              <span>{property.rating || 4.5}</span>
+              <span>{getStarRating(property.propertyHealth || 0).stars}</span>
             </div>
           </TooltipTrigger>
           <TooltipContent>
-            <p>Property Health Score: {property.propertyHealth}/100</p>
+            <p>Property Rating: {getStarRating(property.propertyHealth || 0).displayStars}</p>
+            <p>Health Score: {property.propertyHealth || 0}/100</p>
           </TooltipContent>
         </Tooltip>
       </div>

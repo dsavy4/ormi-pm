@@ -39,6 +39,10 @@
 - [x] **Removed unit details drawer** from PropertyUnits page (keeping property view drawer)
 - [x] **Completely removed PropertyUnits page** and all navigation to /properties/:propertyId/units
 - [x] **Fixed multiple drawer overlay stacking** - implemented global overlay system with consistent background darkness (bg-black/20)
+- [x] **Fixed property deletion functionality** - backend now properly checks for dependencies (units/maintenance requests) and returns 400 errors with specific messages
+- [x] **Enhanced property deletion error handling** - frontend now shows user-friendly error messages and auto-closes confirmation dialog
+- [x] **Fixed property view 404 errors** - improved error handling for non-existent properties with automatic cleanup and user notification
+- [x] **Fixed misleading 4.5 star rating** - replaced with industry-standard star rating system (1-5 stars) that converts property health scores to meaningful star ratings, showing both stars and health score in tooltip
 - [ ] **Backend persistence** for unit cover image changes
 - [ ] **Drag-and-drop reordering** for unit images
 

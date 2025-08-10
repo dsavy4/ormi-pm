@@ -1369,6 +1369,43 @@ app.delete('/api/properties/:id', authMiddleware, async (c) => {
       return c.json({ error: 'Property not found' }, 404);
     }
     
+    // Check if property has units or maintenance requests
+    const { data: units, error: unitsError } = await supabase
+      .from('units')
+      .select('id')
+      .eq('propertyId', propertyId);
+    
+    if (unitsError) {
+      console.log('[DEBUG] Error checking property units:', unitsError);
+      return c.json({ error: 'Failed to check property dependencies', details: unitsError.message }, 500);
+    }
+    
+    const { data: maintenanceRequests, error: maintenanceError } = await supabase
+      .from('maintenance_requests')
+      .select('id')
+      .eq('propertyId', propertyId);
+    
+    if (maintenanceError) {
+      console.log('[DEBUG] Error checking property maintenance requests:', maintenanceError);
+      return c.json({ error: 'Failed to check property dependencies', details: maintenanceError.message }, 500);
+    }
+    
+    if (units && units.length > 0) {
+      console.log('[DEBUG] Property has units, cannot delete:', units.length);
+      return c.json({ 
+        error: 'Cannot delete property with existing units', 
+        details: `Property has ${units.length} unit(s). Please delete all units first.` 
+      }, 400);
+    }
+    
+    if (maintenanceRequests && maintenanceRequests.length > 0) {
+      console.log('[DEBUG] Property has maintenance requests, cannot delete:', maintenanceRequests.length);
+      return c.json({ 
+        error: 'Cannot delete property with existing maintenance requests', 
+        details: `Property has ${maintenanceRequests.length} maintenance request(s). Please resolve all maintenance requests first.` 
+      }, 400);
+    }
+    
     // Delete the property from database
     const { error } = await supabase
       .from('properties')
