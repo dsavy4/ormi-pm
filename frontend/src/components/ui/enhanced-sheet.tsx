@@ -29,7 +29,6 @@ export const OverlayProvider = ({ children }: { children: React.ReactNode }) => 
   return (
     <overlayContext.Provider value={{ incrementOverlay, decrementOverlay, overlayCount }}>
       {children}
-      {/* Global overlay - only rendered when at least one drawer is open */}
       {overlayCount > 0 && (
         <div className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm" />
       )}
@@ -39,33 +38,7 @@ export const OverlayProvider = ({ children }: { children: React.ReactNode }) => 
 
 export const useOverlay = () => React.useContext(overlayContext);
 
-// Wrap Root to manage global overlay count based on open state
-const Sheet: React.FC<React.ComponentProps<typeof SheetPrimitive.Root>> = ({ onOpenChange, ...props }) => {
-  const { incrementOverlay, decrementOverlay } = useOverlay();
-  const wasOpenRef = React.useRef(false);
-
-  const handleOpenChange = React.useCallback((isOpen: boolean) => {
-    if (isOpen && !wasOpenRef.current) {
-      incrementOverlay();
-      wasOpenRef.current = true;
-    } else if (!isOpen && wasOpenRef.current) {
-      decrementOverlay();
-      wasOpenRef.current = false;
-    }
-    onOpenChange?.(isOpen);
-  }, [incrementOverlay, decrementOverlay, onOpenChange]);
-
-  React.useEffect(() => {
-    return () => {
-      if (wasOpenRef.current) {
-        decrementOverlay();
-        wasOpenRef.current = false;
-      }
-    };
-  }, [decrementOverlay]);
-
-  return <SheetPrimitive.Root onOpenChange={handleOpenChange} {...props} />
-}
+const Sheet = SheetPrimitive.Root
 const SheetTrigger = SheetPrimitive.Trigger
 const SheetClose = SheetPrimitive.Close
 const SheetPortal = SheetPrimitive.Portal
@@ -74,16 +47,25 @@ const SheetPortal = SheetPrimitive.Portal
 const SheetOverlay = React.forwardRef<
   React.ElementRef<typeof SheetPrimitive.Overlay>,
   React.ComponentPropsWithoutRef<typeof SheetPrimitive.Overlay>
->(({ className, ...props }, ref) => (
-  <SheetPrimitive.Overlay
-    className={cn(
-      "fixed inset-0 z-50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-      className
-    )}
-    {...props}
-    ref={ref}
-  />
-))
+>(({ className, ...props }, ref) => {
+  const { incrementOverlay, decrementOverlay } = useOverlay();
+
+  React.useEffect(() => {
+    incrementOverlay();
+    return () => decrementOverlay();
+  }, [incrementOverlay, decrementOverlay]);
+
+  return (
+    <SheetPrimitive.Overlay
+      className={cn(
+        "fixed inset-0 z-50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+        className
+      )}
+      {...props}
+      ref={ref}
+    />
+  );
+})
 SheetOverlay.displayName = SheetPrimitive.Overlay.displayName
 
 const sheetVariants = cva(
@@ -107,7 +89,7 @@ const sheetVariants = cva(
         "3xl": "sm:max-w-3xl",
         full: "sm:max-w-full",
         content: "w-auto",
-        professional: "w-full sm:w-[45%] md:w-[40%] flex flex-col h-full p-0 gap-0" // Professional drawer size
+        professional: "w-full sm:w-[45%] md:w-[40%] flex flex-col h-full p-0 gap-0"
       },
     },
     defaultVariants: {
