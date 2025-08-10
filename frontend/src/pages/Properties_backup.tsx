@@ -486,7 +486,6 @@ interface EnhancedProperty extends Omit<Property, 'manager'> {
   archivedAt?: string;
   archivedBy?: string;
 }
-
 export function Properties() {
   const navigate = useNavigate();
   const { propertyId } = useParams<{ propertyId?: string }>();
@@ -1271,7 +1270,6 @@ export function Properties() {
     
     setExpandedUnits(newExpanded);
   };
-
   // Mock function for loading unit details (replace with real API)
   const mockLoadUnitDetails = async (unitId: string): Promise<any> => {
     // Simulate API delay
@@ -1882,7 +1880,6 @@ export function Properties() {
               </div>
             </div>
           </motion.div>
-
           {/* Properties Content */}
           <motion.div variants={itemVariants}>
             <AnimatePresence mode="wait">
@@ -2506,7 +2503,6 @@ const ExpandableUnitCard: React.FC<ExpandableUnitCardProps> = ({
     </Card>
   );
 };
-
 // Unit Expanded Details Component with ShadCN styling
 const UnitExpandedDetails: React.FC<{ unit: any; details: any }> = ({ unit, details }) => {
   const [isUploading, setIsUploading] = useState(false);
@@ -2842,13 +2838,16 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
         
         {/* Selection Indicator */}
         {isSelected && (
-          <motion.div
+          <motion.button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onSelect(); }}
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             className="absolute -top-1 -right-1 w-6 h-6 bg-primary rounded-full flex items-center justify-center shadow-lg"
+            aria-label="Deselect"
           >
             <CheckCircle2 className="h-4 w-4 text-white" />
-          </motion.div>
+          </motion.button>
         )}
       </div>
 
@@ -3109,13 +3108,16 @@ const PropertyListItem: React.FC<PropertyListItemProps> = ({
           
           {/* Selection Indicator */}
           {isSelected && (
-            <motion.div
+            <motion.button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onSelect(); }}
               initial={{ scale: 0, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               className="absolute -top-1 -right-1 w-6 h-6 bg-primary rounded-full flex items-center justify-center shadow-lg"
+              aria-label="Deselect"
             >
               <CheckCircle2 className="h-4 w-4 text-white" />
-            </motion.div>
+            </motion.button>
           )}
         </div>
 
@@ -3224,7 +3226,6 @@ interface AddPropertySheetProps {
   onClose: () => void;
   onSuccess: () => void;
 }
-
 const AddPropertySheet: React.FC<AddPropertySheetProps> = ({ isOpen, onClose, onSuccess }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -3835,7 +3836,6 @@ interface IncomeAnalyticsModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
-
 const IncomeAnalyticsModal: React.FC<IncomeAnalyticsModalProps> = ({ isOpen, onClose }) => {
   const [selectedMonths, setSelectedMonths] = useState(6);
   const [isExporting, setIsExporting] = useState(false);
@@ -4528,7 +4528,6 @@ const Step2Location: React.FC<Step1Props> = ({ form, formErrors, formValues }) =
     </div>
   );
 };
-
 // Step 3: Property Details Component
 const Step3PropertyDetails: React.FC<Step1Props> = ({ form, formErrors, formValues }) => {
   return (
@@ -5306,7 +5305,6 @@ interface ManagerAssignmentSheetProps {
   selectedProperties: string[];
   onAssignManager: (managerId: string, propertyIds: string[]) => void;
 }
-
 const ManagerAssignmentSheet: React.FC<ManagerAssignmentSheetProps> = ({ 
   isOpen, 
   onClose, 
@@ -5641,7 +5639,6 @@ interface PropertyViewSheetProps {
   onArchive: (propertyId: string) => void;
   formatCurrency: (amount: number) => string;
 }
-
 export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({ 
   isOpen, 
   onClose, 
@@ -6315,7 +6312,6 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
               </CardContent>
             </Card>
           )}
-
           {/* Units Section with Smart Filtering & Virtual Scrolling */}
           <Card>
             <CardContent className="p-4">
@@ -6961,7 +6957,6 @@ interface AdvancedFiltersSheetProps {
   onFiltersChange: (filters: AdvancedFilters) => void;
   onClearAll: () => void;
 }
-
 const AdvancedFiltersSheet: React.FC<AdvancedFiltersSheetProps> = ({ 
   isOpen, 
   onClose, 
@@ -7298,7 +7293,6 @@ interface PropertyEditSheetProps {
   property: EnhancedProperty | null;
   onPropertyUpdated: (property: EnhancedProperty) => void;
 }
-
 const PropertyEditSheet: React.FC<PropertyEditSheetProps> = ({ 
   isOpen, 
   onClose, 
