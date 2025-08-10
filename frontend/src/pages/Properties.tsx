@@ -2294,6 +2294,7 @@ export function Properties() {
 interface PropertyImageProps {
   property: Property;
   className?: string;
+  onView?: (propertyId: string) => void;
 }
 
 // ExpandableUnitCard Component for inline unit expansion
@@ -2327,7 +2328,7 @@ interface ExpandableUnitCardProps {
 
 
 
-const PropertyImage: React.FC<PropertyImageProps> = ({ property, className }) => {
+const PropertyImage: React.FC<PropertyImageProps> = ({ property, className, onView }) => {
   const [imageError, setImageError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -2352,7 +2353,12 @@ const PropertyImage: React.FC<PropertyImageProps> = ({ property, className }) =>
   }
 
   return (
-    <div className={`relative ${className}`}>
+    <div 
+      className={`relative ${className} cursor-pointer`}
+      onClick={(e) => { e.stopPropagation(); onView?.(property.id); }}
+      role="button"
+      aria-label={`View ${property.name}`}
+    >
       {isLoading && (
         <div className="absolute inset-0 bg-muted animate-pulse rounded-lg" />
       )}
@@ -2844,7 +2850,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
       </div>
 
       {/* Property Image */}
-      <PropertyImage property={property} className="h-48 mb-4" />
+      <PropertyImage property={property} className="h-48 mb-4" onView={onView} />
 
       {/* Property Content */}
       <div className="p-4 space-y-4">
@@ -3093,7 +3099,7 @@ const PropertyListItem: React.FC<PropertyListItemProps> = ({
         {/* Property Info */}
         <div className="col-span-3">
           <div className="flex items-center gap-3">
-            <PropertyImage property={property} className="w-12 h-12 rounded-lg" />
+            <PropertyImage property={property} className="w-12 h-12 rounded-lg" onView={onView} />
             <div>
               <h3 className="font-semibold text-sm line-clamp-1">{property.name}</h3>
               <p className="text-xs text-muted-foreground line-clamp-1">
@@ -5610,7 +5616,8 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
   onEdit, 
   onArchive, 
   formatCurrency,
-  onRefresh
+  onRefresh,
+  onView
 }) => {
   const { user } = useAuth();
   const [propertyImages, setPropertyImages] = useState<string[]>([]);
