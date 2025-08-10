@@ -9,6 +9,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet"
+import { useOverlay } from "./enhanced-sheet"
 
 interface GrippableSheetContentProps extends React.ComponentPropsWithoutRef<typeof SheetContent> {
   showGrip?: boolean
@@ -18,38 +19,52 @@ interface GrippableSheetContentProps extends React.ComponentPropsWithoutRef<type
 const GrippableSheetContent = React.forwardRef<
   React.ElementRef<typeof SheetContent>,
   GrippableSheetContentProps
->(({ className, children, showGrip = true, side = "right", ...props }, ref) => (
-  <SheetContent
-    ref={ref}
-    side={side}
-    className={cn(
-      "relative",
-      // Enhanced drawer sizes - wider and more responsive
-      side === "right" && "w-3/4 sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl 2xl:max-w-2xl",
-      side === "left" && "w-3/4 sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl 2xl:max-w-2xl",
-      className
-    )}
-    {...props}
-  >
-    {/* Grip Handle */}
-    {showGrip && (
-      <div 
-        className={cn(
-          "absolute top-0 w-2 h-full flex items-center justify-center bg-border/50 hover:bg-primary/20 transition-colors cursor-col-resize group",
-          side === "right" && "-left-2",
-          side === "left" && "-right-2"
-        )}
-      >
-        <div className="flex flex-col gap-1 opacity-40 group-hover:opacity-100 transition-opacity">
-          <GripVertical className="h-4 w-4 text-muted-foreground" />
-        </div>
-      </div>
-    )}
+>(({ className, children, showGrip = true, side = "right", ...props }, ref) => {
+  const { incrementOverlay, decrementOverlay } = useOverlay();
+  
+  React.useEffect(() => {
+    // Register overlay when component mounts
+    incrementOverlay();
     
-    {/* Content without extra wrapper to prevent layout issues */}
-    {children}
-  </SheetContent>
-))
+    return () => {
+      // Unregister overlay when component unmounts
+      decrementOverlay();
+    };
+  }, [incrementOverlay, decrementOverlay]);
+  
+  return (
+    <SheetContent
+      ref={ref}
+      side={side}
+      className={cn(
+        "relative",
+        // Enhanced drawer sizes - wider and more responsive
+        side === "right" && "w-3/4 sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl 2xl:max-w-2xl",
+        side === "left" && "w-3/4 sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl 2xl:max-w-2xl",
+        className
+      )}
+      {...props}
+    >
+      {/* Grip Handle */}
+      {showGrip && (
+        <div 
+          className={cn(
+            "absolute top-0 w-2 h-full flex items-center justify-center bg-border/50 hover:bg-primary/20 transition-colors cursor-col-resize group",
+            side === "right" && "-left-2",
+            side === "left" && "-right-2"
+          )}
+        >
+          <div className="flex flex-col gap-1 opacity-40 group-hover:opacity-100 transition-opacity">
+            <GripVertical className="h-4 w-4 text-muted-foreground" />
+          </div>
+        </div>
+      )}
+      
+      {/* Content without extra wrapper to prevent layout issues */}
+      {children}
+    </SheetContent>
+  );
+})
 GrippableSheetContent.displayName = "GrippableSheetContent"
 
 // Enhanced Sheet Header with better styling

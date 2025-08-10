@@ -38,7 +38,7 @@
 - [x] **Cover image reordering** for units
 - [x] **Removed unit details drawer** from PropertyUnits page (keeping property view drawer)
 - [x] **Completely removed PropertyUnits page** and all navigation to /properties/:propertyId/units
-- [x] **Fixed multiple drawer overlay stacking** - using lighter overlay backgrounds (bg-black/20) to prevent progressive darkening
+- [x] **Fixed multiple drawer overlay stacking** - implemented global overlay system with consistent background darkness (bg-black/20)
 - [ ] **Backend persistence** for unit cover image changes
 - [ ] **Drag-and-drop reordering** for unit images
 

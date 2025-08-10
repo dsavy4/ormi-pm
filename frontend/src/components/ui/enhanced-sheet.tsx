@@ -4,19 +4,80 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { X } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-const Sheet = SheetPrimitive.Root
+// Global overlay management - only render one overlay for all drawers
+const overlayContext = React.createContext<{
+  incrementOverlay: () => void;
+  decrementOverlay: () => void;
+  overlayCount: number;
+}>({
+  incrementOverlay: () => {},
+  decrementOverlay: () => {},
+  overlayCount: 0,
+});
+
+export const OverlayProvider = ({ children }: { children: React.ReactNode }) => {
+  const [overlayCount, setOverlayCount] = React.useState(0);
+
+  const incrementOverlay = React.useCallback(() => {
+    setOverlayCount(prev => prev + 1);
+  }, []);
+
+  const decrementOverlay = React.useCallback(() => {
+    setOverlayCount(prev => Math.max(0, prev - 1));
+  }, []);
+
+  return (
+    <overlayContext.Provider value={{ incrementOverlay, decrementOverlay, overlayCount }}>
+      {children}
+      {/* Global overlay - only rendered when at least one drawer is open */}
+      {overlayCount > 0 && (
+        <div className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm" />
+      )}
+    </overlayContext.Provider>
+  );
+};
+
+export const useOverlay = () => React.useContext(overlayContext);
+
+// Wrap Root to manage global overlay count based on open state
+const Sheet: React.FC<React.ComponentProps<typeof SheetPrimitive.Root>> = ({ onOpenChange, ...props }) => {
+  const { incrementOverlay, decrementOverlay } = useOverlay();
+  const wasOpenRef = React.useRef(false);
+
+  const handleOpenChange = React.useCallback((isOpen: boolean) => {
+    if (isOpen && !wasOpenRef.current) {
+      incrementOverlay();
+      wasOpenRef.current = true;
+    } else if (!isOpen && wasOpenRef.current) {
+      decrementOverlay();
+      wasOpenRef.current = false;
+    }
+    onOpenChange?.(isOpen);
+  }, [incrementOverlay, decrementOverlay, onOpenChange]);
+
+  React.useEffect(() => {
+    return () => {
+      if (wasOpenRef.current) {
+        decrementOverlay();
+        wasOpenRef.current = false;
+      }
+    };
+  }, [decrementOverlay]);
+
+  return <SheetPrimitive.Root onOpenChange={handleOpenChange} {...props} />
+}
 const SheetTrigger = SheetPrimitive.Trigger
 const SheetClose = SheetPrimitive.Close
 const SheetPortal = SheetPrimitive.Portal
 
-// Single overlay that doesn't stack - just use a lighter background
+// Overlay that doesn't render its own background - uses global overlay instead
 const SheetOverlay = React.forwardRef<
   React.ElementRef<typeof SheetPrimitive.Overlay>,
   React.ComponentPropsWithoutRef<typeof SheetPrimitive.Overlay>
 >(({ className, ...props }, ref) => (
   <SheetPrimitive.Overlay
     className={cn(
-      "fixed inset-0 z-50 bg-black/20 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+      "fixed inset-0 z-50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
       className
     )}
     {...props}
@@ -63,22 +124,24 @@ interface SheetContentProps
 const EnhancedSheetContent = React.forwardRef<
   React.ElementRef<typeof SheetPrimitive.Content>,
   SheetContentProps
->(({ side = "right", size = "professional", className, children, ...props }, ref) => (
-  <SheetPortal>
-    <SheetOverlay />
-    <SheetPrimitive.Content
-      ref={ref}
-      className={cn(sheetVariants({ side, size }), className)}
-      {...props}
-    >
-      {children}
-      <SheetPrimitive.Close className="absolute right-4 top-4 rounded-lg opacity-90 hover:opacity-100 ring-offset-background transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none z-10 bg-background/80 backdrop-blur-sm border border-border/50 shadow-sm hover:shadow-md hover:bg-background/90 h-10 w-10 flex items-center justify-center">
-        <X className="h-5 w-5 text-muted-foreground hover:text-foreground transition-colors" />
-        <span className="sr-only">Close</span>
-      </SheetPrimitive.Close>
-    </SheetPrimitive.Content>
-  </SheetPortal>
-))
+>(({ side = "right", size = "professional", className, children, ...props }, ref) => {
+  return (
+    <SheetPortal>
+      <SheetOverlay />
+      <SheetPrimitive.Content
+        ref={ref}
+        className={cn(sheetVariants({ side, size }), className)}
+        {...props}
+      >
+        {children}
+        <SheetPrimitive.Close className="absolute right-4 top-4 rounded-lg opacity-90 hover:opacity-100 ring-offset-background transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none z-10 bg-background/80 backdrop-blur-sm border border-border/50 shadow-sm hover:shadow-md hover:bg-background/90 h-10 w-10 flex items-center justify-center">
+          <X className="h-5 w-5 text-muted-foreground hover:text-foreground transition-colors" />
+          <span className="sr-only">Close</span>
+        </SheetPrimitive.Close>
+      </SheetPrimitive.Content>
+    </SheetPortal>
+  );
+})
 EnhancedSheetContent.displayName = SheetPrimitive.Content.displayName
 
 const SheetHeader = ({
