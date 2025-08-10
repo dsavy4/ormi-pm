@@ -21,7 +21,6 @@ import { ResetPassword } from './pages/auth/ResetPassword';
 // Main Pages
 import { Dashboard } from './pages/Dashboard';
 import { Properties } from './pages/Properties';
-import { PropertyUnits } from './pages/PropertyUnits';
 import { Tenants } from './pages/Tenants';
 import { Maintenance } from './pages/Maintenance';
 import { Reports } from './pages/Reports';
@@ -75,7 +74,6 @@ function App() {
               <Route path="/properties" element={<ProtectedRoute><DashboardLayout><Properties /></DashboardLayout></ProtectedRoute>} errorElement={<RouteErrorPage />} />
               <Route path="/properties/:propertyId" element={<ProtectedRoute><DashboardLayout><Properties /></DashboardLayout></ProtectedRoute>} errorElement={<RouteErrorPage />} />
 
-              <Route path="/properties/:propertyId/units" element={<ProtectedRoute><DashboardLayout><PropertyUnits /></DashboardLayout></ProtectedRoute>} errorElement={<RouteErrorPage />} />
               <Route path="/tenants" element={<ProtectedRoute><DashboardLayout><Tenants /></DashboardLayout></ProtectedRoute>} errorElement={<RouteErrorPage />} />
               <Route path="/maintenance" element={<ProtectedRoute><DashboardLayout><Maintenance /></DashboardLayout></ProtectedRoute>} errorElement={<RouteErrorPage />} />
               <Route path="/reports" element={<ProtectedRoute><DashboardLayout><Reports /></DashboardLayout></ProtectedRoute>} errorElement={<RouteErrorPage />} />

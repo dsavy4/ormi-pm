@@ -2941,15 +2941,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
               <Eye className="h-4 w-4" />
               View
             </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="flex items-center gap-2"
-              onClick={() => window.location.href = `/properties/${property.id}/units`}
-            >
-              <Home className="h-4 w-4" />
-              Units
-            </Button>
+
             <Button 
               variant="outline" 
               size="sm" 
@@ -3145,14 +3137,7 @@ const PropertyListItem: React.FC<PropertyListItemProps> = ({
             >
               <Eye className="h-4 w-4" />
             </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="flex items-center gap-2"
-              onClick={() => window.location.href = `/properties/${property.id}/units`}
-            >
-              <Home className="h-4 w-4" />
-            </Button>
+
             <Button 
               variant="outline" 
               size="sm" 
@@ -5909,14 +5894,7 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
                 <Edit className="h-4 w-4" />
                 Edit Property
               </Button>
-              <Button 
-                variant="default" 
-                onClick={() => window.open(`/properties/${property.id}/units`, '_blank')}
-                className="flex items-center gap-2 justify-center h-12 font-medium bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700"
-              >
-                <Home className="h-4 w-4" />
-                View Units ({property.totalUnits || 0})
-              </Button>
+
             </div>
 
             {/* Quick Actions */}
