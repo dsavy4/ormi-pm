@@ -4526,8 +4526,11 @@ const Step2Location: React.FC<Step1Props> = ({ form, formErrors, formValues }) =
           <div>
             <label className="block text-sm font-semibold text-foreground mb-3">State <span className="text-red-600">*</span></label>
             <Select 
-                              value={formValues.state || ''} 
-              onValueChange={(value) => form.setValue('state', value)}
+              value={formValues.state || ''} 
+              onValueChange={(value) => {
+                form.setValue('state', value);
+                form.trigger('state'); // Trigger validation immediately
+              }}
             >
               <SelectTrigger className={`h-12 text-base transition-all duration-200 ${
                 formErrors.state 
@@ -4537,6 +4540,9 @@ const Step2Location: React.FC<Step1Props> = ({ form, formErrors, formValues }) =
                 <SelectValue placeholder="Select state" />
               </SelectTrigger>
               <SelectContent className="max-h-60">
+                <SelectItem value="" className="py-2 text-gray-400">
+                  <span className="font-medium">Select a state</span>
+                </SelectItem>
                 {US_STATES.map(state => (
                   <SelectItem key={state} value={state} className="py-2">
                     <span className="font-medium">{state}</span>
@@ -4549,6 +4555,10 @@ const Step2Location: React.FC<Step1Props> = ({ form, formErrors, formValues }) =
                 <p className="text-sm text-red-700">{formErrors.state.message}</p>
               </div>
             )}
+            {/* Debug info - remove in production */}
+            <div className="mt-2 p-2 bg-gray-50 border border-gray-200 rounded text-xs text-gray-600">
+              Debug: formValues.state = "{formValues.state}" (length: {formValues.state?.length || 0})
+            </div>
           </div>
 
           <div>
