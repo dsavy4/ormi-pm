@@ -7488,9 +7488,12 @@ const PropertyEditSheet: React.FC<PropertyEditSheetProps> = ({
     if (!currentStepConfig) return false;
 
     try {
-      currentStepConfig.schema.parse(formValues);
+      const result = currentStepConfig.schema.parse(formValues);
+      console.log(`Step ${currentStep} validation passed:`, result);
       return true;
     } catch (error) {
+      console.log(`Step ${currentStep} validation failed:`, error);
+      console.log('Current form values:', formValues);
       return false;
     }
   }, [currentStep, formValues]);
@@ -7511,6 +7514,10 @@ const PropertyEditSheet: React.FC<PropertyEditSheetProps> = ({
       console.log('Property data for form reset:', property);
       console.log('Property type:', property.propertyType);
       
+      console.log('Property state value:', property.state);
+      console.log('Property city value:', property.city);
+      console.log('Property zipCode value:', property.zipCode);
+      
       form.reset({
         name: property.name || '',
         propertyType: mapPropertyType(property.propertyType),
@@ -7519,10 +7526,10 @@ const PropertyEditSheet: React.FC<PropertyEditSheetProps> = ({
         address: property.address || '',
         unitSuite: '',
         city: property.city || '',
-        state: property.state || '',
+        state: property.state || undefined,
         zipCode: property.zipCode || '',
         country: 'United States',
-        totalUnits: property.totalUnits || 1,
+        totalUnits: property.totalUnits || undefined,
         yearBuilt: property.yearBuilt,
         sqft: undefined,
         lotSize: undefined,
