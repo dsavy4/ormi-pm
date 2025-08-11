@@ -3326,13 +3326,9 @@ const AddPropertySheet: React.FC<AddPropertySheetProps> = ({ isOpen, onClose, on
   const isCurrentStepValid = useMemo(() => {
     const currentStepConfig = WIZARD_STEPS.find(step => step.id === currentStep);
     if (!currentStepConfig) return false;
-
-    try {
-      currentStepConfig.schema.parse(formValues);
-      return true;
-    } catch (error) {
-      return false;
-    }
+    const result = currentStepConfig.schema.safeParse(formValues);
+    // show inline step warning panel if invalid
+    return result.success;
   }, [currentStep, formValues]);
 
   // Track form dirty state
@@ -3439,10 +3435,10 @@ const AddPropertySheet: React.FC<AddPropertySheetProps> = ({ isOpen, onClose, on
     
     setIsSubmitting(true);
     try {
-      // Create property data
+      // Create property data (only fields supported by backend model)
       const propertyData = {
         name: data.name,
-        propertyType: data.propertyType,
+        propertyType: mapPropertyTypeToDb(data.propertyType),
         ownershipType: data.ownershipType,
         tags: data.tags,
         address: data.address,
@@ -3456,11 +3452,14 @@ const AddPropertySheet: React.FC<AddPropertySheetProps> = ({ isOpen, onClose, on
         sqft: data.sqft,
         lotSize: data.lotSize,
         description: data.description,
-        propertyManager: data.propertyManager,
+        // Persist manager assignment using the correct field name if provided
+        ...(data.propertyManager && data.propertyManager !== 'none'
+          ? { propertyManagerId: data.propertyManager }
+          : {}),
         rentDueDay: data.rentDueDay,
         allowOnlinePayments: data.allowOnlinePayments,
         enableMaintenanceRequests: data.enableMaintenanceRequests,
-      };
+      } as const;
 
       // Create property
       const response = await propertiesApi.create(propertyData);
@@ -4302,7 +4301,7 @@ const Step1BasicInfo: React.FC<Step1Props> = ({ form, formErrors, formValues }) 
 
       <div className="bg-card rounded-xl shadow-sm border border-gray-100 p-6 space-y-6">
         <div>
-          <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-3">Property Name *</label>
+            <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-3">Property Name <span className="text-red-600">*</span></label>
           <Input
             {...form.register('name')}
             placeholder="e.g., Sunset Apartments, Oak Street Complex"
@@ -4324,7 +4323,7 @@ const Step1BasicInfo: React.FC<Step1Props> = ({ form, formErrors, formValues }) 
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-3">Property Type *</label>
+            <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-3">Property Type <span className="text-red-600">*</span></label>
             <Select 
               value={formValues.propertyType || ''} 
               onValueChange={(value) => {
@@ -4362,7 +4361,7 @@ const Step1BasicInfo: React.FC<Step1Props> = ({ form, formErrors, formValues }) 
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-foreground mb-3">Ownership Type *</label>
+            <label className="block text-sm font-semibold text-foreground mb-3">Ownership Type <span className="text-red-600">*</span></label>
             <Select 
               value={formValues.ownershipType || ''} 
               onValueChange={(value) => form.setValue('ownershipType', value as any)}
@@ -4472,7 +4471,7 @@ const Step2Location: React.FC<Step1Props> = ({ form, formErrors, formValues }) =
 
       <div className="bg-card rounded-xl shadow-sm border border-gray-100 p-6 space-y-6">
         <div>
-          <label className="block text-sm font-semibold text-foreground mb-3">Street Address *</label>
+          <label className="block text-sm font-semibold text-foreground mb-3">Street Address <span className="text-red-600">*</span></label>
           <Input
             {...form.register('address')}
             placeholder="e.g., 123 Main Street"
@@ -4504,7 +4503,7 @@ const Step2Location: React.FC<Step1Props> = ({ form, formErrors, formValues }) =
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
           <div>
-            <label className="block text-sm font-semibold text-foreground mb-3">City *</label>
+            <label className="block text-sm font-semibold text-foreground mb-3">City <span className="text-red-600">*</span></label>
             <Input
               {...form.register('city')}
               placeholder="e.g., San Francisco"
@@ -4525,7 +4524,7 @@ const Step2Location: React.FC<Step1Props> = ({ form, formErrors, formValues }) =
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-foreground mb-3">State *</label>
+            <label className="block text-sm font-semibold text-foreground mb-3">State <span className="text-red-600">*</span></label>
             <Select 
                               value={formValues.state || ''} 
               onValueChange={(value) => form.setValue('state', value)}
@@ -4553,7 +4552,7 @@ const Step2Location: React.FC<Step1Props> = ({ form, formErrors, formValues }) =
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-foreground mb-3">ZIP Code *</label>
+            <label className="block text-sm font-semibold text-foreground mb-3">ZIP Code <span className="text-red-600">*</span></label>
             <Input
               {...form.register('zipCode')}
               placeholder="e.g., 94105"
@@ -4607,7 +4606,7 @@ const Step3PropertyDetails: React.FC<Step1Props> = ({ form, formErrors, formValu
       <div className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Total Units *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Total Units <span className="text-red-600">*</span></label>
             <Input
               type="number"
               {...form.register('totalUnits', { valueAsNumber: true })}
@@ -7712,17 +7711,36 @@ const PropertyEditSheet: React.FC<PropertyEditSheetProps> = ({
 
       // Update property data using the API function
       const { propertiesApi } = await import('@/lib/api');
-      const updateData = {
-        ...data,
+
+      // Build payload restricted to fields supported by backend model
+      const updateData: Record<string, any> = {
+        name: data.name,
         propertyType: mapPropertyTypeToDb(data.propertyType),
+        ownershipType: data.ownershipType,
+        tags: data.tags,
+        address: data.address,
+        unitSuite: data.unitSuite,
+        city: data.city,
+        state: data.state,
+        zipCode: data.zipCode,
+        country: data.country,
+        totalUnits: data.totalUnits,
+        yearBuilt: data.yearBuilt ?? null,
+        sqft: data.sqft ?? null,
+        lotSize: data.lotSize ?? null,
+        description: data.description,
+        notes: data.notes,
+        amenities: data.amenities,
+        rentDueDay: data.rentDueDay,
+        allowOnlinePayments: data.allowOnlinePayments,
+        enableMaintenanceRequests: data.enableMaintenanceRequests,
         images: imageUrls,
-        yearBuilt: data.yearBuilt || null,
-        sqft: data.sqft || null,
-        lotSize: data.lotSize || null,
-        marketValue: data.marketValue || null,
-        purchasePrice: data.purchasePrice || null,
-        expenses: data.expenses || null,
       };
+
+      // Map manager selection to the correct backend field
+      if (data.propertyManager && data.propertyManager !== 'none') {
+        updateData.propertyManagerId = data.propertyManager;
+      }
 
       const response = await propertiesApi.update(property.id, updateData);
       

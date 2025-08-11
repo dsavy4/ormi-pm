@@ -197,7 +197,7 @@ export class PropertyController {
           country: country || 'United States',
           ownershipType,
           rentDueDay: rentDueDay ? parseInt(rentDueDay) : 1,
-          allowOnlinePayments: allowOnlinePayments || false,
+          allowOnlinePayments: !!allowOnlinePayments,
           enableMaintenanceRequests: enableMaintenanceRequests !== false,
           description,
           notes,
@@ -206,6 +206,14 @@ export class PropertyController {
           totalUnits: totalUnits ? parseInt(totalUnits) : 0,
           monthlyRent: monthlyRent ? parseFloat(monthlyRent) : 0,
           ownerId: userId,
+          // Optional parity fields
+          neighborhood: (body as any).neighborhood || null,
+          marketValue: (body as any).marketValue ? parseFloat((body as any).marketValue) : null,
+          purchasePrice: (body as any).purchasePrice ? parseFloat((body as any).purchasePrice) : null,
+          expenses: (body as any).expenses ? parseFloat((body as any).expenses) : null,
+          purchaseDate: (body as any).purchaseDate ? new Date((body as any).purchaseDate) : null,
+          // Manager assignment if provided
+          propertyManagerId: (body as any).propertyManagerId || null,
         },
         include: {
           propertyManager: {
@@ -251,9 +259,30 @@ export class PropertyController {
         return c.json({ error: 'Property not found' }, 404);
       }
 
+      const updateData: any = {
+        ...body,
+      };
+
+      // Whitelist/normalize fields to avoid unexpected writes
+      const allowedKeys = new Set([
+        'name','address','city','state','zipCode','propertyType','yearBuilt','sqft','lotSize','unitSuite','country',
+        'ownershipType','rentDueDay','allowOnlinePayments','enableMaintenanceRequests','description','notes','amenities','tags',
+        'totalUnits','images','propertyManagerId','neighborhood','marketValue','purchasePrice','expenses','purchaseDate'
+      ]);
+      Object.keys(updateData).forEach((k) => { if (!allowedKeys.has(k)) delete updateData[k]; });
+
+      if (typeof updateData.yearBuilt !== 'undefined') updateData.yearBuilt = updateData.yearBuilt ? parseInt(updateData.yearBuilt) : null;
+      if (typeof updateData.sqft !== 'undefined') updateData.sqft = updateData.sqft ? parseInt(updateData.sqft) : null;
+      if (typeof updateData.lotSize !== 'undefined') updateData.lotSize = updateData.lotSize ? parseFloat(updateData.lotSize) : null;
+      if (typeof updateData.rentDueDay !== 'undefined') updateData.rentDueDay = parseInt(updateData.rentDueDay);
+      if (typeof updateData.marketValue !== 'undefined') updateData.marketValue = updateData.marketValue ? parseFloat(updateData.marketValue) : null;
+      if (typeof updateData.purchasePrice !== 'undefined') updateData.purchasePrice = updateData.purchasePrice ? parseFloat(updateData.purchasePrice) : null;
+      if (typeof updateData.expenses !== 'undefined') updateData.expenses = updateData.expenses ? parseFloat(updateData.expenses) : null;
+      if (typeof updateData.purchaseDate !== 'undefined') updateData.purchaseDate = updateData.purchaseDate ? new Date(updateData.purchaseDate) : null;
+
       const updatedProperty = await prisma.property.update({
         where: { id: propertyId },
-        data: body,
+        data: updateData,
         include: {
           propertyManager: {
             select: {

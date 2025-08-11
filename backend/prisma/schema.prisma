@@ -80,6 +80,12 @@ model Property {
   rentDueDay  Int      @default(1)
   allowOnlinePayments Boolean @default(false)
   enableMaintenanceRequests Boolean @default(true)
+  // Optional financial and descriptive fields for parity with industry leaders
+  neighborhood String?
+  marketValue  Decimal? @db.Decimal(10, 2)
+  purchasePrice Decimal? @db.Decimal(10, 2)
+  expenses     Decimal? @db.Decimal(10, 2)
+  purchaseDate DateTime?
   status      String   @default("ACTIVE")
   isActive    Boolean  @default(true)
   propertyHealth Int   @default(0) // 0-100 health score
