@@ -1238,7 +1238,7 @@ export function Properties() {
       type: 'destructive',
       onConfirm: async () => {
         try {
-          await propertiesApi.delete(propertyId);
+              await propertiesApi.delete(propertyId);
           
           await mutateProperties();
           setConfirmDialog(prev => ({ ...prev, isOpen: false }));
@@ -1249,10 +1249,50 @@ export function Properties() {
           // Handle specific error cases using the new ApiError structure
           if (error.name === 'ApiError') {
             // Use the detailed error message from the API
-            if (error.message?.includes('Cannot delete property with existing units')) {
-              toast.error('Cannot delete property with existing units. Please delete all units first.');
+                if (error.message?.includes('Cannot delete property with existing units')) {
+                  // Offer cascade delete flow
+                  setConfirmDialog({
+                    isOpen: true,
+                    title: 'Delete Property with Units',
+                    message: `"${property.name}" still has units. Do you want to delete the property and ALL its units and maintenance requests? This cannot be undone.`,
+                    confirmText: 'Delete Property and All Units',
+                    type: 'destructive',
+                    onConfirm: async () => {
+                      try {
+                        await propertiesApi.deleteCascade(propertyId);
+                        await mutateProperties();
+                        toast.success('Property and related data deleted');
+                      } catch (cascadeErr: any) {
+                        console.error('Cascade delete failed:', cascadeErr);
+                        toast.error(cascadeErr.message || 'Failed to cascade delete');
+                      } finally {
+                        setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+                      }
+                    }
+                  });
+                  return; // prevent auto-close below; dialog now shows cascade option
             } else if (error.message?.includes('Cannot delete property with existing maintenance requests')) {
-              toast.error('Cannot delete property with existing maintenance requests. Please resolve all maintenance requests first.');
+                  // Offer cascade delete flow as well
+                  setConfirmDialog({
+                    isOpen: true,
+                    title: 'Delete Property with Maintenance',
+                    message: `"${property.name}" has maintenance requests. Delete property and ALL its units and maintenance requests? This cannot be undone.`,
+                    confirmText: 'Delete Property and Maintenance',
+                    type: 'destructive',
+                    onConfirm: async () => {
+                      try {
+                        await propertiesApi.deleteCascade(propertyId);
+                        await mutateProperties();
+                        toast.success('Property and related data deleted');
+                      } catch (cascadeErr: any) {
+                        console.error('Cascade delete failed:', cascadeErr);
+                        toast.error(cascadeErr.message || 'Failed to cascade delete');
+                      } finally {
+                        setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+                      }
+                    }
+                  });
+                  return; // prevent auto-close below; dialog now shows cascade option
             } else if (error.message?.includes('Property not found')) {
               toast.error('Property not found or already deleted.');
             } else {
@@ -2899,6 +2939,8 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
       {/* Property Image */}
       <PropertyImage property={property} className="h-48 mb-4" onView={onView} />
 
+
+
       {/* Property Content */}
       <div className="p-4 space-y-4">
         {/* Header */}
@@ -3201,6 +3243,8 @@ const PropertyListItem: React.FC<PropertyListItemProps> = ({
             >
               <Edit className="h-4 w-4" />
             </Button>
+
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm">

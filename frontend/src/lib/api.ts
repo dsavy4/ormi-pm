@@ -284,9 +284,14 @@ async function handleResponse<T>(response: Response): Promise<T> {
       
       // Create custom error that preserves all the details
       const errorMessage = errorData.error || `HTTP ${response.status}: ${response.statusText}`;
+      // Throw and let upstream catch it; do NOT convert this further below
       throw new ApiError(errorMessage, response.status, errorData.details, errorData);
     } catch (parseError) {
       console.log('[DEBUG] Failed to parse error response:', parseError);
+      // If we already created an ApiError above, rethrow it as-is
+      if (parseError instanceof ApiError) {
+        throw parseError;
+      }
       throw new ApiError(`HTTP ${response.status}: ${response.statusText}`, response.status);
     }
   }
@@ -452,6 +457,14 @@ export const propertiesApi = {
 
   delete: async (id: string) => {
     const response = await fetch(`${API_BASE_URL}/api/properties/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  deleteCascade: async (id: string) => {
+    const response = await fetch(`${API_BASE_URL}/api/properties/${id}?cascade=true`, {
       method: 'DELETE',
       headers: getAuthHeaders(),
     });

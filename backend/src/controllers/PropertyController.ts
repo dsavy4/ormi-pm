@@ -1,234 +1,158 @@
-import { Response } from 'express';
-import { validationResult } from 'express-validator';
-import { PrismaClient } from '@prisma/client';
+import { Context } from 'hono';
 import { createClient } from '@supabase/supabase-js';
-import { AuthRequest } from '../middleware/auth';
-import { storageService } from '../utils/storage';
-
-const prisma = new PrismaClient();
-
-// Use Supabase client for getById method specifically
-const supabase = createClient(
-  process.env.SUPABASE_URL || 'https://kmhmgutrhkzjnsgifsrl.supabase.co',
-  process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImttaG1ndXRyaGt6am5zZ2lmc3JsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1MDYwNTYsImV4cCI6MjA2NzA4MjA1Nn0.Yeg2TBq3K9jddh-LQFHadr1rv_GaYS-SBVTfnZS6z3c'
-);
+import { PropertyHealthService } from '../services/PropertyHealthService';
 
 export class PropertyController {
   /**
-   * Get all properties for authenticated user
+   * Get all properties
    */
-  async getAll(req: AuthRequest, res: Response): Promise<void> {
+  async getAll(c: Context) {
     try {
-      const userId = req.user!.id;
-      const userRole = req.user!.role;
-      const page = parseInt(req.query?.page as string) || 1;
-      const limit = parseInt(req.query?.limit as string) || 10;
-      const search = req.query?.search as string;
-      const status = req.query?.status as string;
-      const propertyType = req.query?.propertyType as string;
-      const manager = req.query?.manager as string;
+      const user = c.get('user') as any;
+      const userId = user.id;
+      const userRole = user.role;
 
-      let whereClause = {};
-      if (userRole === 'ADMIN' || userRole === 'MANAGER') {
+      // Build where clause based on user role
+      let whereClause: any = {};
+      if (userRole !== 'ADMIN') {
         whereClause = { ownerId: userId };
       }
 
-      // Add search filter
-      if (search) {
-        whereClause = {
-          ...whereClause,
-          OR: [
-            { name: { contains: search, mode: 'insensitive' } },
-            { address: { contains: search, mode: 'insensitive' } },
-            { city: { contains: search, mode: 'insensitive' } },
-          ],
-        };
+      const supabase = createClient(c.env.SUPABASE_URL, c.env.SUPABASE_ANON_KEY);
+      
+      // Build where clause for Supabase
+      let query = supabase
+        .from('properties')
+        .select(`
+          *,
+          property_managers (
+            id,
+            first_name,
+            last_name,
+            email
+          )
+        `)
+        .order('created_at', { ascending: false });
+      
+      if (userRole !== 'ADMIN') {
+        query = query.eq('owner_id', userId);
+      }
+      
+      const { data: properties, error } = await query;
+      
+      if (error) {
+        throw error;
       }
 
-      // Add status filter
-      if (status) {
-        whereClause = { ...whereClause, status };
-      }
-
-      // Add property type filter
-      if (propertyType) {
-        whereClause = { ...whereClause, propertyType };
-      }
-
-      // Add manager filter
-      if (manager) {
-        whereClause = { ...whereClause, propertyManagerId: manager };
-      }
-
-      const [properties, total] = await Promise.all([
-        prisma.property.findMany({
-          where: whereClause,
-          include: {
-            units: {
-              select: {
-                id: true,
-                unitNumber: true,
-                status: true,
-                monthlyRent: true,
-              },
-            },
-            propertyManager: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-                email: true,
-              },
-            },
-            _count: {
-              select: { units: true },
-            },
-          },
-          skip: (page - 1) * limit,
-          take: limit,
-          orderBy: { createdAt: 'desc' },
-        }),
-        prisma.property.count({ where: whereClause }),
-      ]);
-
-      // Calculate additional metrics for each property
-      const propertiesWithMetrics = properties.map(property => {
-        const totalUnits = property.units.length;
-        const occupiedUnits = property.units.filter(unit => unit.status === 'OCCUPIED').length;
-        const occupancyRate = totalUnits > 0 ? (occupiedUnits / totalUnits) * 100 : 0;
-        const monthlyRent = property.units.reduce((sum, unit) => {
-          const rent = Number(unit.monthlyRent) || 0;
-          return sum + rent;
-        }, 0);
-
-        return {
-          ...property,
-          totalUnits,
-          occupiedUnits,
-          vacantUnits: totalUnits - occupiedUnits,
-          occupancyRate: isNaN(occupancyRate) ? 0 : occupancyRate,
-          monthlyRent: isNaN(monthlyRent) ? 0 : monthlyRent,
-          avgRentPerUnit: totalUnits > 0 && !isNaN(monthlyRent) ? monthlyRent / totalUnits : 0,
-        };
-      });
-
-      res.json({
-        properties: propertiesWithMetrics,
-        pagination: {
-          page,
-          limit,
-          total,
-          pages: Math.ceil(total / limit),
-        },
-      });
+      // Return properties with existing health scores
+      // Health is calculated automatically via triggers when data changes
+      return c.json(properties);
     } catch (error) {
-      console.error('Get properties error:', error);
-      res.status(500).json({ error: 'Failed to fetch properties' });
+      console.error('Error fetching properties:', error);
+      return c.json({ error: 'Failed to fetch properties' }, 500);
     }
   }
 
   /**
    * Get property by ID
    */
-  async getById(req: AuthRequest, res: Response): Promise<void> {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      res.status(400).json({ errors: errors.array() });
-      return;
-    }
-
+  async getById(c: Context) {
     try {
-      const userId = req.user!.id;
-      const userRole = req.user!.role;
-      const propertyId = req.params.id;
+      const propertyId = c.req.param('id');
+      const user = c.get('user') as any;
+      const userId = user.id;
+      const userRole = user.role;
 
-      console.log(`[DEBUG] getById - userId: ${userId}, userRole: ${userRole}, propertyId: ${propertyId}`);
-
-      // Check if property exists and user has permission
-      let propertyWhere: any = { id: propertyId };
-      
-      // For ADMIN and MANAGER roles, check ownership, but allow if ownerId is null
-      if (userRole === 'ADMIN' || userRole === 'MANAGER') {
-        propertyWhere = {
-          id: propertyId,
-          OR: [
-            { ownerId: userId },
-            { ownerId: null } // Allow access to properties without owner set
-          ]
-        };
-        console.log(`[DEBUG] getById - propertyWhere:`, JSON.stringify(propertyWhere));
+      // Check if user has access to this property
+      let whereClause: any = { id: propertyId };
+      if (userRole !== 'ADMIN') {
+        whereClause = { ...whereClause, ownerId: userId };
       }
 
-      // TEMPORARY: Simplify the query to just check if property exists
-      propertyWhere = { id: propertyId };
-      console.log(`[DEBUG] getById - SIMPLIFIED propertyWhere:`, JSON.stringify(propertyWhere));
-
-      // Use Supabase for getById to avoid Prisma issues in Cloudflare Workers
-      console.log(`[DEBUG] getById - Using Supabase client with URL: ${process.env.SUPABASE_URL || 'fallback'}`);
-      
-      const { data: property, error } = await supabase
-        .from('properties')
-        .select('*')
-        .eq('id', propertyId)
-        .single();
-
-      console.log(`[DEBUG] getById - Supabase response:`, { data: property, error });
-
-      if (error) {
-        console.error('Supabase getById error:', error);
-        res.status(404).json({ error: 'Property not found', details: error.message });
-        return;
-      }
-
-      console.log(`[DEBUG] getById - property found: ${property ? 'YES' : 'NO'}`);
-      if (property) {
-        console.log(`[DEBUG] getById - property ownerId: ${property.ownerId}`);
-      }
+      const property = await prisma.property.findUnique({
+        where: whereClause,
+        include: {
+          units: {
+            include: {
+              tenant: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  email: true,
+                },
+              },
+            },
+          },
+          propertyManager: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+            },
+          },
+          maintenanceRequests: {
+            include: {
+              unit: {
+                select: {
+                  id: true,
+                  unitNumber: true,
+                },
+              },
+            },
+            orderBy: { createdAt: 'desc' },
+          },
+        },
+      });
 
       if (!property) {
-        res.status(404).json({ error: 'Property not found' });
-        return;
+        return c.json({ error: 'Property not found' }, 404);
       }
 
-      // Calculate basic metrics (units will be loaded separately)
-      const totalUnits = property.totalUnits || 0;
-      const occupiedUnits = property.occupiedUnits || 0;
-      const occupancyRate = totalUnits > 0 ? (occupiedUnits / totalUnits) * 100 : 0;
-      const monthlyRent = property.monthlyRent || 0;
-      const urgentMaintenanceRequests = 0; // Will be calculated separately if needed
-      const leasesExpiringThisMonth = 0;
+      // Calculate property health score if not already calculated or if it's stale
+      let propertyHealth = property.propertyHealth || 0;
+      const lastCalculation = property.lastHealthCalculation;
+      
+      // Check if health calculation is stale (older than 24 hours)
+      if (!lastCalculation || 
+          new Date().getTime() - new Date(lastCalculation).getTime() > 24 * 60 * 60 * 1000) {
+        try {
+          await PropertyHealthService.updatePropertyHealth(propertyId);
+          // Fetch updated property to get new health score
+          const updatedProperty = await prisma.property.findUnique({
+            where: { id: propertyId },
+            select: { propertyHealth: true }
+          });
+          if (updatedProperty) {
+            propertyHealth = updatedProperty.propertyHealth || 0;
+          }
+        } catch (healthError) {
+          console.warn('Failed to calculate property health, using existing score:', healthError);
+        }
+      }
 
       const enhancedProperty = {
         ...property,
-        totalUnits,
-        occupiedUnits,
-        vacantUnits: totalUnits - occupiedUnits,
-        occupancyRate: isNaN(occupancyRate) ? 0 : occupancyRate,
-        monthlyRent: isNaN(monthlyRent) ? 0 : monthlyRent,
-        avgRentPerUnit: totalUnits > 0 && !isNaN(monthlyRent) ? monthlyRent / totalUnits : 0,
-        urgentMaintenanceRequests,
-        leasesExpiringThisMonth,
+        propertyHealth,
       };
 
-      res.json(enhancedProperty);
+      return c.json(enhancedProperty);
     } catch (error) {
-      console.error('Get property error:', error);
-      res.status(500).json({ error: 'Failed to fetch property' });
+      console.error('Error fetching property:', error);
+      return c.json({ error: 'Failed to fetch property' }, 500);
     }
   }
 
   /**
    * Create new property
    */
-  async create(req: AuthRequest, res: Response): Promise<void> {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      res.status(400).json({ errors: errors.array() });
-      return;
-    }
-
+  async create(c: Context) {
     try {
-      const userId = req.user!.id;
+      const user = c.get('user') as any;
+      const userId = user.id;
+      const body = await c.req.json();
+
       const {
         name,
         address,
@@ -237,19 +161,26 @@ export class PropertyController {
         zipCode,
         propertyType,
         yearBuilt,
-        description,
-        notes,
-        totalUnits,
         sqft,
         lotSize,
-        amenities,
-        tags,
-        propertyManager,
-        managerId,
+        unitSuite,
+        country,
+        ownershipType,
         rentDueDay,
         allowOnlinePayments,
         enableMaintenanceRequests,
-      } = req.body;
+        description,
+        notes,
+        amenities,
+        tags,
+        totalUnits,
+        monthlyRent,
+      } = body;
+
+      // Basic validation
+      if (!name || !address || !city || !state || !zipCode || !propertyType) {
+        return c.json({ error: 'Missing required fields' }, 400);
+      }
 
       const property = await prisma.property.create({
         data: {
@@ -260,19 +191,21 @@ export class PropertyController {
           zipCode,
           propertyType,
           yearBuilt: yearBuilt ? parseInt(yearBuilt) : null,
-          description,
-          notes,
-          totalUnits: totalUnits ? parseInt(totalUnits) : 0,
           sqft: sqft ? parseInt(sqft) : null,
           lotSize: lotSize ? parseFloat(lotSize) : null,
-          amenities: amenities || [],
-          tags: tags || [],
-          propertyManagerId: propertyManager || managerId,
+          unitSuite,
+          country: country || 'United States',
+          ownershipType,
           rentDueDay: rentDueDay ? parseInt(rentDueDay) : 1,
           allowOnlinePayments: allowOnlinePayments || false,
-          enableMaintenanceRequests: enableMaintenanceRequests || true,
+          enableMaintenanceRequests: enableMaintenanceRequests !== false,
+          description,
+          notes,
+          amenities: amenities || [],
+          tags: tags || [],
+          totalUnits: totalUnits ? parseInt(totalUnits) : 0,
+          monthlyRent: monthlyRent ? parseFloat(monthlyRent) : 0,
           ownerId: userId,
-          status: 'ACTIVE',
         },
         include: {
           propertyManager: {
@@ -286,53 +219,43 @@ export class PropertyController {
         },
       });
 
-      res.status(201).json(property);
+      return c.json(property, 201);
     } catch (error) {
-      console.error('Create property error:', error);
-      res.status(500).json({ error: 'Failed to create property' });
+      console.error('Error creating property:', error);
+      return c.json({ error: 'Failed to create property' }, 500);
     }
   }
 
   /**
    * Update property
    */
-  async update(req: AuthRequest, res: Response): Promise<void> {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      res.status(400).json({ errors: errors.array() });
-      return;
-    }
-
+  async update(c: Context) {
     try {
-      const userId = req.user!.id;
-      const propertyId = req.params.id;
-      const updateData = req.body;
+      const propertyId = c.req.param('id');
+      const user = c.get('user') as any;
+      const userId = user.id;
+      const userRole = user.role;
+      const body = await c.req.json();
 
-      // Check if property exists and user has permission
-      const existingProperty = await prisma.property.findFirst({
-        where: {
-          id: propertyId,
-          ownerId: userId,
-        },
+      // Check if user has access to this property
+      let whereClause: any = { id: propertyId };
+      if (userRole !== 'ADMIN') {
+        whereClause = { ...whereClause, ownerId: userId };
+      }
+
+      const existingProperty = await prisma.property.findUnique({
+        where: whereClause,
       });
 
       if (!existingProperty) {
-        res.status(404).json({ error: 'Property not found' });
-        return;
+        return c.json({ error: 'Property not found' }, 404);
       }
 
-      // Remove undefined values
-      Object.keys(updateData).forEach(key => {
-        if (updateData[key] === undefined) {
-          delete updateData[key];
-        }
-      });
-
-      const property = await prisma.property.update({
+      const updatedProperty = await prisma.property.update({
         where: { id: propertyId },
-        data: updateData,
+        data: body,
         include: {
-          manager: {
+          propertyManager: {
             select: {
               id: true,
               firstName: true,
@@ -343,376 +266,365 @@ export class PropertyController {
         },
       });
 
-      res.json(property);
+      return c.json(updatedProperty);
     } catch (error) {
-      console.error('Update property error:', error);
-      res.status(500).json({ error: 'Failed to update property' });
+      console.error('Error updating property:', error);
+      return c.json({ error: 'Failed to update property' }, 500);
     }
   }
 
   /**
    * Delete property
    */
-  async delete(req: AuthRequest, res: Response): Promise<void> {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      res.status(400).json({ errors: errors.array() });
-      return;
-    }
-
+  async delete(c: Context) {
     try {
-      const userId = req.user!.id;
-      const propertyId = req.params.id;
+      const propertyId = c.req.param('id');
+      const user = c.get('user') as any;
+      const userId = user.id;
+      const userRole = user.role;
 
-      // Check if property exists and user has permission
-      const property = await prisma.property.findFirst({
-        where: {
-          id: propertyId,
-          ownerId: userId,
+      // Check if user has access to this property
+      let whereClause: any = { id: propertyId };
+      if (userRole !== 'ADMIN') {
+        whereClause = { ...whereClause, ownerId: userId };
+      }
+
+      const property = await prisma.property.findUnique({
+        where: whereClause,
+        include: {
+          units: true,
+          maintenanceRequests: true,
         },
       });
 
       if (!property) {
-        res.status(404).json({ error: 'Property not found' });
-        return;
+        return c.json({ error: 'Property not found' }, 404);
       }
 
-      // Check if property has units
-      const unitCount = await prisma.unit.count({
-        where: { propertyId },
-      });
+      // Check if property has units or maintenance requests
+      if (property.units && property.units.length > 0) {
+        return c.json({ error: 'Cannot delete property with existing units' }, 400);
+      }
 
-      if (unitCount > 0) {
-        res.status(400).json({ error: 'Cannot delete property with existing units' });
-        return;
+      if (property.maintenanceRequests && property.maintenanceRequests.length > 0) {
+        return c.json({ error: 'Cannot delete property with existing maintenance requests' }, 400);
       }
 
       await prisma.property.delete({
         where: { id: propertyId },
       });
 
-      res.json({ message: 'Property deleted successfully' });
+      return c.json({ message: 'Property deleted successfully' });
     } catch (error) {
-      console.error('Delete property error:', error);
-      res.status(500).json({ error: 'Failed to delete property' });
+      console.error('Error deleting property:', error);
+      return c.json({ error: 'Failed to delete property' }, 500);
     }
   }
 
   /**
-   * Upload image for property
+   * Upload property image
    */
-  async uploadImage(req: AuthRequest, res: Response): Promise<void> {
+  async uploadImage(c: Context) {
     try {
-      const userId = req.user!.id;
-      const propertyId = req.params.id;
-      const file = req.file;
+      const propertyId = c.req.param('id');
+      const user = c.get('user') as any;
+      const userId = user.id;
+      const formData = await c.req.formData();
+      const imageFile = formData.get('image') as File;
 
-      if (!file) {
-        res.status(400).json({ error: 'No image file provided' });
-        return;
+      if (!imageFile) {
+        return c.json({ error: 'No image file provided' }, 400);
       }
 
-      // Check if property exists and user has permission
-      const property = await prisma.property.findFirst({
-        where: {
-          id: propertyId,
-          ownerId: userId,
-        },
+      // Check if property exists and user has access
+      const property = await prisma.property.findUnique({
+        where: { id: propertyId, ownerId: userId },
       });
 
       if (!property) {
-        res.status(404).json({ error: 'Property not found' });
-        return;
+        return c.json({ error: 'Property not found' }, 404);
       }
 
-      // Upload to Cloudflare R2
+      // Import storage service dynamically
+      const { createStorageService } = await import('../utils/storage');
+      const storageService = createStorageService(process.env);
+
+      // Convert File to Buffer for storage service
+      const arrayBuffer = await imageFile.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+
       const { url, key } = await storageService.uploadFile(
-        file.buffer,
-        file.originalname,
-        file.mimetype,
+        buffer,
+        imageFile.name,
+        imageFile.type,
         `properties/${propertyId}`
       );
 
-      // Update property with new image URL
+      // Update property with image URL
       const updatedProperty = await prisma.property.update({
         where: { id: propertyId },
-        data: {
-          images: {
-            push: url,
+        data: { images: { push: url } },
+        include: {
+          propertyManager: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+            },
           },
         },
       });
 
-      res.json({ 
+      return c.json({
         imageUrl: url,
-        key: key,
+        imageKey: key,
         property: updatedProperty,
       });
     } catch (error) {
-      console.error('Upload image error:', error);
-      res.status(500).json({ error: 'Failed to upload image' });
+      console.error('Error uploading image:', error);
+      return c.json({ error: 'Failed to upload image' }, 500);
     }
   }
 
   /**
-   * Generate presigned URL for direct upload
+   * Generate upload URL for property image
    */
-  async generateUploadUrl(req: AuthRequest, res: Response): Promise<void> {
+  async generateUploadUrl(c: Context) {
     try {
-      const userId = req.user!.id;
-      const propertyId = req.params.id;
-      const { fileName, contentType } = req.body;
+      const propertyId = c.req.param('id');
+      const user = c.get('user') as any;
+      const userId = user.id;
+      const body = await c.req.json();
+      const { fileName, contentType } = body;
 
       if (!fileName || !contentType) {
-        res.status(400).json({ error: 'File name and content type are required' });
-        return;
+        return c.json({ error: 'Missing fileName or contentType' }, 400);
       }
 
-      // Check if property exists and user has permission
-      const property = await prisma.property.findFirst({
-        where: {
-          id: propertyId,
-          ownerId: userId,
-        },
+      // Check if property exists and user has access
+      const property = await prisma.property.findUnique({
+        where: { id: propertyId, ownerId: userId },
       });
 
       if (!property) {
-        res.status(404).json({ error: 'Property not found' });
-        return;
+        return c.json({ error: 'Property not found' }, 404);
       }
 
-      // Generate presigned URL
+      // Import storage service dynamically
+      const { createStorageService } = await import('../utils/storage');
+      const storageService = createStorageService(process.env);
+
       const { uploadUrl, key, publicUrl } = await storageService.generatePresignedUrl(
         fileName,
         contentType,
-        `properties/${propertyId}`
+        `properties/${propertyId}/images`
       );
 
-      res.json({
+      return c.json({
         uploadUrl,
         key,
         publicUrl,
-        expiresIn: 3600, // 1 hour
       });
     } catch (error) {
-      console.error('Generate upload URL error:', error);
-      res.status(500).json({ error: 'Failed to generate upload URL' });
+      console.error('Error generating upload URL:', error);
+      return c.json({ error: 'Failed to generate upload URL' }, 500);
     }
   }
 
   /**
    * Bulk archive properties
    */
-  async bulkArchive(req: AuthRequest, res: Response): Promise<void> {
+  async bulkArchive(c: Context) {
     try {
-      const userId = req.user!.id;
-      const { propertyIds } = req.body;
+      const user = c.get('user') as any;
+      const userId = user.id;
+      const userRole = user.role;
+      const body = await c.req.json();
+      const { propertyIds } = body;
 
       if (!propertyIds || !Array.isArray(propertyIds)) {
-        res.status(400).json({ error: 'Property IDs array is required' });
-        return;
+        return c.json({ error: 'Invalid property IDs' }, 400);
       }
 
-      // Check if all properties belong to user
+      // Check if user has access to all properties
+      let whereClause: any = { id: { in: propertyIds } };
+      if (userRole !== 'ADMIN') {
+        whereClause = { ...whereClause, ownerId: userId };
+      }
+
       const properties = await prisma.property.findMany({
-        where: {
-          id: { in: propertyIds },
-          ownerId: userId,
-        },
+        where: whereClause,
       });
 
       if (properties.length !== propertyIds.length) {
-        res.status(400).json({ error: 'Some properties not found or access denied' });
-        return;
+        return c.json({ error: 'Some properties not found or access denied' }, 400);
       }
 
       // Archive properties
       await prisma.property.updateMany({
-        where: {
-          id: { in: propertyIds },
-          ownerId: userId,
-        },
-        data: {
+        where: { id: { in: propertyIds } },
+        data: { 
           status: 'ARCHIVED',
-          archivedAt: new Date(),
-          archivedBy: userId,
+          isActive: false,
+          updatedAt: new Date(),
         },
       });
 
-      res.json({ 
-        message: `${properties.length} properties archived successfully`,
-        archivedCount: properties.length,
-      });
+      return c.json({ message: 'Properties archived successfully' });
     } catch (error) {
-      console.error('Bulk archive error:', error);
-      res.status(500).json({ error: 'Failed to archive properties' });
+      console.error('Error archiving properties:', error);
+      return c.json({ error: 'Failed to archive properties' }, 500);
     }
   }
 
   /**
-   * Assign manager to properties
+   * Assign manager to property
    */
-  async assignManager(req: AuthRequest, res: Response): Promise<void> {
+  async assignManager(c: Context) {
     try {
-      const userId = req.user!.id;
-      const { propertyIds, managerId } = req.body;
+      const propertyId = c.req.param('id');
+      const user = c.get('user') as any;
+      const userId = user.id;
+      const userRole = user.role;
+      const body = await c.req.json();
+      const { managerId } = body;
 
-      if (!propertyIds || !Array.isArray(propertyIds) || !managerId) {
-        res.status(400).json({ error: 'Property IDs array and manager ID are required' });
-        return;
+      if (!managerId) {
+        return c.json({ error: 'Manager ID is required' }, 400);
       }
 
-      // Check if manager exists
+      // Check if user has access to this property
+      let whereClause: any = { id: propertyId };
+      if (userRole !== 'ADMIN') {
+        whereClause = { ...whereClause, ownerId: userId };
+      }
+
+      const property = await prisma.property.findUnique({
+        where: whereClause,
+      });
+
+      if (!property) {
+        return c.json({ error: 'Property not found' }, 404);
+      }
+
+      // Check if manager exists and has appropriate role
       const manager = await prisma.user.findUnique({
         where: { id: managerId },
       });
 
-      if (!manager || manager.role !== 'MANAGER') {
-        res.status(400).json({ error: 'Invalid manager ID' });
-        return;
+      if (!manager || !['PROPERTY_MANAGER', 'ASSISTANT_MANAGER'].includes(manager.role)) {
+        return c.json({ error: 'Invalid manager or insufficient permissions' }, 400);
       }
 
-      // Check if all properties belong to user
-      const properties = await prisma.property.findMany({
-        where: {
-          id: { in: propertyIds },
-          ownerId: userId,
+      const updatedProperty = await prisma.property.update({
+        where: { id: propertyId },
+        data: { 
+          propertyManagerId: managerId,
+          updatedAt: new Date(),
+        },
+        include: {
+          propertyManager: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+            },
+          },
         },
       });
 
-      if (properties.length !== propertyIds.length) {
-        res.status(400).json({ error: 'Some properties not found or access denied' });
-        return;
-      }
-
-      // Assign manager to properties
-      await prisma.property.updateMany({
-        where: {
-          id: { in: propertyIds },
-          ownerId: userId,
-        },
-        data: {
-          managerId,
-        },
-      });
-
-      res.json({ 
-        message: `Manager assigned to ${properties.length} properties successfully`,
-        assignedCount: properties.length,
-      });
+      return c.json(updatedProperty);
     } catch (error) {
-      console.error('Assign manager error:', error);
-      res.status(500).json({ error: 'Failed to assign manager' });
+      console.error('Error assigning manager:', error);
+      return c.json({ error: 'Failed to assign manager' }, 500);
     }
   }
 
   /**
    * Get property insights
    */
-  async getInsights(req: AuthRequest, res: Response): Promise<void> {
+  async getInsights(c: Context) {
     try {
-      const userId = req.user!.id;
+      const propertyId = c.req.param('id');
+      const user = c.get('user') as any;
+      const userId = user.id;
+      const userRole = user.role;
 
-      const [
-        totalProperties,
-        totalUnits,
-        properties,
-        recentActivity,
-      ] = await Promise.all([
-        prisma.property.count({ where: { ownerId: userId } }),
-        prisma.unit.count({
-          where: {
-            property: { ownerId: userId },
-          },
-        }),
-        prisma.property.findMany({
-          where: { ownerId: userId },
-          include: {
-            units: {
-              select: {
-                status: true,
-                monthlyRent: true,
-              },
-            },
-            _count: {
-              select: { units: true },
-            },
-          },
-        }),
-        prisma.maintenanceRequest.findMany({
-          where: {
-            unit: {
-              property: { ownerId: userId },
-            },
-          },
-          include: {
-            unit: {
-              select: {
-                property: {
-                  select: { name: true },
+      // Check if user has access to this property
+      let whereClause: any = { id: propertyId };
+      if (userRole !== 'ADMIN') {
+        whereClause = { ...whereClause, ownerId: userId };
+      }
+
+      const property = await prisma.property.findUnique({
+        where: whereClause,
+        include: {
+          units: {
+            include: {
+              tenant: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  email: true,
                 },
               },
+              maintenanceRequests: true,
             },
           },
-          orderBy: { createdAt: 'desc' },
-          take: 10,
-        }),
-      ]);
-
-      // Calculate insights
-      const occupiedUnits = properties.reduce((sum, property) => 
-        sum + property.units.filter(unit => unit.status === 'OCCUPIED').length, 0
-      );
-      const totalMonthlyIncome = properties.reduce((sum, property) => 
-        sum + property.units.reduce((unitSum, unit) => {
-          const rent = Number(unit.monthlyRent) || 0;
-          console.log(`Unit ${unit.id}: monthlyRent=${unit.monthlyRent}, parsed=${rent}`);
-          return unitSum + rent;
-        }, 0), 0
-      );
-      const avgOccupancyRate = totalUnits > 0 ? (occupiedUnits / totalUnits) * 100 : 0;
-      
-      console.log(`Insights calculation: totalMonthlyIncome=${totalMonthlyIncome}, isNaN=${isNaN(totalMonthlyIncome)}`);
-
-      // Find top performing property
-      const propertyPerformance = properties.map(property => {
-        const propertyUnits = property.units.length;
-        const propertyOccupied = property.units.filter(unit => unit.status === 'OCCUPIED').length;
-        const propertyIncome = property.units.reduce((sum, unit) => {
-          const rent = Number(unit.monthlyRent) || 0;
-          return sum + rent;
-        }, 0);
-        const occupancyRate = propertyUnits > 0 ? (propertyOccupied / propertyUnits) * 100 : 0;
-
-        return {
-          ...property,
-          occupancyRate: isNaN(occupancyRate) ? 0 : occupancyRate,
-          monthlyIncome: isNaN(propertyIncome) ? 0 : propertyIncome,
-        };
+          maintenanceRequests: true,
+        },
       });
 
-      const topPerformingProperty = propertyPerformance.reduce((top, current) => 
-        current.monthlyIncome > top.monthlyIncome ? current : top
-      );
+      if (!property) {
+        return c.json({ error: 'Property not found' }, 404);
+      }
+
+      // Calculate insights
+      const totalUnits = property.units.length;
+      const occupiedUnits = property.units.filter(unit => unit.status === 'OCCUPIED').length;
+      const occupancyRate = totalUnits > 0 ? (occupiedUnits / totalUnits) * 100 : 0;
+
+      const totalRent = property.units.reduce((sum, unit) => {
+        return sum + (unit.monthlyRent ? parseFloat(unit.monthlyRent.toString()) : 0);
+      }, 0);
+
+      const totalMaintenanceRequests = property.units.reduce((sum, unit) => {
+        return sum + (unit.maintenanceRequests ? unit.maintenanceRequests.length : 0);
+      }, 0);
+
+      const openMaintenanceRequests = property.units.reduce((sum, unit) => {
+        return sum + (unit.maintenanceRequests ? 
+          unit.maintenanceRequests.filter(req => req.status === 'OPEN').length : 0);
+      }, 0);
 
       const insights = {
-        totalProperties,
+        propertyId: property.id,
+        propertyName: property.name,
         totalUnits,
-        totalMonthlyIncome: isNaN(totalMonthlyIncome) ? 0 : totalMonthlyIncome,
-        avgOccupancyRate: isNaN(avgOccupancyRate) ? 0 : avgOccupancyRate,
-        leasesExpiringThisMonth: 0, // TODO: Calculate based on lease end dates
-        urgentMaintenanceCount: recentActivity.filter(req => req.priority === 'URGENT').length,
-        topPerformingProperty,
-        lowPerformingProperties: propertyPerformance
-          .filter(p => p.occupancyRate < 70)
-          .slice(0, 5),
-        recentActivity,
+        occupiedUnits,
+        occupancyRate: Math.round(occupancyRate * 100) / 100,
+        totalRent: Math.round(totalRent * 100) / 100,
+        totalMaintenanceRequests,
+        openMaintenanceRequests,
+        propertyHealth: property.propertyHealth || 0,
+        lastHealthCalculation: property.lastHealthCalculation,
+        units: property.units.map(unit => ({
+          id: unit.id,
+          unitNumber: unit.unitNumber,
+          status: unit.status,
+          monthlyRent: unit.monthlyRent,
+          tenant: unit.tenant,
+          maintenanceRequests: unit.maintenanceRequests || [],
+        })),
       };
 
-      res.json(insights);
+      return c.json(insights);
     } catch (error) {
-      console.error('Get insights error:', error);
-      res.status(500).json({ error: 'Failed to fetch insights' });
+      console.error('Error fetching property insights:', error);
+      return c.json({ error: 'Failed to fetch property insights' }, 500);
     }
   }
 } 

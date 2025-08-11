@@ -1372,7 +1372,7 @@ app.delete('/api/properties/:id', authMiddleware, async (c) => {
     // Check if property has units or maintenance requests
     const { data: units, error: unitsError } = await supabase
       .from('units')
-      .select('id')
+      .select('id, propertyId')
       .eq('propertyId', propertyId);
     
     if (unitsError) {
@@ -1390,20 +1390,63 @@ app.delete('/api/properties/:id', authMiddleware, async (c) => {
       return c.json({ error: 'Failed to check property dependencies', details: maintenanceError.message }, 500);
     }
     
-    if (units && units.length > 0) {
-      console.log('[DEBUG] Property has units, cannot delete:', units.length);
-      return c.json({ 
-        error: 'Cannot delete property with existing units', 
-        details: `Property has ${units.length} unit(s). Please delete all units first.` 
-      }, 400);
-    }
-    
-    if (maintenanceRequests && maintenanceRequests.length > 0) {
-      console.log('[DEBUG] Property has maintenance requests, cannot delete:', maintenanceRequests.length);
-      return c.json({ 
-        error: 'Cannot delete property with existing maintenance requests', 
-        details: `Property has ${maintenanceRequests.length} maintenance request(s). Please resolve all maintenance requests first.` 
-      }, 400);
+    // Support safe cascade deletion behind explicit opt-in
+    const cascade = (c.req.query && c.req.query('cascade')) === 'true';
+
+    if ((units && units.length > 0) || (maintenanceRequests && maintenanceRequests.length > 0)) {
+      if (!cascade) {
+        const unitMsg = units && units.length > 0 ? `Property has ${units.length} unit(s). Please delete all units first.` : undefined;
+        const maintMsg = maintenanceRequests && maintenanceRequests.length > 0 ? `Property has ${maintenanceRequests.length} maintenance request(s). Please resolve all maintenance requests first.` : undefined;
+        const err = units && units.length > 0 
+          ? 'Cannot delete property with existing units'
+          : 'Cannot delete property with existing maintenance requests';
+        return c.json({ 
+          error: err, 
+          details: unitMsg || maintMsg
+        }, 400);
+      }
+
+      console.log('[DEBUG] Cascade delete requested for property:', propertyId);
+
+      // Cleanup maintenance files then delete maintenance records
+      if (maintenanceRequests && maintenanceRequests.length > 0) {
+        for (const mr of maintenanceRequests) {
+          try {
+            // @ts-ignore types in this file are loose; ensure id exists
+            await cleanupMaintenanceRequestFiles(c.env, user.userId, mr.id);
+          } catch (e) {
+            console.warn('[WARN] Failed to cleanup maintenance request files:', mr, e);
+          }
+        }
+        const { error: delMaintError } = await supabase
+          .from('maintenance_requests')
+          .delete()
+          .eq('propertyId', propertyId);
+        if (delMaintError) {
+          console.log('[DEBUG] Error deleting maintenance requests during cascade:', delMaintError);
+          return c.json({ error: 'Failed to cascade delete maintenance requests', details: delMaintError.message }, 500);
+        }
+      }
+
+      // Cleanup unit files then delete unit records
+      if (units && units.length > 0) {
+        for (const u of units) {
+          try {
+            // @ts-ignore ensure id and propertyId exist
+            await cleanupUnitFiles(c.env, user.userId, u.id, propertyId);
+          } catch (e) {
+            console.warn('[WARN] Failed to cleanup unit files:', u, e);
+          }
+        }
+        const { error: delUnitsError } = await supabase
+          .from('units')
+          .delete()
+          .eq('propertyId', propertyId);
+        if (delUnitsError) {
+          console.log('[DEBUG] Error deleting units during cascade:', delUnitsError);
+          return c.json({ error: 'Failed to cascade delete units', details: delUnitsError.message }, 500);
+        }
+      }
     }
     
     // Delete the property from database
@@ -1460,6 +1503,15 @@ app.post('/api/units', authMiddleware, async (c) => {
     }
     
     console.log('[DEBUG] ===== UNIT CREATED SUCCESSFULLY =====');
+    
+    // Trigger health recalculation for the property
+    try {
+      const { PropertyHealthTriggerService } = await import('./services/PropertyHealthTriggerService.js');
+      await PropertyHealthTriggerService.onUnitStatusChange(body.propertyId, c.env);
+    } catch (healthError) {
+      console.warn('Failed to trigger health recalculation:', healthError);
+    }
+    
     return c.json({ success: true, data: unit });
   } catch (error) {
     console.error('[DEBUG] ===== UNIT CREATION ERROR =====');
@@ -1500,6 +1552,15 @@ app.put('/api/units/:id', authMiddleware, async (c) => {
     }
     
     console.log('[DEBUG] ===== UNIT UPDATED SUCCESSFULLY =====');
+    
+    // Trigger health recalculation for the property
+    try {
+      const { PropertyHealthTriggerService } = await import('./services/PropertyHealthTriggerService.js');
+      await PropertyHealthTriggerService.onUnitStatusChange(unit.propertyId, c.env);
+    } catch (healthError) {
+      console.warn('Failed to trigger health recalculation:', healthError);
+    }
+    
     return c.json({ success: true, data: unit });
   } catch (error) {
     console.error('[DEBUG] ===== UNIT UPDATE ERROR =====');
@@ -1528,6 +1589,8 @@ app.delete('/api/units/:id', authMiddleware, async (c) => {
       return c.json({ error: 'Unit not found' }, 404);
     }
     
+    const propertyId = unit.propertyId;
+    
     // Delete the unit from database
     const { error } = await supabase
       .from('units')
@@ -1542,6 +1605,14 @@ app.delete('/api/units/:id', authMiddleware, async (c) => {
     // Clean up R2 files for this unit
     console.log('[DEBUG] Cleaning up R2 files for unit:', unitId);
     await cleanupUnitFiles(c.env, user.userId, unitId, unit.propertyId);
+    
+    // Trigger health recalculation for the property
+    try {
+      const { PropertyHealthTriggerService } = await import('./services/PropertyHealthTriggerService.js');
+      await PropertyHealthTriggerService.onUnitStatusChange(propertyId, c.env);
+    } catch (healthError) {
+      console.warn('Failed to trigger health recalculation:', healthError);
+    }
     
     console.log('[DEBUG] ===== UNIT DELETED SUCCESSFULLY =====');
     return c.json({ success: true, message: 'Unit deleted successfully' });
@@ -1799,6 +1870,25 @@ app.post('/api/maintenance', authMiddleware, async (c) => {
     }
     
     console.log('[DEBUG] ===== MAINTENANCE REQUEST CREATED SUCCESSFULLY =====');
+    
+    // Get the property ID from the unit to trigger health recalculation
+    if (body.unitId) {
+      try {
+        const { data: unit } = await supabase
+          .from('units')
+          .select('propertyId')
+          .eq('id', body.unitId)
+          .single();
+        
+        if (unit?.propertyId) {
+          const { PropertyHealthTriggerService } = await import('./services/PropertyHealthTriggerService.js');
+          await PropertyHealthTriggerService.onMaintenanceRequestChange(unit.propertyId, c.env);
+        }
+      } catch (healthError) {
+        console.warn('Failed to trigger health recalculation:', healthError);
+      }
+    }
+    
     return c.json({ success: true, data: maintenance });
   } catch (error) {
     console.error('[DEBUG] ===== MAINTENANCE CREATION ERROR =====');
@@ -1864,6 +1954,24 @@ app.delete('/api/maintenance/:id', authMiddleware, async (c) => {
     // Clean up R2 files for this maintenance request
     console.log('[DEBUG] Cleaning up R2 files for maintenance request:', maintenanceId);
     await cleanupMaintenanceRequestFiles(c.env, user.userId, maintenanceId);
+    
+    // Get the property ID from the unit to trigger health recalculation
+    if (maintenance.unitId) {
+      try {
+        const { data: unit } = await supabase
+          .from('units')
+          .select('propertyId')
+          .eq('id', maintenance.unitId)
+          .single();
+        
+        if (unit?.propertyId) {
+          const { PropertyHealthTriggerService } = await import('./services/PropertyHealthTriggerService.js');
+          await PropertyHealthTriggerService.onMaintenanceRequestChange(unit.propertyId, c.env);
+        }
+      } catch (healthError) {
+        console.warn('Failed to trigger health recalculation:', healthError);
+      }
+    }
     
     console.log('[DEBUG] ===== MAINTENANCE REQUEST DELETED SUCCESSFULLY =====');
     return c.json({ success: true, message: 'Maintenance request deleted successfully' });
@@ -4487,4 +4595,137 @@ app.post('/api/payments/webhook', async (c) => {
     return c.json({ error: 'Webhook signature verification failed' }, 400);
   }
 }); 
+
+// Property health endpoints
+app.post('/api/properties/:id/health', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== CALCULATE PROPERTY HEALTH ENDPOINT CALLED =====');
+  try {
+    const propertyId = c.req.param('id');
+    const user = c.get('user');
+    
+    console.log('[DEBUG] Calculating health for property:', propertyId);
+    
+    // Import the service dynamically to avoid issues in Cloudflare Workers
+    const { PropertyHealthService } = await import('./services/PropertyHealthService');
+    
+    // Calculate and update property health
+    await PropertyHealthService.updatePropertyHealth(propertyId);
+    
+    // Get the updated property with new health score using Prisma
+    const { PrismaClient } = await import('@prisma/client');
+    const prisma = new PrismaClient();
+    
+    const property = await prisma.property.findUnique({
+      where: { id: propertyId },
+      select: { propertyHealth: true, lastHealthCalculation: true }
+    });
+    
+    if (!property) {
+      console.log('[DEBUG] Failed to fetch updated property');
+      return c.json({ error: 'Failed to fetch updated property' }, 500);
+    }
+    
+    await prisma.$disconnect();
+    
+    console.log('[DEBUG] ===== PROPERTY HEALTH CALCULATION SUCCESSFUL =====');
+    return c.json({
+      success: true,
+      data: {
+        propertyId,
+        propertyHealth: property.propertyHealth,
+        lastCalculation: property.lastHealthCalculation,
+      }
+    });
+  } catch (error) {
+    console.error('[DEBUG] ===== PROPERTY HEALTH CALCULATION ERROR =====');
+    console.error('[DEBUG] Error details:', error);
+    return c.json({ error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' }, 500);
+  }
+});
+
+app.post('/api/properties/health/batch-update', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== BATCH UPDATE PROPERTY HEALTH ENDPOINT CALLED =====');
+  try {
+    const user = c.get('user');
+    
+    // Only allow admins to trigger batch updates
+    if (user.role !== 'ADMIN') {
+      return c.json({ error: 'Unauthorized - Admin access required' }, 403);
+    }
+    
+    console.log('[DEBUG] Starting batch health update for all properties');
+    
+    // Import the service dynamically to avoid issues in Cloudflare Workers
+    const { PropertyHealthService } = await import('./services/PropertyHealthService');
+    
+    // Get all properties using Prisma
+    const { PrismaClient } = await import('@prisma/client');
+    const prisma = new PrismaClient();
+    
+    const properties = await prisma.property.findMany({
+      select: { id: true }
+    });
+    
+    if (!properties || properties.length === 0) {
+      await prisma.$disconnect();
+      return c.json({ success: true, message: 'No properties found to update' });
+    }
+    
+    // Update health scores for all properties
+    let updatedCount = 0;
+    let errorCount = 0;
+    
+    for (const property of properties) {
+      try {
+        await PropertyHealthService.updatePropertyHealth(property.id);
+        updatedCount++;
+      } catch (healthError) {
+        console.error(`Failed to update health for property ${property.id}:`, healthError);
+        errorCount++;
+      }
+    }
+    
+    console.log('[DEBUG] ===== BATCH PROPERTY HEALTH UPDATE COMPLETED =====');
+    await prisma.$disconnect();
+    return c.json({
+      success: true,
+      data: {
+        totalProperties: properties.length,
+        updatedCount,
+        errorCount,
+        message: `Updated ${updatedCount} properties, ${errorCount} errors`
+      }
+    });
+  } catch (error) {
+    console.error('[DEBUG] ===== BATCH PROPERTY HEALTH UPDATE ERROR =====');
+    console.error('[DEBUG] Error details:', error);
+    return c.json({ error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' }, 500);
+  }
+});
+
+app.get('/api/properties/:id/health/details', authMiddleware, async (c) => {
+  console.log('[DEBUG] ===== GET PROPERTY HEALTH DETAILS ENDPOINT CALLED =====');
+  try {
+    const propertyId = c.req.param('id');
+    const user = c.get('user');
+    
+    console.log('[DEBUG] Getting health details for property:', propertyId);
+    
+    // Import the service dynamically to avoid issues in Cloudflare Workers
+    const { PropertyHealthService } = await import('./services/PropertyHealthService');
+    
+    // Calculate property health with detailed breakdown
+    const healthDetails = await PropertyHealthService.calculatePropertyHealth(propertyId);
+    
+    console.log('[DEBUG] ===== PROPERTY HEALTH DETAILS SUCCESSFUL =====');
+    return c.json({
+      success: true,
+      data: healthDetails
+    });
+  } catch (error) {
+    console.error('[DEBUG] ===== PROPERTY HEALTH DETAILS ERROR =====');
+    console.error('[DEBUG] Error details:', error);
+    return c.json({ error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' }, 500);
+  }
+});
 

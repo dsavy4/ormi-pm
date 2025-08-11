@@ -29,6 +29,16 @@
 - [x] **StatusBadge component** integration for consistency
 - [x] **Icon consistency** with proper status indicators
 
+### **Property Health System** ✅
+- [x] **Database schema** updated with `propertyHealth` (0-100) and `lastHealthCalculation` fields
+- [x] **Consolidated PropertyHealthTriggerService** - single service handling all health calculation logic and triggers
+- [x] **Trigger-based health calculation** - health scores automatically recalculate when relevant data changes (unit status, maintenance requests, property details, financial data)
+- [x] **Star rating system** (1-5 stars) that converts health scores to meaningful visual indicators
+- [x] **API endpoints** for health management: single property calculation, batch updates, and detailed breakdowns
+- [x] **Frontend integration** with dynamic star rating display and health score tooltips
+- [x] **Industry-standard metrics** based on DoorLoop and similar property management software research
+- [x] **Eliminated redundant services** - removed separate PropertyHealthService and manual calculation buttons
+
 ## 🚧 **IN PROGRESS** 🔄
 
 ### **Enhanced Unit Details** 🔄
@@ -43,6 +53,7 @@
 - [x] **Enhanced property deletion error handling** - frontend now shows user-friendly error messages and auto-closes confirmation dialog
 - [x] **Fixed property view 404 errors** - improved error handling for non-existent properties with automatic cleanup and user notification
 - [x] **Fixed misleading 4.5 star rating** - replaced with industry-standard star rating system (1-5 stars) that converts property health scores to meaningful star ratings, showing both stars and health score in tooltip
+- [x] **Property Health System** - implemented comprehensive property health scoring (0-100) with automatic calculation based on objective metrics (occupancy, maintenance, age, amenities, financial performance, inspection, market position), integrated with star rating display (1-5 stars), and exposed via API endpoints for health management
 - [ ] **Backend persistence** for unit cover image changes
 - [ ] **Drag-and-drop reordering** for unit images
 

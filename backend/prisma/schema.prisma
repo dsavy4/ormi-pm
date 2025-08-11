@@ -82,6 +82,8 @@ model Property {
   enableMaintenanceRequests Boolean @default(true)
   status      String   @default("ACTIVE")
   isActive    Boolean  @default(true)
+  propertyHealth Int   @default(0) // 0-100 health score
+  lastHealthCalculation DateTime @default(now())
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
