@@ -4449,9 +4449,10 @@ const Step1BasicInfo: React.FC<Step1Props> = ({ form, formErrors, formValues }) 
               </SelectContent>
             </Select>
             {formErrors.propertyType && (
-              <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-sm text-red-700">{formErrors.propertyType.message}</p>
-              </div>
+              <p className="text-sm text-red-600 mt-1 flex items-center gap-1">
+                <AlertTriangle className="h-3 w-3" />
+                {formErrors.propertyType.message}
+              </p>
             )}
           </div>
 
@@ -4484,9 +4485,10 @@ const Step1BasicInfo: React.FC<Step1Props> = ({ form, formErrors, formValues }) 
               </SelectContent>
             </Select>
             {formErrors.ownershipType && (
-              <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-sm text-red-700">{formErrors.ownershipType.message}</p>
-              </div>
+              <p className="text-sm text-red-600 mt-1 flex items-center gap-1">
+                <AlertTriangle className="h-3 w-3" />
+                {formErrors.ownershipType.message}
+              </p>
             )}
           </div>
         </div>
@@ -4577,12 +4579,10 @@ const Step2Location: React.FC<Step1Props> = ({ form, formErrors, formValues }) =
             }`}
           />
           {formErrors.address && (
-            <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-sm text-red-700 flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4" />
-                {formErrors.address.message}
-              </p>
-            </div>
+            <p className="text-sm text-red-600 mt-1 flex items-center gap-1">
+              <AlertTriangle className="h-3 w-3" />
+              {formErrors.address.message}
+            </p>
           )}
         </div>
 
@@ -4609,12 +4609,10 @@ const Step2Location: React.FC<Step1Props> = ({ form, formErrors, formValues }) =
               }`}
             />
             {formErrors.city && (
-              <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-sm text-red-700 flex items-center gap-2">
-                  <AlertTriangle className="h-4 w-4" />
-                  {formErrors.city.message}
-                </p>
-              </div>
+              <p className="text-sm text-red-600 mt-1 flex items-center gap-1">
+                <AlertTriangle className="h-3 w-3" />
+                {formErrors.city.message}
+              </p>
             )}
           </div>
 
@@ -4660,12 +4658,10 @@ const Step2Location: React.FC<Step1Props> = ({ form, formErrors, formValues }) =
               </SelectContent>
             </Select>
             {formErrors.state && (
-              <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-sm text-red-700 flex items-center gap-2">
-                  <AlertTriangle className="h-4 w-4" />
-                  {formErrors.state.message}
-                </p>
-              </div>
+              <p className="text-sm text-red-600 mt-1 flex items-center gap-1">
+                <AlertTriangle className="h-3 w-3" />
+                {formErrors.state.message}
+              </p>
             )}
           </div>
 
@@ -4683,12 +4679,10 @@ const Step2Location: React.FC<Step1Props> = ({ form, formErrors, formValues }) =
               }`}
             />
             {formErrors.zipCode && (
-              <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-sm text-red-700 flex items-center gap-2">
-                  <AlertTriangle className="h-4 w-4" />
-                  {formErrors.zipCode.message}
-                </p>
-              </div>
+              <p className="text-sm text-red-600 mt-1 flex items-center gap-1">
+                <AlertTriangle className="h-3 w-3" />
+                {formErrors.zipCode.message}
+              </p>
             )}
           </div>
         </div>
