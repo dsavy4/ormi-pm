@@ -6209,44 +6209,42 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
         <div className="flex-1 overflow-y-auto px-6 py-6">
           <div className="space-y-6">
 
-            {/* Navigation Actions */}
-            <div className="grid grid-cols-2 gap-3">
+            {/* Primary Action - Edit Property */}
+            <div className="flex justify-center mb-4">
               <Button 
-                variant="outline" 
                 onClick={() => onEdit(property.id)}
-                className="flex items-center gap-2 justify-center h-12 font-medium hover:bg-blue-50 dark:hover:bg-blue-900/20 border-blue-200 dark:border-blue-800 hover:border-blue-300 dark:hover:border-blue-700"
+                className="flex items-center gap-3 px-8 py-4 h-14 text-lg font-semibold bg-primary hover:bg-primary/90 text-white shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
               >
-                <Edit className="h-4 w-4" />
+                <Edit className="h-5 w-5" />
                 Edit Property
               </Button>
-
             </div>
 
-            {/* Quick Actions */}
-            <div className="grid grid-cols-3 gap-2">
+            {/* Secondary Actions */}
+            <div className="grid grid-cols-3 gap-3">
               <Button 
-                variant="ghost" 
-                size="sm"
+                variant="outline" 
+                size="lg"
                 onClick={() => onArchive(property.id)}
-                className="h-10 text-xs"
+                className="h-12 font-medium hover:bg-red-50 dark:hover:bg-red-900/20 border-red-200 dark:border-red-800 hover:border-red-300 dark:hover:border-red-700 hover:text-red-700 dark:hover:text-red-300"
               >
-                <Archive className="h-3 w-3 mr-1" />
+                <Archive className="h-4 w-4 mr-2" />
                 Archive
               </Button>
               <Button 
-                variant="ghost" 
-                size="sm"
-                className="h-10 text-xs"
+                variant="outline" 
+                size="lg"
+                className="h-12 font-medium hover:bg-blue-50 dark:hover:bg-blue-900/20 border-blue-200 dark:border-blue-800 hover:border-blue-300 dark:hover:border-blue-700 hover:text-blue-700 dark:hover:text-blue-300"
               >
-                <FileText className="h-3 w-3 mr-1" />
+                <FileText className="h-4 w-4 mr-2" />
                 Report
               </Button>
               <Button 
-                variant="ghost" 
-                size="sm"
-                className="h-10 text-xs"
+                variant="outline" 
+                size="lg"
+                className="h-12 font-medium hover:bg-green-50 dark:hover:bg-green-900/20 border-green-200 dark:border-green-800 hover:border-green-300 dark:hover:border-green-700 hover:text-green-700 dark:hover:text-green-300"
               >
-                <ExternalLink className="h-3 w-3 mr-1" />
+                <ExternalLink className="h-4 w-4 mr-2" />
                 Map
               </Button>
             </div>
@@ -6533,7 +6531,10 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
             <Card>
               <CardContent className="p-4">
                 <div className="flex items-center gap-2 mb-4">
-                  <AlertTriangle className="h-5 w-5 text-orange-600" />
+                  <div className="flex items-center gap-1">
+                    <Wrench className="h-5 w-5 text-orange-600" />
+                    <Zap className="h-4 w-4 text-orange-500" />
+                  </div>
                   <h3 className="text-lg font-semibold">Maintenance</h3>
                 </div>
                 <div className="space-y-3">
