@@ -4521,7 +4521,7 @@ const Step2Location: React.FC<Step1Props> = ({ form, formErrors, formValues }) =
           <div>
             <label className="block text-sm font-semibold text-foreground mb-3">State <span className="text-red-600">*</span></label>
             <Select 
-              value={formValues.state || undefined} 
+              value={form.watch('state') || undefined} 
               onValueChange={(value) => {
                 form.setValue('state', value);
                 form.trigger('state'); // Trigger validation immediately
@@ -4532,7 +4532,9 @@ const Step2Location: React.FC<Step1Props> = ({ form, formErrors, formValues }) =
                   ? 'border-red-300 focus:border-red-500' 
                   : 'border-gray-200 focus:border-blue-500 hover:border-gray-300'
               }`}>
-                <SelectValue placeholder="Select state" />
+                <SelectValue placeholder="Select state">
+                  {form.watch('state') || 'Select state'}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent className="max-h-60">
                 {US_STATES.map(state => (
@@ -4549,7 +4551,9 @@ const Step2Location: React.FC<Step1Props> = ({ form, formErrors, formValues }) =
             )}
             {/* Debug info - temporary */}
             <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-600">
-              Debug: formValues.state = "{formValues.state}" (type: {typeof formValues.state})
+              Debug: formValues.state = "{formValues.state}" (type: {typeof formValues.state})<br/>
+              form.watch('state') = "{form.watch('state')}" (type: {typeof form.watch('state')})<br/>
+              form.getValues('state') = "{form.getValues('state')}" (type: {typeof form.getValues('state')})
             </div>
 
           </div>
