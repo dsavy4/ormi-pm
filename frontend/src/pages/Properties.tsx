@@ -1181,9 +1181,9 @@ export function Properties() {
   // Debug view mode and filtered properties
   useEffect(() => {
     console.log('[DEBUG] View mode:', viewMode);
-    console.log('[DEBUG] Filtered properties count:', filteredProperties.length);
+    console.log('[DEBUG] Filtered properties count:', filteredAndSortedProperties.length);
     console.log('[DEBUG] View transition:', viewTransition);
-  }, [viewMode, filteredProperties.length, viewTransition]);
+  }, [viewMode, filteredAndSortedProperties.length, viewTransition]);
 
   // Handle loading and error states
   if (propertiesError) {
@@ -2321,12 +2321,12 @@ export function Properties() {
                       </div>
 
                       {/* Properties without coordinates warning */}
-                      {filteredProperties.filter(p => !p.coordinates).length > 0 && (
+                      {filteredAndSortedProperties.filter(p => !p.coordinates).length > 0 && (
                         <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
                           <div className="flex items-center gap-2">
                             <AlertTriangle className="h-4 w-4 text-amber-600" />
                             <span className="text-sm font-medium text-amber-800">
-                              {filteredProperties.filter(p => !p.coordinates).length} properties don't have location data
+                              {filteredAndSortedProperties.filter(p => !p.coordinates).length} properties don't have location data
                             </span>
                           </div>
                           <p className="text-xs text-amber-700 mt-1">
@@ -2338,7 +2338,7 @@ export function Properties() {
                   )}
 
                   {/* Empty State */}
-                  {filteredProperties.length === 0 && !propertiesLoading && (
+                  {filteredAndSortedProperties.length === 0 && !propertiesLoading && (
                     <div className="text-center py-12">
                       <div className="mx-auto w-24 h-24 bg-muted rounded-full flex items-center justify-center mb-4">
                         <Building2 className="h-12 w-12 text-muted-foreground" />
