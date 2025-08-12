@@ -278,14 +278,18 @@ const step1Schema = z.object({
   tags: z.array(z.string()).default([]),
 });
 
-const step2Schema = z.object({
+// Dynamic validation schema for step 2 based on country
+const createStep2Schema = (country: string) => z.object({
   address: z.string().min(1, 'Address is required').max(200, 'Address must be less than 200 characters'),
   unitSuite: z.string().optional(),
   city: z.string().min(1, 'City is required').max(100, 'City must be less than 100 characters'),
-  state: z.string().min(2, 'State is required').max(50, 'State must be less than 50 characters'),
-  zipCode: z.string().min(5, 'ZIP code must be at least 5 characters').max(10, 'ZIP code must be less than 10 characters'),
+  state: z.string().min(2, country === 'Canada' ? 'Province/Territory is required' : 'State is required').max(50, country === 'Canada' ? 'Province/Territory must be less than 50 characters' : 'State must be less than 50 characters'),
+  zipCode: z.string().min(5, country === 'Canada' ? 'Postal code must be at least 5 characters' : 'ZIP code must be at least 5 characters').max(10, country === 'Canada' ? 'Postal code must be less than 10 characters' : 'ZIP code must be less than 10 characters'),
   country: z.string().default('United States'),
 });
+
+// Default schema for initial validation
+const step2Schema = createStep2Schema('United States');
 
 const step3Schema = z.object({
   totalUnits: z.number().min(1, 'Total units must be at least 1').max(10000, 'Total units must be less than 10000'),
@@ -3414,10 +3418,18 @@ const AddPropertySheet: React.FC<AddPropertySheetProps> = ({ isOpen, onClose, on
   const isCurrentStepValid = useMemo(() => {
     const currentStepConfig = WIZARD_STEPS.find(step => step.id === currentStep);
     if (!currentStepConfig) return false;
-    const result = currentStepConfig.schema.safeParse(formValues);
+    
+    // Use dynamic schema for step 2 based on country
+    let schema = currentStepConfig.schema;
+    if (currentStep === 2) {
+      const country = form.watch('country') || 'United States';
+      schema = createStep2Schema(country);
+    }
+    
+    const result = schema.safeParse(formValues);
     // show inline step warning panel if invalid
     return result.success;
-  }, [currentStep, formValues]);
+  }, [currentStep, formValues, form.watch('country')]);
 
   // Track form dirty state
   useEffect(() => {
@@ -7615,7 +7627,14 @@ const PropertyEditSheet: React.FC<PropertyEditSheetProps> = ({
     if (!currentStepConfig) return false;
 
     try {
-      const result = currentStepConfig.schema.parse(formValues);
+      // Use dynamic schema for step 2 based on country
+      let schema = currentStepConfig.schema;
+      if (currentStep === 2) {
+        const country = form.watch('country') || 'United States';
+        schema = createStep2Schema(country);
+      }
+      
+      const result = schema.parse(formValues);
       console.log(`Step ${currentStep} validation passed:`, result);
       return true;
     } catch (error) {
@@ -7623,7 +7642,7 @@ const PropertyEditSheet: React.FC<PropertyEditSheetProps> = ({
       console.log('Current form values:', formValues);
       return false;
     }
-  }, [currentStep, formValues]);
+  }, [currentStep, formValues, form.watch('country')]);
 
   // Track form dirty state
   useEffect(() => {
