@@ -604,19 +604,23 @@ export function Properties() {
   });
   
   // Existing filter state with enhanced options
-  const [filters, setFilters] = useState<PropertyFilters>({
-    search: '',
-    status: 'All Status',
-    propertyType: 'All Types',
-    tags: [],
-    location: '',
-    occupancyMin: 0,
-    occupancyMax: 100,
-    incomeMin: 0,
-    incomeMax: 200000,
-    page: 1,
-    limit: 20,
-    sortBy: 'name-asc',
+  const [filters, setFilters] = useState<PropertyFilters>(() => {
+    // Load saved sort order from localStorage on component mount
+    const savedSortBy = localStorage.getItem('ormi-properties-sort') || 'name-asc';
+    return {
+      search: '',
+      status: 'All Status',
+      propertyType: 'All Types',
+      tags: [],
+      location: '',
+      occupancyMin: 0,
+      occupancyMax: 100,
+      incomeMin: 0,
+      incomeMax: 200000,
+      page: 1,
+      limit: 20,
+      sortBy: savedSortBy as SortOption,
+    };
   });
 
   // Debounced search
@@ -1999,7 +2003,12 @@ export function Properties() {
                 <div className="flex items-center gap-2">
                   <Select 
                     value={filters.sortBy} 
-                    onValueChange={(value) => setFilters(prev => ({...prev, sortBy: value as SortOption}))}
+                    onValueChange={(value) => {
+                      const newSortBy = value as SortOption;
+                      setFilters(prev => ({...prev, sortBy: newSortBy}));
+                      // Save sort order to localStorage for persistence
+                      localStorage.setItem('ormi-properties-sort', newSortBy);
+                    }}
                   >
                     <SelectTrigger className="w-48">
                       <SelectValue />
