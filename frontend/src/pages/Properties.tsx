@@ -375,29 +375,64 @@ const WIZARD_STEPS = [
   },
 ];
 
-// US States dropdown options
+// US States dropdown options - Using abbreviations for consistency
 const US_STATES = [
-  'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', 'Delaware', 'Florida',
-  'Georgia', 'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky', 'Louisiana', 'Maine',
-  'Maryland', 'Massachusetts', 'Michigan', 'Minnesota', 'Mississippi', 'Missouri', 'Montana', 'Nebraska',
-  'Nevada', 'New Hampshire', 'New Jersey', 'New Mexico', 'New York', 'North Carolina', 'North Dakota',
-  'Ohio', 'Oklahoma', 'Oregon', 'Pennsylvania', 'Rhode Island', 'South Carolina', 'South Dakota',
-  'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming'
+  { value: 'AL', label: 'Alabama' },
+  { value: 'AK', label: 'Alaska' },
+  { value: 'AZ', label: 'Arizona' },
+  { value: 'AR', label: 'Arkansas' },
+  { value: 'CA', label: 'California' },
+  { value: 'CO', label: 'Colorado' },
+  { value: 'CT', label: 'Connecticut' },
+  { value: 'DE', label: 'Delaware' },
+  { value: 'FL', label: 'Florida' },
+  { value: 'GA', label: 'Georgia' },
+  { value: 'HI', label: 'Hawaii' },
+  { value: 'ID', label: 'Idaho' },
+  { value: 'IL', label: 'Illinois' },
+  { value: 'IN', label: 'Indiana' },
+  { value: 'IA', label: 'Iowa' },
+  { value: 'KS', label: 'Kansas' },
+  { value: 'KY', label: 'Kentucky' },
+  { value: 'LA', label: 'Louisiana' },
+  { value: 'ME', label: 'Maine' },
+  { value: 'MD', label: 'Maryland' },
+  { value: 'MA', label: 'Massachusetts' },
+  { value: 'MI', label: 'Michigan' },
+  { value: 'MN', label: 'Minnesota' },
+  { value: 'MS', label: 'Mississippi' },
+  { value: 'MO', label: 'Missouri' },
+  { value: 'MT', label: 'Montana' },
+  { value: 'NE', label: 'Nebraska' },
+  { value: 'NV', label: 'Nevada' },
+  { value: 'NH', label: 'New Hampshire' },
+  { value: 'NJ', label: 'New Jersey' },
+  { value: 'NM', label: 'New Mexico' },
+  { value: 'NY', label: 'New York' },
+  { value: 'NC', label: 'North Carolina' },
+  { value: 'ND', label: 'North Dakota' },
+  { value: 'OH', label: 'Ohio' },
+  { value: 'OK', label: 'Oklahoma' },
+  { value: 'OR', label: 'Oregon' },
+  { value: 'PA', label: 'Pennsylvania' },
+  { value: 'RI', label: 'Rhode Island' },
+  { value: 'SC', label: 'South Carolina' },
+  { value: 'SD', label: 'South Dakota' },
+  { value: 'TN', label: 'Tennessee' },
+  { value: 'TX', label: 'Texas' },
+  { value: 'UT', label: 'Utah' },
+  { value: 'VT', label: 'Vermont' },
+  { value: 'VA', label: 'Virginia' },
+  { value: 'WA', label: 'Washington' },
+  { value: 'WV', label: 'West Virginia' },
+  { value: 'WI', label: 'Wisconsin' },
+  { value: 'WY', label: 'Wyoming' }
 ];
 
-// Popular English-speaking countries dropdown options
-// United States first (primary market), then alphabetical for easy scanning
+// Simplified countries - Focus on primary markets like DoorLoop
 const COUNTRIES = [
   'United States',
-  'Australia',
-  'Canada',
-  'Hong Kong',
-  'India',
-  'Ireland',
-  'New Zealand',
-  'Singapore',
-  'South Africa',
-  'United Kingdom'
+  'Canada'
 ];
 
 const PROPERTY_TYPES = [
@@ -4570,13 +4605,18 @@ const Step2Location: React.FC<Step1Props> = ({ form, formErrors, formValues }) =
                   : 'border-gray-200 focus:border-blue-500 focus:ring-blue-500/20 hover:border-gray-300'
               }`}>
                 <SelectValue>
-                  {form.getValues('state') || 'Select state'}
+                  {(() => {
+                    const stateValue = form.getValues('state');
+                    if (!stateValue) return 'Select state';
+                    const stateObj = US_STATES.find(s => s.value === stateValue);
+                    return stateObj ? stateObj.label : stateValue;
+                  })()}
                 </SelectValue>
               </SelectTrigger>
               <SelectContent className="max-h-60">
                 {US_STATES.map(state => (
-                  <SelectItem key={state} value={state} className="py-2">
-                    <span className="font-medium">{state}</span>
+                  <SelectItem key={state.value} value={state.value} className="py-2">
+                    <span className="font-medium">{state.label}</span>
                   </SelectItem>
                 ))}
               </SelectContent>
