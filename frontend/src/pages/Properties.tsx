@@ -763,50 +763,85 @@ export function Properties() {
     }
   }, [propertyId, properties]);
 
-  // Client-side filtering as fallback for search functionality
-  const filteredProperties = useMemo(() => {
-    if (!advancedFilters.search) {
-      return properties;
+  // Client-side filtering and sorting
+  const filteredAndSortedProperties = useMemo(() => {
+    let filtered = properties;
+    
+    // Apply search filter
+    if (advancedFilters.search) {
+      const searchTerm = advancedFilters.search.toLowerCase();
+      filtered = properties.filter(property => {
+        // Search in property name
+        if (property.name.toLowerCase().includes(searchTerm)) {
+          return true;
+        }
+        
+        // Search in address
+        if (property.address.toLowerCase().includes(searchTerm)) {
+          return true;
+        }
+        
+        // Search in city
+        if (property.city?.toLowerCase().includes(searchTerm)) {
+          return true;
+        }
+        
+        // Search in state
+        if (property.state?.toLowerCase().includes(searchTerm)) {
+          return true;
+        }
+        
+        // Search in property type
+        if (property.propertyType?.toLowerCase().includes(searchTerm)) {
+          return true;
+        }
+        
+        // Search in manager name (handle both string and object)
+        if (typeof property.manager === 'string' && property.manager.toLowerCase().includes(searchTerm)) {
+          return true;
+        }
+        if (typeof property.manager === 'object' && property.manager && 'name' in property.manager && (property.manager as any).name?.toLowerCase().includes(searchTerm)) {
+          return true;
+        }
+        
+        return false;
+      });
     }
-
-    const searchTerm = advancedFilters.search.toLowerCase();
-    return properties.filter(property => {
-      // Search in property name
-      if (property.name.toLowerCase().includes(searchTerm)) {
-        return true;
+    
+    // Apply sorting
+    const sorted = [...filtered].sort((a, b) => {
+      switch (filters.sortBy) {
+        case 'name-asc':
+          return a.name.localeCompare(b.name);
+        case 'name-desc':
+          return b.name.localeCompare(a.name);
+        case 'occupancy-desc':
+          return (b.occupancyRate || 0) - (a.occupancyRate || 0);
+        case 'occupancy-asc':
+          return (a.occupancyRate || 0) - (b.occupancyRate || 0);
+        case 'income-desc':
+          return (b.monthlyNetIncome || 0) - (a.monthlyNetIncome || 0);
+        case 'income-asc':
+          return (a.monthlyNetIncome || 0) - (b.monthlyNetIncome || 0);
+        case 'units-desc':
+          return (b.totalUnits || 0) - (a.totalUnits || 0);
+        case 'units-asc':
+          return (a.totalUnits || 0) - (b.totalUnits || 0);
+        case 'value-desc':
+          return (b.marketValue || 0) - (a.marketValue || 0);
+        case 'value-asc':
+          return (a.marketValue || 0) - (b.marketValue || 0);
+        case 'recent':
+          return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+        case 'oldest':
+          return new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime();
+        default:
+          return 0;
       }
-      
-      // Search in address
-      if (property.address.toLowerCase().includes(searchTerm)) {
-        return true;
-      }
-      
-      // Search in city
-      if (property.city?.toLowerCase().includes(searchTerm)) {
-        return true;
-      }
-      
-      // Search in state
-      if (property.state?.toLowerCase().includes(searchTerm)) {
-        return true;
-      }
-      
-      // Search in property type
-      if (property.propertyType?.toLowerCase().includes(searchTerm)) {
-        return true;
-      }
-      
-      // Search in manager name (handle both string and object)
-      if (typeof property.manager === 'string' && property.manager.toLowerCase().includes(searchTerm)) {
-        return true;
-      }
-      if (typeof property.manager === 'object' && property.manager && 'name' in property.manager && (property.manager as any).name?.toLowerCase().includes(searchTerm)) {
-        return true;
-      }
-      
-      return false;
     });
-  }, [properties, advancedFilters.search]);
+    
+    return sorted;
+  }, [properties, advancedFilters.search, filters.sortBy]);
 
   // Helper Functions
   const formatDate = (dateString: string) => {
@@ -1912,7 +1947,7 @@ export function Properties() {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div className="flex items-center gap-4">
                 <div className="text-sm text-muted-foreground">
-                                          {filteredProperties.length} properties {pagination && `(${pagination.total} total)`}
+                                          {filteredAndSortedProperties.length} properties {pagination && `(${pagination.total} total)`}
                 </div>
                 
                 {/* Bulk Actions */}
@@ -2052,7 +2087,7 @@ export function Properties() {
                         <PropertiesGridSkeleton count={6} />
                       ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {filteredProperties.map((property) => (
+                      {filteredAndSortedProperties.map((property) => (
                         <PropertyCard
                           key={property.id}
                           property={property}
@@ -2173,7 +2208,7 @@ export function Properties() {
 
                       {/* Enhanced List Items */}
                       <div className="space-y-2">
-                        {filteredProperties.map((property) => (
+                        {filteredAndSortedProperties.map((property) => (
                           <PropertyListItem
                             key={property.id}
                             property={property}
@@ -2203,7 +2238,7 @@ export function Properties() {
                           <MapPin className="h-5 w-5 text-primary" />
                           <h3 className="text-lg font-semibold">Property Locations</h3>
                           <Badge variant="secondary" className="ml-2">
-                            {filteredProperties.filter(p => p.coordinates).length} properties
+                            {filteredAndSortedProperties.filter(p => p.coordinates).length} properties
                           </Badge>
                         </div>
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -2226,7 +2261,7 @@ export function Properties() {
                             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                           />
-                          {filteredProperties.filter(p => p.coordinates).map((property) => (
+                          {filteredAndSortedProperties.filter(p => p.coordinates).map((property) => (
                             <Marker
                               key={property.id}
                               position={[property.coordinates!.lat, property.coordinates!.lng]}
