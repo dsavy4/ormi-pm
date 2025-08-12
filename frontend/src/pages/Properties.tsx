@@ -2440,7 +2440,7 @@ const PropertyImage: React.FC<PropertyImageProps> = ({ property, className, onVi
 
   return (
     <div 
-      className={`relative ${className} cursor-pointer overflow-hidden rounded-2xl`}
+      className={`relative ${className} cursor-pointer overflow-hidden rounded-2xl transition-all duration-300 hover:scale-105 hover:shadow-lg group`}
       onClick={(e) => { e.stopPropagation(); onView?.(property.id); }}
       role="button"
       aria-label={`View ${property.name}`}
@@ -2451,11 +2451,29 @@ const PropertyImage: React.FC<PropertyImageProps> = ({ property, className, onVi
       <img
         src={property.images?.[0] ? getFileUrl(property.images[0]) : '/api/placeholder/400/300'}
         alt={property.name}
-        className={`w-full h-full object-cover rounded-2xl ${isLoading ? 'opacity-0' : 'opacity-100'}`}
+        className={`w-full h-full object-cover rounded-2xl transition-all duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
         onError={handleImageError}
         onLoad={handleImageLoad}
         loading="lazy"
       />
+      
+      {/* Hover overlay with visual cue */}
+      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 rounded-2xl flex items-center justify-center">
+        <div className="opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
+          <div className="bg-white/90 dark:bg-gray-800/90 rounded-full p-3 shadow-lg">
+            <Eye className="h-5 w-5 text-gray-700 dark:text-gray-300" />
+          </div>
+        </div>
+      </div>
+      
+      {/* Hover text indicator */}
+      <div className="absolute bottom-3 left-3 right-3 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
+        <div className="bg-white/90 dark:bg-gray-800/90 rounded-lg px-3 py-1.5 shadow-lg">
+          <p className="text-xs font-medium text-gray-700 dark:text-gray-300 text-center">
+            Click to view
+          </p>
+        </div>
+      </div>
     </div>
   );
 };
@@ -4544,12 +4562,7 @@ const Step2Location: React.FC<Step1Props> = ({ form, formErrors, formValues }) =
                 <p className="text-sm text-red-700">{formErrors.state.message}</p>
               </div>
             )}
-            {/* Debug info - temporary */}
-            <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-600">
-              Debug: formValues.state = "{formValues.state}" (type: {typeof formValues.state})<br/>
-              form.watch('state') = "{form.watch('state')}" (type: {typeof form.watch('state')})<br/>
-              form.getValues('state') = "{form.getValues('state')}" (type: {typeof form.getValues('state')})
-            </div>
+
 
           </div>
 
