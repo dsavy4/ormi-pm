@@ -4521,7 +4521,7 @@ const Step2Location: React.FC<Step1Props> = ({ form, formErrors, formValues }) =
           <div>
             <label className="block text-sm font-semibold text-foreground mb-3">State <span className="text-red-600">*</span></label>
             <Select 
-              value={formValues.state || ''} 
+              value={formValues.state || undefined} 
               onValueChange={(value) => {
                 form.setValue('state', value);
                 form.trigger('state'); // Trigger validation immediately
@@ -4547,6 +4547,10 @@ const Step2Location: React.FC<Step1Props> = ({ form, formErrors, formValues }) =
                 <p className="text-sm text-red-700">{formErrors.state.message}</p>
               </div>
             )}
+            {/* Debug info - temporary */}
+            <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-600">
+              Debug: formValues.state = "{formValues.state}" (type: {typeof formValues.state})
+            </div>
 
           </div>
 
