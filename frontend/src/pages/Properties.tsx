@@ -4542,18 +4542,21 @@ const Step2Location: React.FC<Step1Props> = ({ form, formErrors, formValues }) =
           <div>
             <label className="block text-sm font-semibold text-foreground mb-3">State <span className="text-red-600">*</span></label>
             <Select
-              value={form.watch('state') || ''}
+              value={form.getValues('state') || ''}
               onValueChange={(value) => {
                 form.setValue('state', value);
                 form.trigger('state');
               }}
+              key={`state-${form.getValues('state')}`}
             >
               <SelectTrigger className={`h-12 text-base transition-all duration-200 ${
                 formErrors.state
                   ? 'border-red-300 focus:border-red-500 focus:ring-red-500/20'
                   : 'border-gray-200 focus:border-blue-500 focus:ring-blue-500/20 hover:border-gray-300'
               }`}>
-                <SelectValue placeholder="Select state" />
+                <SelectValue>
+                  {form.getValues('state') || 'Select state'}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent className="max-h-60">
                 {US_STATES.map(state => (
