@@ -6152,54 +6152,54 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
     <>
     <Sheet open={isOpen} onOpenChange={onClose}>
       <SheetContent side="right" className="w-full sm:w-[45%] md:w-[40%] flex flex-col h-full p-0 gap-0">
-        {/* Header with Property Identity */}
-        <div className="border-b bg-card">
+        {/* Professional Header with Property Identity */}
+        <div className="border-b bg-gradient-to-r from-slate-50 to-gray-50 dark:from-slate-900 dark:to-gray-900">
           {/* Header */}
-          <SheetHeader className="px-6 py-4">
-            <div className="flex items-center gap-3">
+          <SheetHeader className="px-6 py-6">
+            <div className="flex items-start gap-4">
               <div className="relative">
-                <div className="p-3 bg-gradient-to-r from-blue-100 to-blue-50 dark:from-blue-900/30 dark:to-blue-800/30 rounded-full">
-                  <Building2 className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                <div className="p-4 bg-gradient-to-br from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 rounded-2xl shadow-lg">
+                  <Building2 className="h-8 w-8 text-white" />
                 </div>
-                <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 dark:bg-green-400 rounded-full flex items-center justify-center">
-                  <Eye className="h-2 w-2 text-white" />
+                <div className="absolute -top-2 -right-2 w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center shadow-md">
+                  <Eye className="h-2.5 w-2.5 text-white" />
                 </div>
               </div>
-              <div className="flex-1">
-                <SheetTitle className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+              <div className="flex-1 min-w-0">
+                <SheetTitle className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3 mb-2">
                   {property.name}
-                  <Badge variant="outline" className="text-xs font-medium">
+                  <Badge variant="secondary" className="text-xs font-semibold px-3 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 border-blue-200 dark:border-blue-700">
                     {mapPropertyType(property.propertyType)}
                   </Badge>
                 </SheetTitle>
-                <SheetDescription className="text-sm text-gray-600 dark:text-gray-300 mt-1 flex items-center gap-2">
-                  <MapPin className="h-4 w-4" />
-                  {property.address}, {property.city}, {property.state} {property.zipCode}
+                <SheetDescription className="text-base text-gray-600 dark:text-gray-300 flex items-center gap-2">
+                  <MapPin className="h-5 w-5 text-gray-500" />
+                  <span className="font-medium">{property.address}, {property.city}, {property.state} {property.zipCode}</span>
                 </SheetDescription>
               </div>
             </div>
           </SheetHeader>
 
-          {/* Quick Stats Bar */}
-          <div className="px-6 pb-4">
-            <div className="grid grid-cols-3 gap-4">
-              <div className="text-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800/30">
-                <div className="text-lg font-bold text-blue-700 dark:text-blue-400">
+          {/* Enhanced Quick Stats Bar */}
+          <div className="px-6 pb-6">
+            <div className="grid grid-cols-3 gap-6">
+              <div className="text-center p-4 bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
+                <div className="text-2xl font-bold text-blue-600 dark:text-blue-400 mb-1">
                   {property.totalUnits || 0}
                 </div>
-                <div className="text-xs text-blue-600 dark:text-blue-300 font-medium">Total Units</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400 font-medium">Total Units</div>
               </div>
-              <div className="text-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800/30">
-                <div className="text-lg font-bold text-green-700 dark:text-green-400">
+              <div className="text-center p-4 bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
+                <div className="text-2xl font-bold text-green-600 dark:text-green-400 mb-1">
                   {property.occupiedUnits || 0}
                 </div>
-                <div className="text-xs text-green-600 dark:text-green-300 font-medium">Occupied</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400 font-medium">Occupied</div>
               </div>
-              <div className="text-center p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800/30">
-                <div className="text-lg font-bold text-purple-700 dark:text-purple-400">
+              <div className="text-center p-4 bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
+                <div className="text-2xl font-bold text-purple-600 dark:text-purple-400 mb-1">
                   {formatCurrency(property.monthlyRent || 0)}
                 </div>
-                <div className="text-xs text-purple-600 dark:text-purple-300 font-medium">Monthly Rent</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400 font-medium">Monthly Rent</div>
               </div>
             </div>
           </div>
@@ -6209,44 +6209,47 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
         <div className="flex-1 overflow-y-auto px-6 py-6">
           <div className="space-y-6">
 
-            {/* Primary Action - Edit Property */}
-            <div className="flex justify-center mb-4">
-              <Button 
-                onClick={() => onEdit(property.id)}
-                className="flex items-center gap-3 px-8 py-4 h-14 text-lg font-semibold bg-primary hover:bg-primary/90 text-white shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
-              >
-                <Edit className="h-5 w-5" />
-                Edit Property
-              </Button>
-            </div>
+            {/* Professional Action Section */}
+            <div className="bg-gradient-to-r from-slate-50 to-gray-50 dark:from-slate-800/50 dark:to-gray-800/50 rounded-2xl p-6 border border-gray-200 dark:border-slate-700">
+              {/* Primary Action - Edit Property */}
+              <div className="flex justify-center mb-6">
+                <Button 
+                  onClick={() => onEdit(property.id)}
+                  className="flex items-center gap-3 px-10 py-5 h-16 text-xl font-bold bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border-0"
+                >
+                  <Edit className="h-6 w-6" />
+                  Edit Property
+                </Button>
+              </div>
 
-            {/* Secondary Actions */}
-            <div className="grid grid-cols-3 gap-3">
-              <Button 
-                variant="outline" 
-                size="lg"
-                onClick={() => onArchive(property.id)}
-                className="h-12 font-medium hover:bg-red-50 dark:hover:bg-red-900/20 border-red-200 dark:border-red-800 hover:border-red-300 dark:hover:border-red-700 hover:text-red-700 dark:hover:text-red-300"
-              >
-                <Archive className="h-4 w-4 mr-2" />
-                Archive
-              </Button>
-              <Button 
-                variant="outline" 
-                size="lg"
-                className="h-12 font-medium hover:bg-blue-50 dark:hover:bg-blue-900/20 border-blue-200 dark:border-blue-800 hover:border-blue-300 dark:hover:border-blue-700 hover:text-blue-700 dark:hover:text-blue-300"
-              >
-                <FileText className="h-4 w-4 mr-2" />
-                Report
-              </Button>
-              <Button 
-                variant="outline" 
-                size="lg"
-                className="h-12 font-medium hover:bg-green-50 dark:hover:bg-green-900/20 border-green-200 dark:border-green-800 hover:border-green-300 dark:hover:border-green-700 hover:text-green-700 dark:hover:text-green-300"
-              >
-                <ExternalLink className="h-4 w-4 mr-2" />
-                Map
-              </Button>
+              {/* Secondary Actions */}
+              <div className="grid grid-cols-3 gap-4">
+                <Button 
+                  variant="outline" 
+                  size="lg"
+                  onClick={() => onArchive(property.id)}
+                  className="h-14 font-semibold hover:bg-red-50 dark:hover:bg-red-900/20 border-red-300 dark:border-red-700 hover:border-red-400 dark:hover:border-red-600 hover:text-red-700 dark:hover:text-red-300 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-all duration-200"
+                >
+                  <Archive className="h-5 w-5 mr-2" />
+                  Archive
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="lg"
+                  className="h-14 font-semibold hover:bg-blue-50 dark:hover:bg-blue-900/20 border-blue-300 dark:border-blue-700 hover:border-blue-400 dark:hover:border-blue-600 hover:text-blue-700 dark:hover:text-blue-300 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-all duration-200"
+                >
+                  <FileText className="h-5 w-5 mr-2" />
+                  Report
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="lg"
+                  className="h-14 font-semibold hover:bg-green-50 dark:hover:bg-green-900/20 border-green-300 dark:border-green-700 hover:border-green-400 dark:hover:border-green-600 hover:text-green-700 dark:hover:text-green-300 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-all duration-200"
+                >
+                  <ExternalLink className="h-5 w-5 mr-2" />
+                  Map
+                </Button>
+              </div>
             </div>
 
           {/* Property Images - Enhanced UX */}
@@ -6526,29 +6529,32 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
             </Card>
           )}
           
-          {/* Maintenance & Lease Information */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="flex items-center gap-1">
-                    <Wrench className="h-5 w-5 text-orange-600" />
-                    <Zap className="h-4 w-4 text-orange-500" />
+          {/* Professional Maintenance & Lease Information */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card className="border-0 shadow-lg bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20">
+              <CardContent className="p-6">
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="p-3 bg-orange-100 dark:bg-orange-900/30 rounded-xl">
+                    <Wrench className="h-6 w-6 text-orange-600 dark:text-orange-400" />
                   </div>
-                  <h3 className="text-lg font-semibold">Maintenance</h3>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white">Maintenance</h3>
                 </div>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Total Requests</span>
-                    <Badge variant="outline">{property.maintenanceRequests}</Badge>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center p-3 bg-white dark:bg-slate-800 rounded-lg border border-orange-200 dark:border-orange-800/30">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Total Requests</span>
+                    <Badge variant="secondary" className="bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300 border-orange-200 dark:border-orange-700">
+                      {property.maintenanceRequests || 0}
+                    </Badge>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Urgent</span>
-                    <Badge variant="destructive">{property.urgentMaintenanceRequests}</Badge>
+                  <div className="flex justify-between items-center p-3 bg-white dark:bg-slate-800 rounded-lg border border-red-200 dark:border-red-800/30">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Urgent</span>
+                    <Badge variant="destructive" className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 border-red-200 dark:border-red-700">
+                      {property.urgentMaintenanceRequests || 0}
+                    </Badge>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Last Inspection</span>
-                    <span className="text-sm text-gray-600">
+                  <div className="flex justify-between items-center p-3 bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Last Inspection</span>
+                    <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
                       {property.lastInspection ? new Date(property.lastInspection).toLocaleDateString() : 'Not scheduled'}
                     </span>
                   </div>
@@ -6556,26 +6562,32 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
               </CardContent>
             </Card>
             
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2 mb-4">
-                  <Calendar className="h-5 w-5 text-blue-600" />
-                  <h3 className="text-lg font-semibold">Leases</h3>
+            <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20">
+              <CardContent className="p-6">
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-xl">
+                    <Calendar className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white">Leases</h3>
                 </div>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Expiring This Month</span>
-                    <Badge variant="outline">{property.leasesExpiringThisMonth}</Badge>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center p-3 bg-white dark:bg-slate-800 rounded-lg border border-blue-200 dark:border-blue-800/30">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Expiring This Month</span>
+                    <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 border-blue-200 dark:border-blue-700">
+                      {property.leasesExpiringThisMonth || 0}
+                    </Badge>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Expiring Next 30 Days</span>
-                    <Badge variant="outline">{property.leasesExpiringNext30Days}</Badge>
+                  <div className="flex justify-between items-center p-3 bg-white dark:bg-slate-800 rounded-lg border border-blue-200 dark:border-blue-800/30">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Expiring Next 30 Days</span>
+                    <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 border-blue-200 dark:border-blue-700">
+                      {property.leasesExpiringNext30Days || 0}
+                    </Badge>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Tenant Satisfaction</span>
-                    <div className="flex items-center gap-1">
+                  <div className="flex justify-between items-center p-3 bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Tenant Satisfaction</span>
+                    <div className="flex items-center gap-2">
                       <Star className="h-4 w-4 text-yellow-500 fill-current" />
-                      <span className="text-sm text-gray-600">
+                      <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
                         {property.tenantSatisfaction ? `${property.tenantSatisfaction}/5` : 'N/A'}
                       </span>
                     </div>
