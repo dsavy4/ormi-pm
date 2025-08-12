@@ -309,7 +309,7 @@ const step4Schema = z.object({
 const step5Schema = z.object({
   // Management settings
   propertyManager: z.string().optional(),
-  rentDueDay: z.number().min(1).max(28).default(1),
+  rentDueDay: z.number().min(1, 'Rent due day is required').max(28, 'Rent due day must be between 1 and 28').default(1),
   allowOnlinePayments: z.boolean().default(true),
   enableMaintenanceRequests: z.boolean().default(true),
   // Financial data
@@ -5094,7 +5094,7 @@ const Step5Financial: React.FC<Step1Props> = ({ form, formErrors, formValues }) 
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Rent Due Day</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Rent Due Day <span className="text-red-600">*</span></label>
               <Select
                 value={formValues.rentDueDay?.toString() || '1'}
                 onValueChange={(value) => form.setValue('rentDueDay', parseInt(value))}
@@ -5128,7 +5128,7 @@ const Step5Financial: React.FC<Step1Props> = ({ form, formErrors, formValues }) 
                 onCheckedChange={(checked) => form.setValue('allowOnlinePayments', checked as boolean)}
               />
               <label htmlFor="allowOnlinePayments" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Allow Online Payments
+                Allow Online Payments <span className="text-red-600">*</span>
               </label>
             </div>
             <div className="flex items-center space-x-2">
@@ -5138,7 +5138,7 @@ const Step5Financial: React.FC<Step1Props> = ({ form, formErrors, formValues }) 
                 onCheckedChange={(checked) => form.setValue('enableMaintenanceRequests', checked as boolean)}
               />
               <label htmlFor="enableMaintenanceRequests" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Enable Maintenance Requests
+                Enable Maintenance Requests <span className="text-red-600">*</span>
               </label>
             </div>
           </div>
