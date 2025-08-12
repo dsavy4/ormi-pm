@@ -3670,11 +3670,6 @@ const AddPropertySheet: React.FC<AddPropertySheetProps> = ({ isOpen, onClose, on
 
         {/* Form Content - Scrollable */}
         <div className="flex-1 overflow-y-auto px-6 py-6">
-          {/* Step Description */}
-          <div className="text-center mb-6">
-            <p className="text-sm text-gray-600">{currentStepConfig?.description}</p>
-          </div>
-          
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             
             {/* Step 1: Basic Info */}
@@ -7842,8 +7837,6 @@ const PropertyEditSheet: React.FC<PropertyEditSheetProps> = ({
             
             {/* Enhanced step info */}
             <div className="text-center mt-8">
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">{currentStepConfig?.title}</p>
-              
               {/* Progress bar */}
               <div className="relative w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
                 <div 
