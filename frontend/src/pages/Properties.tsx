@@ -7703,8 +7703,67 @@ const PropertyEditSheet: React.FC<PropertyEditSheetProps> = ({
         });
       }
       
-      // Step 6: Review - All previous steps must be valid
-      return true;
+      if (currentStep === 6) {
+        // Step 6: Review - Check if all required fields from previous steps are completed
+        // This ensures the Update Property button is only enabled when all required data is present
+        
+        // Step 1 required fields
+        const step1Fields = ['name', 'propertyType', 'ownershipType'];
+        const step1Valid = step1Fields.every(field => {
+          const value = formValues[field as keyof typeof formValues];
+          return value !== undefined && value !== null && value !== '';
+        });
+        
+        // Step 2 required fields
+        const step2Fields = ['address', 'city', 'state', 'zipCode'];
+        const step2Valid = step2Fields.every(field => {
+          const value = formValues[field as keyof typeof formValues];
+          return value !== undefined && value !== null && value !== '';
+        });
+        
+        // Step 3 required fields
+        const step3Valid = (() => {
+          const totalUnits = formValues.totalUnits;
+          return typeof totalUnits === 'number' && totalUnits >= 1 && totalUnits <= 10000;
+        })();
+        
+        // Step 5 required fields
+        const step5Valid = (() => {
+          const rentDueDay = formValues.rentDueDay;
+          const allowOnlinePayments = formValues.allowOnlinePayments;
+          const enableMaintenanceRequests = formValues.enableMaintenanceRequests;
+          
+          return typeof rentDueDay === 'number' && rentDueDay >= 1 && rentDueDay <= 28 &&
+                 typeof allowOnlinePayments === 'boolean' &&
+                 typeof enableMaintenanceRequests === 'boolean';
+        })();
+        
+        // All steps must be valid for Update Property button to be enabled
+        const allValid = step1Valid && step2Valid && step3Valid && step5Valid;
+        
+        console.log('Step 6 Validation Debug:', {
+          step1Valid,
+          step2Valid,
+          step3Valid,
+          step5Valid,
+          allValid,
+          formValues: {
+            name: formValues.name,
+            propertyType: formValues.propertyType,
+            ownershipType: formValues.ownershipType,
+            address: formValues.address,
+            city: formValues.city,
+            state: formValues.state,
+            zipCode: formValues.zipCode,
+            totalUnits: formValues.totalUnits,
+            rentDueDay: formValues.rentDueDay,
+            allowOnlinePayments: formValues.allowOnlinePayments,
+            enableMaintenanceRequests: formValues.enableMaintenanceRequests
+          }
+        });
+        
+        return allValid;
+      }
       
     } catch (error) {
       console.log(`Step ${currentStep} validation failed:`, error);
