@@ -4760,7 +4760,17 @@ const Step3PropertyDetails: React.FC<Step1Props> = ({ form, formErrors, formValu
             <label className="block text-sm font-medium text-gray-700 mb-2">Year Built</label>
             <Input
               type="number"
-              {...form.register('yearBuilt', { valueAsNumber: true })}
+              {...form.register('yearBuilt', { 
+                valueAsNumber: true,
+                setValueAs: (value) => {
+                  // Handle empty string as undefined for optional field
+                  if (value === '' || value === null || value === undefined) {
+                    return undefined;
+                  }
+                  const num = Number(value);
+                  return isNaN(num) ? undefined : num;
+                }
+              })}
               placeholder="e.g., 1995"
               min="1800"
               max={new Date().getFullYear()}
@@ -4781,7 +4791,17 @@ const Step3PropertyDetails: React.FC<Step1Props> = ({ form, formErrors, formValu
             <label className="block text-sm font-medium text-gray-700 mb-2">Total Square Footage</label>
             <Input
               type="number"
-              {...form.register('sqft', { valueAsNumber: true })}
+              {...form.register('sqft', { 
+                valueAsNumber: true,
+                setValueAs: (value) => {
+                  // Handle empty string as undefined for optional field
+                  if (value === '' || value === null || value === undefined) {
+                    return undefined;
+                  }
+                  const num = Number(value);
+                  return isNaN(num) ? undefined : num;
+                }
+              })}
               placeholder="e.g., 15000"
               min="0"
               className={`transition-colors ${formErrors.sqft ? 'border-red-500 focus:border-red-500' : 'focus:border-blue-500'}`}
@@ -4799,7 +4819,17 @@ const Step3PropertyDetails: React.FC<Step1Props> = ({ form, formErrors, formValu
             <label className="block text-sm font-medium text-gray-700 mb-2">Lot Size (sq ft)</label>
             <Input
               type="number"
-              {...form.register('lotSize', { valueAsNumber: true })}
+              {...form.register('lotSize', { 
+                valueAsNumber: true,
+                setValueAs: (value) => {
+                  // Handle empty string as undefined for optional field
+                  if (value === '' || value === null || value === undefined) {
+                    return undefined;
+                  }
+                  const num = Number(value);
+                  return isNaN(num) ? undefined : num;
+                }
+              })}
               placeholder="e.g., 25000"
               min="0"
               className={`transition-colors ${formErrors.lotSize ? 'border-red-500 focus:border-red-500' : 'focus:border-blue-500'}`}
