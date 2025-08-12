@@ -30,7 +30,8 @@ import {
   DollarSign,
   Image as ImageIcon,
   Plus,
-  Calendar
+  Calendar,
+  Square
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -177,25 +178,20 @@ export const EnhancedUnitDetailsSheet: React.FC<EnhancedUnitDetailsSheetProps> =
           {/* Header */}
           <div className="px-6 py-6">
             <div className="flex items-start gap-4 mb-6">
-              <div className="relative">
-                <div className="p-4 bg-gradient-to-br from-green-100 to-emerald-50 dark:from-green-900/30 dark:to-emerald-800/30 rounded-2xl shadow-lg">
-                  <Home className="h-8 w-8 text-green-600 dark:text-green-400" />
-                </div>
-                <div className="absolute -top-2 -right-2 w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center shadow-md">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-3 mb-3">
+                  <SheetTitle className="text-2xl font-bold text-gray-900 dark:text-white">
+                    Unit {unit.number}
+                  </SheetTitle>
+                  <Badge variant="secondary" className="text-xs font-semibold px-3 py-1 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 border-green-200 dark:border-green-700">
+                    {unit.bedrooms}BR • {unit.bathrooms}BA
+                  </Badge>
                   <StatusBadge 
                     status={getStatusType(unit)}
                     size="sm"
                     className="flex-shrink-0"
                   />
                 </div>
-              </div>
-              <div className="flex-1 min-w-0">
-                <SheetTitle className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3 mb-2">
-                  Unit {unit.number}
-                  <Badge variant="secondary" className="text-xs font-semibold px-3 py-1 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 border-green-200 dark:border-green-700">
-                    {unit.bedrooms}BR • {unit.bathrooms}BA
-                  </Badge>
-                </SheetTitle>
                 <SheetDescription className="text-base text-gray-600 dark:text-gray-300 flex items-center gap-2">
                   <Building className="h-5 w-5 text-gray-500" />
                   <span className="font-medium">Building A • Floor {unit.floor || 'N/A'}</span>
@@ -203,52 +199,52 @@ export const EnhancedUnitDetailsSheet: React.FC<EnhancedUnitDetailsSheetProps> =
               </div>
             </div>
 
-            {/* Enhanced Quick Stats Bar */}
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-              <div className="text-center p-4 bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
-                <div className="text-2xl font-bold text-green-600 dark:text-green-400 mb-1">
+            {/* Compact Modern Stats Bar */}
+            <div className="flex items-center gap-4 mt-4">
+              <div className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 shadow-sm">
+                <DollarSign className="h-4 w-4 text-green-600" />
+                <span className="text-lg font-semibold text-gray-900 dark:text-white">
                   ${unit.monthlyRent?.toLocaleString() || '0'}
-                </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400 font-medium">Monthly Rent</div>
+                </span>
+                <span className="text-sm text-gray-500 dark:text-gray-400">/month</span>
               </div>
-              <div className="text-center p-4 bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
-                <div className="text-2xl font-bold text-blue-600 dark:text-blue-400 mb-1">
+              <div className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 shadow-sm">
+                <Square className="h-4 w-4 text-blue-600" />
+                <span className="text-lg font-semibold text-gray-900 dark:text-white">
                   {unit.squareFootage ? `${unit.squareFootage}` : 'N/A'}
-                </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400 font-medium">Square Feet</div>
+                </span>
+                <span className="text-sm text-gray-500 dark:text-gray-400">sqft</span>
               </div>
               {unit.tenant && (
-                <div className="text-center p-4 bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="text-2xl font-bold text-purple-600 dark:text-purple-400 mb-1">
-                    <User className="h-6 w-6 mx-auto mb-1" />
-                  </div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400 font-medium">{unit.tenant.name}</div>
+                <div className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 shadow-sm">
+                  <User className="h-4 w-4 text-purple-600" />
+                  <span className="text-lg font-semibold text-gray-900 dark:text-white">
+                    {unit.tenant.name}
+                  </span>
                 </div>
               )}
             </div>
           </div>
         </div>
 
-        {/* Professional Action Section */}
-        <div className="bg-gradient-to-r from-slate-50 to-gray-50 dark:from-slate-800/50 dark:to-gray-800/50 rounded-2xl mx-6 mt-6 p-6 border border-gray-200 dark:border-slate-700">
+        {/* Modern Responsive Action Section */}
+        <div className="mx-6 mt-4 space-y-3">
           {/* Primary Action - Edit Unit */}
-          <div className="flex justify-center mb-6">
-            <Button 
-              onClick={handleEditUnit}
-              className="flex items-center gap-3 px-8 py-4 h-14 text-lg font-semibold bg-primary hover:bg-primary/90 text-white shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
-            >
-              <Edit className="h-5 w-5" />
-              Edit Unit
-            </Button>
-          </div>
+          <Button 
+            onClick={handleEditUnit}
+            className="w-full flex items-center justify-center gap-3 py-4 h-14 text-lg font-semibold bg-primary hover:bg-primary/90 text-white shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 rounded-xl"
+          >
+            <Edit className="h-5 w-5" />
+            Edit Unit
+          </Button>
 
-          {/* Secondary Actions */}
-          <div className="grid grid-cols-2 gap-4">
+          {/* Secondary Actions - Horizontal Layout */}
+          <div className="flex gap-3">
             {!unit.tenant ? (
               <Button 
                 variant="outline" 
                 size="lg"
-                className="h-12 font-semibold hover:bg-blue-50 dark:hover:bg-blue-900/20 border-blue-300 dark:border-blue-700 hover:border-blue-400 dark:hover:border-blue-600 hover:text-blue-700 dark:hover:text-blue-300 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-all duration-200"
+                className="flex-1 h-12 font-semibold hover:bg-blue-50 dark:hover:bg-blue-900/20 border-blue-300 dark:border-blue-700 hover:border-blue-400 dark:hover:border-blue-600 hover:text-blue-700 dark:hover:text-blue-300 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-all duration-200 rounded-xl"
               >
                 <User className="h-4 w-4 mr-2" />
                 Add Tenant
@@ -257,7 +253,7 @@ export const EnhancedUnitDetailsSheet: React.FC<EnhancedUnitDetailsSheetProps> =
               <Button 
                 variant="outline" 
                 size="lg"
-                className="h-12 font-semibold hover:bg-blue-50 dark:hover:bg-blue-900/20 border-blue-300 dark:border-blue-700 hover:border-blue-400 dark:hover:border-blue-600 hover:text-blue-700 dark:hover:text-blue-300 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-all duration-200"
+                className="flex-1 h-12 font-semibold hover:bg-blue-50 dark:hover:bg-blue-900/20 border-blue-300 dark:border-blue-700 hover:border-blue-400 dark:hover:border-blue-600 hover:text-blue-700 dark:hover:text-blue-300 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-all duration-200 rounded-xl"
               >
                 <User className="h-4 w-4 mr-2" />
                 Manage Tenant
@@ -267,7 +263,7 @@ export const EnhancedUnitDetailsSheet: React.FC<EnhancedUnitDetailsSheetProps> =
               variant="outline" 
               size="lg"
               onClick={handleCreateMaintenanceRequest}
-              className="h-12 font-semibold hover:bg-orange-50 dark:hover:bg-orange-900/20 border-orange-300 dark:border-orange-700 hover:border-orange-400 dark:hover:border-orange-600 hover:text-orange-700 dark:hover:text-orange-300 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-all duration-200"
+              className="flex-1 h-12 font-semibold hover:bg-orange-50 dark:hover:bg-orange-900/20 border-orange-300 dark:border-orange-700 hover:border-orange-400 dark:hover:border-orange-600 hover:text-orange-700 dark:hover:text-orange-300 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-all duration-200 rounded-xl"
             >
               <Wrench className="h-4 w-4 mr-2" />
               Work Order
@@ -298,107 +294,96 @@ export const EnhancedUnitDetailsSheet: React.FC<EnhancedUnitDetailsSheetProps> =
               <TabsContent value="overview" className="h-full data-[state=inactive]:hidden">
                 <ScrollArea className="h-full">
                   <div className="p-4 sm:p-6 space-y-8">
-                    {/* Professional Unit Information Section */}
-                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-2xl p-6 border border-blue-200 dark:border-blue-800/30">
-                      <h4 className="font-bold text-xl flex items-center gap-3 mb-6 text-gray-900 dark:text-white">
-                        <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                          <Info className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-                        </div>
-                        Unit Information
-                      </h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-4">
-                          <div className="flex justify-between items-center p-3 bg-white dark:bg-slate-800 rounded-lg border border-blue-200 dark:border-blue-800/30">
-                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Unit Number</span>
-                            <span className="font-semibold text-gray-900 dark:text-white">{unit.number}</span>
-                          </div>
-                          <div className="flex justify-between items-center p-3 bg-white dark:bg-slate-800 rounded-lg border border-blue-200 dark:border-blue-800/30">
-                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Floor</span>
-                            <span className="font-semibold text-gray-900 dark:text-white">{unit.floor || 'N/A'}</span>
-                          </div>
-                          <div className="flex justify-between items-center p-3 bg-white dark:bg-slate-800 rounded-lg border border-blue-200 dark:border-blue-800/30">
-                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Bedrooms</span>
-                            <span className="font-semibold text-gray-900 dark:text-white">{unit.bedrooms}</span>
-                          </div>
-                          <div className="flex justify-between items-center p-3 bg-white dark:bg-slate-800 rounded-lg border border-blue-200 dark:border-blue-800/30">
-                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Bathrooms</span>
-                            <span className="font-semibold text-gray-900 dark:text-white">{unit.bathrooms}</span>
-                          </div>
-                        </div>
-                        <div className="space-y-4">
-                          <div className="flex justify-between items-center p-3 bg-white dark:bg-slate-800 rounded-lg border border-blue-200 dark:border-blue-800/30">
-                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Square Footage</span>
-                            <span className="font-semibold text-gray-900 dark:text-white">{unit.squareFootage ? `${unit.squareFootage} sqft` : 'N/A'}</span>
-                          </div>
-                          <div className="flex justify-between items-center p-3 bg-white dark:bg-slate-800 rounded-lg border border-blue-200 dark:border-blue-800/30">
-                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Building</span>
-                            <span className="font-semibold text-gray-900 dark:text-white">Building A</span>
-                          </div>
-                          <div className="flex justify-between items-center p-3 bg-white dark:bg-slate-800 rounded-lg border border-blue-200 dark:border-blue-800/30">
-                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Unit Type</span>
-                            <span className="font-semibold text-gray-900 dark:text-white">Apartment</span>
-                          </div>
-                          <div className="flex justify-between items-center p-3 bg-white dark:bg-slate-800 rounded-lg border border-blue-200 dark:border-blue-800/30">
-                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Parking</span>
-                            <span className="font-semibold text-gray-900 dark:text-white">1 Space</span>
-                          </div>
-                        </div>
+                    {/* Modern Compact Unit Information Section */}
+                    <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm">
+                      <div className="p-4 border-b border-gray-100 dark:border-slate-700">
+                        <h4 className="font-semibold text-lg flex items-center gap-2 text-gray-900 dark:text-white">
+                          <Info className="h-5 w-5 text-blue-600" />
+                          Unit Information
+                        </h4>
                       </div>
-                      <div className="mt-6 p-4 bg-white dark:bg-slate-800 rounded-lg border border-blue-200 dark:border-blue-800/30">
-                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 block">Amenities</span>
-                        <div className="flex flex-wrap gap-2">
-                          {unit.amenities && unit.amenities.length > 0 ? (
-                            unit.amenities.map((amenity: string, index: number) => (
-                              <Badge key={index} variant="secondary" className="text-xs bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 border-blue-200 dark:border-blue-700">
-                                {amenity}
-                              </Badge>
-                            ))
-                          ) : (
-                            <span className="text-sm text-gray-500 dark:text-gray-400">None</span>
-                          )}
+                      <div className="p-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-3">
+                            <div className="flex justify-between items-center py-2">
+                              <span className="text-sm text-gray-600 dark:text-gray-400">Unit Number</span>
+                              <span className="font-medium text-gray-900 dark:text-white">{unit.number}</span>
+                            </div>
+                            <div className="flex justify-between items-center py-2">
+                              <span className="text-sm text-gray-600 dark:text-gray-400">Floor</span>
+                              <span className="font-medium text-gray-900 dark:text-white">{unit.floor || 'N/A'}</span>
+                            </div>
+                            <div className="flex justify-between items-center py-2">
+                              <span className="text-sm text-gray-600 dark:text-gray-400">Bedrooms</span>
+                              <span className="font-medium text-gray-900 dark:text-white">{unit.bedrooms}</span>
+                            </div>
+                            <div className="flex justify-between items-center py-2">
+                              <span className="text-sm text-gray-600 dark:text-gray-400">Bathrooms</span>
+                              <span className="font-medium text-gray-900 dark:text-white">{unit.bathrooms}</span>
+                            </div>
+                          </div>
+                          <div className="space-y-3">
+                            <div className="flex justify-between items-center py-2">
+                              <span className="text-sm text-gray-600 dark:text-gray-400">Square Footage</span>
+                              <span className="font-medium text-gray-900 dark:text-white">{unit.squareFootage ? `${unit.squareFootage} sqft` : 'N/A'}</span>
+                            </div>
+                            <div className="flex justify-between items-center py-2">
+                              <span className="text-sm text-gray-600 dark:text-gray-400">Building</span>
+                              <span className="font-medium text-gray-900 dark:text-white">Building A</span>
+                            </div>
+                            <div className="flex justify-between items-center py-2">
+                              <span className="text-sm text-gray-600 dark:text-gray-400">Unit Type</span>
+                              <span className="font-medium text-gray-900 dark:text-white">Apartment</span>
+                            </div>
+                            <div className="flex justify-between items-center py-2">
+                              <span className="text-sm text-gray-600 dark:text-gray-400">Parking</span>
+                              <span className="font-medium text-gray-900 dark:text-white">1 Space</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="mt-4 pt-4 border-t border-gray-100 dark:border-slate-700">
+                          <span className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">Amenities</span>
+                          <div className="flex flex-wrap gap-2">
+                            {unit.amenities && unit.amenities.length > 0 ? (
+                              unit.amenities.map((amenity: string, index: number) => (
+                                <Badge key={index} variant="secondary" className="text-xs bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300 border-blue-200 dark:border-blue-700">
+                                  {amenity}
+                                </Badge>
+                              ))
+                            ) : (
+                              <span className="text-sm text-gray-500 dark:text-gray-400">None</span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
 
-                    {/* Professional Financial Information Section */}
-                    <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-2xl p-6 border border-green-200 dark:border-green-800/30">
-                      <h4 className="font-bold text-xl flex items-center gap-3 mb-6 text-gray-900 dark:text-white">
-                        <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
-                          <DollarSign className="h-6 w-6 text-green-600 dark:text-green-400" />
-                        </div>
-                        Financial Information
-                      </h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-4">
-                          <div className="flex justify-between items-center p-3 bg-white dark:bg-slate-800 rounded-lg border border-green-200 dark:border-green-800/30">
-                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Monthly Rent</span>
-                            <span className="font-semibold text-gray-900 dark:text-white">${unit.monthlyRent?.toLocaleString()}</span>
-                          </div>
-                          <div className="flex justify-between items-center p-3 bg-white dark:bg-slate-800 rounded-lg border border-green-200 dark:border-green-800/30">
-                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Security Deposit</span>
-                            <span className="font-semibold text-gray-900 dark:text-white">${unit.securityDeposit?.toLocaleString() || 'N/A'}</span>
-                          </div>
-                          <div className="flex justify-between items-center p-3 bg-white dark:bg-slate-800 rounded-lg border border-green-200 dark:border-green-800/30">
-                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Pet Fee</span>
-                            <span className="font-semibold text-gray-900 dark:text-white">${unit.petFee?.toLocaleString() || 'N/A'}</span>
-                          </div>
-                        </div>
+                    {/* Modern Compact Financial Information Section */}
+                    <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm">
+                      <div className="p-4 border-b border-gray-100 dark:border-slate-700">
+                        <h4 className="font-semibold text-lg flex items-center gap-2 text-gray-900 dark:text-white">
+                          <DollarSign className="h-5 w-5 text-green-600" />
+                          Financial Information
+                        </h4>
+                      </div>
+                      <div className="p-4">
                         <div className="space-y-3">
-                          <div className="flex justify-between">
-                            <span className="text-sm text-muted-foreground">Utilities Included</span>
-                            <span className="font-medium text-foreground">{unit.utilitiesIncluded ? 'Yes' : 'No'}</span>
+                          <div className="flex justify-between items-center py-2">
+                            <span className="text-sm text-gray-600 dark:text-gray-400">Monthly Rent</span>
+                            <span className="font-medium text-gray-900 dark:text-white">${unit.monthlyRent?.toLocaleString()}</span>
                           </div>
-                          <div className="flex justify-between">
-                            <span className="text-sm text-muted-foreground">Parking Fee</span>
-                            <span className="font-medium text-foreground">${unit.parkingFee?.toLocaleString() || 'N/A'}</span>
+                          <div className="flex justify-between items-center py-2">
+                            <span className="text-sm text-gray-600 dark:text-gray-400">Security Deposit</span>
+                            <span className="font-medium text-gray-900 dark:text-white">${unit.securityDeposit?.toLocaleString() || 'N/A'}</span>
                           </div>
-                          <div className="flex justify-between">
-                            <span className="text-sm text-muted-foreground">Late Fee</span>
-                            <span className="font-medium text-foreground">${unit.lateFee?.toLocaleString() || 'N/A'}</span>
+                          <div className="flex justify-between items-center py-2">
+                            <span className="text-sm text-gray-600 dark:text-gray-400">Pet Fee</span>
+                            <span className="font-medium text-gray-900 dark:text-white">${unit.petFee?.toLocaleString() || 'N/A'}</span>
                           </div>
                         </div>
                       </div>
                     </div>
+
 
                     {/* Photos Section */}
                     <div className="space-y-6">
