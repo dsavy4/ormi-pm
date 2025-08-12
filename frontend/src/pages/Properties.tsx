@@ -6158,8 +6158,8 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
           <SheetHeader className="px-6 py-6">
             <div className="flex items-start gap-4">
               <div className="relative">
-                <div className="p-4 bg-gradient-to-br from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 rounded-2xl shadow-lg">
-                  <Building2 className="h-8 w-8 text-white" />
+                <div className="p-4 bg-gradient-to-br from-blue-100 to-blue-50 dark:from-blue-900/30 dark:to-blue-800/30 rounded-2xl shadow-lg">
+                  <Building2 className="h-8 w-8 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div className="absolute -top-2 -right-2 w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center shadow-md">
                   <Eye className="h-2.5 w-2.5 text-white" />
@@ -6215,7 +6215,7 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
               <div className="flex justify-center mb-6">
                 <Button 
                   onClick={() => onEdit(property.id)}
-                  className="flex items-center gap-3 px-10 py-5 h-16 text-xl font-bold bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border-0"
+                  className="flex items-center gap-3 px-10 py-5 h-16 text-xl font-semibold bg-primary hover:bg-primary/90 text-white shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
                 >
                   <Edit className="h-6 w-6" />
                   Edit Property
