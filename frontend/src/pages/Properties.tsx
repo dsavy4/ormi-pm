@@ -385,6 +385,11 @@ const US_STATES = [
   'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming'
 ];
 
+// Popular English-speaking countries dropdown options
+const COUNTRIES = [
+  'United States', 'Canada', 'United Kingdom', 'Australia', 'New Zealand', 'Ireland', 'South Africa', 'India', 'Singapore', 'Hong Kong'
+];
+
 const PROPERTY_TYPES = [
   'Multi-Family', 'Single-Family', 'Commercial', 'Condominium', 'Townhouse', 'Duplex'
 ];
@@ -4600,12 +4605,28 @@ const Step2Location: React.FC<Step1Props> = ({ form, formErrors, formValues }) =
 
         <div>
           <label className="block text-sm font-semibold text-foreground mb-3">Country</label>
-          <Input
-            {...form.register('country')}
-            placeholder="Country"
-            className="h-12 text-base border-gray-200 focus:border-blue-500 focus:ring-blue-500/20 hover:border-gray-300 transition-all duration-200"
-          />
-          <p className="text-sm text-gray-500 mt-2">Defaults to United States</p>
+          <Select
+            value={form.getValues('country') || 'United States'}
+            onValueChange={(value) => {
+              form.setValue('country', value);
+              form.trigger('country');
+            }}
+            key={`country-${form.getValues('country')}`}
+          >
+            <SelectTrigger className="h-12 text-base border-gray-200 focus:border-blue-500 focus:ring-blue-500/20 hover:border-gray-300 transition-all duration-200">
+              <SelectValue>
+                {form.getValues('country') || 'United States'}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent className="max-h-60">
+              {COUNTRIES.map(country => (
+                <SelectItem key={country} value={country} className="py-2">
+                  <span className="font-medium">{country}</span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-sm text-gray-500 mt-2">Select the country where your property is located</p>
         </div>
       </div>
     </div>
