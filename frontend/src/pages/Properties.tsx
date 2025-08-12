@@ -4520,30 +4520,25 @@ const Step2Location: React.FC<Step1Props> = ({ form, formErrors, formValues }) =
 
           <div>
             <label className="block text-sm font-semibold text-foreground mb-3">State <span className="text-red-600">*</span></label>
-            <Select 
-              value={form.watch('state') || undefined} 
-              onValueChange={(value) => {
-                form.setValue('state', value);
-                form.trigger('state'); // Trigger validation immediately
+            <select
+              value={form.watch('state') || ''}
+              onChange={(e) => {
+                form.setValue('state', e.target.value);
+                form.trigger('state');
               }}
-            >
-              <SelectTrigger className={`h-12 text-base transition-all duration-200 ${
+              className={`h-12 text-base transition-all duration-200 px-3 rounded-md border ${
                 formErrors.state 
-                  ? 'border-red-300 focus:border-red-500' 
-                  : 'border-gray-200 focus:border-blue-500 hover:border-gray-300'
-              }`}>
-                <SelectValue placeholder="Select state">
-                  {form.watch('state') || 'Select state'}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent className="max-h-60">
-                {US_STATES.map(state => (
-                  <SelectItem key={state} value={state} className="py-2">
-                    <span className="font-medium">{state}</span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                  ? 'border-red-300 focus:border-red-500 focus:ring-red-500/20' 
+                  : 'border-gray-200 focus:border-blue-500 focus:ring-blue-500/20 hover:border-gray-300'
+              }`}
+            >
+              <option value="">Select state</option>
+              {US_STATES.map(state => (
+                <option key={state} value={state}>
+                  {state}
+                </option>
+              ))}
+            </select>
             {formErrors.state && (
               <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
                 <p className="text-sm text-red-700">{formErrors.state.message}</p>
