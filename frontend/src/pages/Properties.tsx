@@ -429,6 +429,23 @@ const US_STATES = [
   { value: 'WY', label: 'Wyoming' }
 ];
 
+// Canadian Provinces and Territories - Using abbreviations for consistency
+const CANADIAN_PROVINCES = [
+  { value: 'AB', label: 'Alberta' },
+  { value: 'BC', label: 'British Columbia' },
+  { value: 'MB', label: 'Manitoba' },
+  { value: 'NB', label: 'New Brunswick' },
+  { value: 'NL', label: 'Newfoundland and Labrador' },
+  { value: 'NS', label: 'Nova Scotia' },
+  { value: 'NT', label: 'Northwest Territories' },
+  { value: 'NU', label: 'Nunavut' },
+  { value: 'ON', label: 'Ontario' },
+  { value: 'PE', label: 'Prince Edward Island' },
+  { value: 'QC', label: 'Quebec' },
+  { value: 'SK', label: 'Saskatchewan' },
+  { value: 'YT', label: 'Yukon' }
+];
+
 // Simplified countries - Focus on primary markets like DoorLoop
 const COUNTRIES = [
   'United States',
@@ -4590,14 +4607,16 @@ const Step2Location: React.FC<Step1Props> = ({ form, formErrors, formValues }) =
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-foreground mb-3">State <span className="text-red-600">*</span></label>
+            <label className="block text-sm font-semibold text-foreground mb-3">
+              {form.getValues('country') === 'Canada' ? 'Province/Territory' : 'State'} <span className="text-red-600">*</span>
+            </label>
             <Select
               value={form.getValues('state') || ''}
               onValueChange={(value) => {
                 form.setValue('state', value);
                 form.trigger('state');
               }}
-              key={`state-${form.getValues('state')}`}
+              key={`state-${form.getValues('state')}-${form.getValues('country')}`}
             >
               <SelectTrigger className={`h-12 text-base transition-all duration-200 ${
                 formErrors.state
@@ -4607,14 +4626,21 @@ const Step2Location: React.FC<Step1Props> = ({ form, formErrors, formValues }) =
                 <SelectValue>
                   {(() => {
                     const stateValue = form.getValues('state');
-                    if (!stateValue) return 'Select state';
-                    const stateObj = US_STATES.find(s => s.value === stateValue);
-                    return stateObj ? stateObj.label : stateValue;
+                    const country = form.getValues('country');
+                    if (!stateValue) return country === 'Canada' ? 'Select province/territory' : 'Select state';
+                    
+                    if (country === 'Canada') {
+                      const provinceObj = CANADIAN_PROVINCES.find(s => s.value === stateValue);
+                      return provinceObj ? provinceObj.label : stateValue;
+                    } else {
+                      const stateObj = US_STATES.find(s => s.value === stateValue);
+                      return stateObj ? stateObj.label : stateValue;
+                    }
                   })()}
                 </SelectValue>
               </SelectTrigger>
               <SelectContent className="max-h-60">
-                {US_STATES.map(state => (
+                {(form.getValues('country') === 'Canada' ? CANADIAN_PROVINCES : US_STATES).map(state => (
                   <SelectItem key={state.value} value={state.value} className="py-2">
                     <span className="font-medium">{state.label}</span>
                   </SelectItem>
@@ -4632,10 +4658,12 @@ const Step2Location: React.FC<Step1Props> = ({ form, formErrors, formValues }) =
           </div>
 
           <div className="sm:col-span-2 lg:col-span-1">
-            <label className="block text-sm font-semibold text-foreground mb-3">ZIP Code <span className="text-red-600">*</span></label>
+            <label className="block text-sm font-semibold text-foreground mb-3">
+              {form.getValues('country') === 'Canada' ? 'Postal Code' : 'ZIP Code'} <span className="text-red-600">*</span>
+            </label>
             <Input
               {...form.register('zipCode')}
-              placeholder="e.g., 94105"
+              placeholder={form.getValues('country') === 'Canada' ? 'e.g., M5V 3A8' : 'e.g., 94105'}
               className={`h-12 text-base transition-all duration-200 ${
                 formErrors.zipCode 
                   ? 'border-red-300 focus:border-red-500 focus:ring-red-500/20' 
@@ -4659,7 +4687,10 @@ const Step2Location: React.FC<Step1Props> = ({ form, formErrors, formValues }) =
             value={form.getValues('country') || 'United States'}
             onValueChange={(value) => {
               form.setValue('country', value);
+              // Clear state/province when country changes since they're not compatible
+              form.setValue('state', '');
               form.trigger('country');
+              form.trigger('state');
             }}
             key={`country-${form.getValues('country')}`}
           >
