@@ -313,10 +313,10 @@ const step5Schema = z.object({
   allowOnlinePayments: z.boolean().default(true),
   enableMaintenanceRequests: z.boolean().default(true),
   // Financial data
-  marketValue: z.number().min(0, 'Market value must be positive').optional(),
-  purchasePrice: z.number().min(0, 'Purchase price must be positive').optional(),
+  marketValue: z.number().min(0, 'Market value must be positive').nullable().optional(),
+  purchasePrice: z.number().min(0, 'Purchase price must be positive').nullable().optional(),
   purchaseDate: z.string().optional(),
-  expenses: z.number().min(0, 'Expenses must be positive').optional(),
+  expenses: z.number().min(0, 'Expenses must be positive').nullable().optional(),
 });
 
 // Combined schema for final validation
@@ -5174,7 +5174,16 @@ const Step5Financial: React.FC<Step1Props> = ({ form, formErrors, formValues }) 
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Market Value</label>
               <Input
                 type="number"
-                {...form.register('marketValue', { valueAsNumber: true })}
+                {...form.register('marketValue', { 
+                  setValueAs: (value) => {
+                    // Handle empty string as undefined for optional field
+                    if (value === '' || value === null || value === undefined) {
+                      return undefined;
+                    }
+                    const num = Number(value);
+                    return isNaN(num) ? undefined : num;
+                  }
+                })}
                 placeholder="e.g., 500000"
                 min="0"
                 className={`transition-colors ${formErrors.marketValue ? 'border-red-500 focus:border-red-500' : 'focus:border-green-500'}`}
@@ -5192,7 +5201,16 @@ const Step5Financial: React.FC<Step1Props> = ({ form, formErrors, formValues }) 
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Purchase Price</label>
               <Input
                 type="number"
-                {...form.register('purchasePrice', { valueAsNumber: true })}
+                {...form.register('purchasePrice', { 
+                  setValueAs: (value) => {
+                    // Handle empty string as undefined for optional field
+                    if (value === '' || value === null || value === undefined) {
+                      return undefined;
+                    }
+                    const num = Number(value);
+                    return isNaN(num) ? undefined : num;
+                  }
+                })}
                 placeholder="e.g., 450000"
                 min="0"
                 className={`transition-colors ${formErrors.purchasePrice ? 'border-red-500 focus:border-red-500' : 'focus:border-green-500'}`}
@@ -5228,7 +5246,16 @@ const Step5Financial: React.FC<Step1Props> = ({ form, formErrors, formValues }) 
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Annual Expenses</label>
               <Input
                 type="number"
-                {...form.register('expenses', { valueAsNumber: true })}
+                {...form.register('expenses', { 
+                  setValueAs: (value) => {
+                    // Handle empty string as undefined for optional field
+                    if (value === '' || value === null || value === undefined) {
+                      return undefined;
+                    }
+                    const num = Number(value);
+                    return isNaN(num) ? undefined : num;
+                  }
+                })}
                 placeholder="e.g., 25000"
                 min="0"
                 className={`transition-colors ${formErrors.expenses ? 'border-red-500 focus:border-red-500' : 'focus:border-green-500'}`}
@@ -7762,6 +7789,35 @@ const PropertyEditSheet: React.FC<PropertyEditSheetProps> = ({
           }
         });
         
+        // Additional debugging for Update Property button
+        console.log('Update Property Button Debug:', {
+          isSubmitting,
+          isCurrentStepValid: allValid,
+          buttonDisabled: isSubmitting || !allValid,
+          formErrors: Object.keys(formErrors),
+          hasFormErrors: Object.keys(formErrors).length > 0
+        });
+        
+        // Detailed form errors debugging
+        if (Object.keys(formErrors).length > 0) {
+          console.log('Detailed Form Errors:', formErrors);
+          console.log('Form Errors by Field:');
+          Object.entries(formErrors).forEach(([field, error]) => {
+            console.log(`  ${field}:`, error);
+          });
+        }
+        
+        // Check if form is valid according to Zod schema
+        try {
+          const zodResult = propertyFormSchema.safeParse(formValues);
+          console.log('Zod Schema Validation Result:', {
+            success: zodResult.success,
+            errors: zodResult.success ? null : zodResult.error.errors
+          });
+        } catch (error) {
+          console.log('Zod validation error:', error);
+        }
+        
         return allValid;
       }
       
@@ -7982,8 +8038,15 @@ const PropertyEditSheet: React.FC<PropertyEditSheetProps> = ({
 
   // Form submission handler (enhanced version)
   const onSubmit = async (data: PropertyFormData) => {
-    if (!property) return;
+    console.log('onSubmit called with data:', data);
+    console.log('Property:', property);
+    
+    if (!property) {
+      console.error('No property data available for submission');
+      return;
+    }
 
+    console.log('Setting isSubmitting to true');
     setIsSubmitting(true);
     try {
       // Handle image uploads first
