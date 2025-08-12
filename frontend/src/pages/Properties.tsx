@@ -386,8 +386,18 @@ const US_STATES = [
 ];
 
 // Popular English-speaking countries dropdown options
+// United States first (primary market), then alphabetical for easy scanning
 const COUNTRIES = [
-  'United States', 'Canada', 'United Kingdom', 'Australia', 'New Zealand', 'Ireland', 'South Africa', 'India', 'Singapore', 'Hong Kong'
+  'United States',
+  'Australia',
+  'Canada',
+  'Hong Kong',
+  'India',
+  'Ireland',
+  'New Zealand',
+  'Singapore',
+  'South Africa',
+  'United Kingdom'
 ];
 
 const PROPERTY_TYPES = [
