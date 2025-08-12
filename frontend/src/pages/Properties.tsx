@@ -4517,7 +4517,7 @@ const Step2Location: React.FC<Step1Props> = ({ form, formErrors, formValues }) =
           <p className="text-sm text-gray-500 mt-2">Add if your property has a specific unit or suite number</p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           <div>
             <label className="block text-sm font-semibold text-foreground mb-3">City <span className="text-red-600">*</span></label>
             <Input
@@ -4541,35 +4541,39 @@ const Step2Location: React.FC<Step1Props> = ({ form, formErrors, formValues }) =
 
           <div>
             <label className="block text-sm font-semibold text-foreground mb-3">State <span className="text-red-600">*</span></label>
-            <select
+            <Select
               value={form.watch('state') || ''}
-              onChange={(e) => {
-                form.setValue('state', e.target.value);
+              onValueChange={(value) => {
+                form.setValue('state', value);
                 form.trigger('state');
               }}
-              className={`h-12 text-base transition-all duration-200 px-3 rounded-md border ${
-                formErrors.state 
-                  ? 'border-red-300 focus:border-red-500 focus:ring-red-500/20' 
-                  : 'border-gray-200 focus:border-blue-500 focus:ring-blue-500/20 hover:border-gray-300'
-              }`}
             >
-              <option value="">Select state</option>
-              {US_STATES.map(state => (
-                <option key={state} value={state}>
-                  {state}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger className={`h-12 text-base transition-all duration-200 ${
+                formErrors.state
+                  ? 'border-red-300 focus:border-red-500 focus:ring-red-500/20'
+                  : 'border-gray-200 focus:border-blue-500 focus:ring-blue-500/20 hover:border-gray-300'
+              }`}>
+                <SelectValue placeholder="Select state" />
+              </SelectTrigger>
+              <SelectContent className="max-h-60">
+                {US_STATES.map(state => (
+                  <SelectItem key={state} value={state} className="py-2">
+                    <span className="font-medium">{state}</span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             {formErrors.state && (
               <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-sm text-red-700">{formErrors.state.message}</p>
+                <p className="text-sm text-red-700 flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4" />
+                  {formErrors.state.message}
+                </p>
               </div>
             )}
-
-
           </div>
 
-          <div>
+          <div className="sm:col-span-2 lg:col-span-1">
             <label className="block text-sm font-semibold text-foreground mb-3">ZIP Code <span className="text-red-600">*</span></label>
             <Input
               {...form.register('zipCode')}
@@ -7544,7 +7548,7 @@ const PropertyEditSheet: React.FC<PropertyEditSheetProps> = ({
         address: property.address || '',
         unitSuite: '',
         city: property.city || '',
-        state: property.state || undefined,
+        state: property.state || '',
         zipCode: property.zipCode || '',
         country: 'United States',
         totalUnits: property.totalUnits || undefined,
