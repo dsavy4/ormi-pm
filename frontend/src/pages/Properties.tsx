@@ -2460,10 +2460,10 @@ const PropertyImage: React.FC<PropertyImageProps> = ({ property, className, onVi
       {/* Hover overlay with subtle visual cue */}
       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all duration-300 rounded-2xl" />
       
-      {/* Eye icon in bottom-left corner - avoids star rating conflict */}
-      <div className="absolute bottom-3 left-3 opacity-0 group-hover:opacity-100 transition-all duration-300 transform scale-90 group-hover:scale-100">
-        <div className="bg-white/90 dark:bg-gray-800/90 rounded-full p-2 shadow-lg">
-          <Eye className="h-4 w-4 text-gray-700 dark:text-gray-300" />
+      {/* Eye icon in center - more intuitive and visible */}
+      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
+        <div className="bg-white/90 dark:bg-gray-800/90 rounded-full p-3 shadow-lg transform scale-90 group-hover:scale-100 transition-transform duration-300">
+          <Eye className="h-5 w-5 text-gray-700 dark:text-gray-300" />
         </div>
       </div>
     </div>
@@ -2955,7 +2955,18 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
       <div className="p-4 space-y-4">
         {/* Header */}
         <div className="space-y-2">
-          <h3 className="text-lg font-semibold line-clamp-1 group-hover:text-primary transition-colors">
+          <h3 
+            className="text-lg font-semibold line-clamp-1 group-hover:text-primary transition-colors cursor-pointer hover:underline"
+            onClick={() => onView(property.id)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onView(property.id);
+              }
+            }}
+          >
             {property.name}
           </h3>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
