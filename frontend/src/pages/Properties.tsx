@@ -4761,7 +4761,6 @@ const Step3PropertyDetails: React.FC<Step1Props> = ({ form, formErrors, formValu
             <Input
               type="number"
               {...form.register('yearBuilt', { 
-                valueAsNumber: true,
                 setValueAs: (value) => {
                   // Handle empty string as undefined for optional field
                   if (value === '' || value === null || value === undefined) {
@@ -4792,7 +4791,6 @@ const Step3PropertyDetails: React.FC<Step1Props> = ({ form, formErrors, formValu
             <Input
               type="number"
               {...form.register('sqft', { 
-                valueAsNumber: true,
                 setValueAs: (value) => {
                   // Handle empty string as undefined for optional field
                   if (value === '' || value === null || value === undefined) {
@@ -4820,7 +4818,6 @@ const Step3PropertyDetails: React.FC<Step1Props> = ({ form, formErrors, formValu
             <Input
               type="number"
               {...form.register('lotSize', { 
-                valueAsNumber: true,
                 setValueAs: (value) => {
                   // Handle empty string as undefined for optional field
                   if (value === '' || value === null || value === undefined) {
@@ -7646,22 +7643,69 @@ const PropertyEditSheet: React.FC<PropertyEditSheetProps> = ({
   const formValues = form.watch();
   const formErrors = form.formState.errors;
 
-  // Check if current step is valid (same as Add Property)
+  // Check if current step is valid - only require mandatory fields for Next Step
   const isCurrentStepValid = useMemo(() => {
     const currentStepConfig = WIZARD_STEPS.find(step => step.id === currentStep);
     if (!currentStepConfig) return false;
 
     try {
-      // Use dynamic schema for step 2 based on country
-      let schema = currentStepConfig.schema;
-      if (currentStep === 2) {
-        const country = form.watch('country') || 'United States';
-        schema = createStep2Schema(country);
+      // For Next Step button, we only need to validate required fields
+      // Optional fields can be empty without blocking progression
+      
+      if (currentStep === 1) {
+        // Step 1: Basic Info - All fields required
+        const requiredFields = ['name', 'propertyType', 'ownershipType'];
+        return requiredFields.every(field => {
+          const value = formValues[field as keyof typeof formValues];
+          return value !== undefined && value !== null && value !== '';
+        });
       }
       
-      const result = schema.parse(formValues);
-      console.log(`Step ${currentStep} validation passed:`, result);
+      if (currentStep === 2) {
+        // Step 2: Location - Address, City, State, ZIP required
+        const country = form.watch('country') || 'United States';
+        const requiredFields = ['address', 'city', 'state', 'zipCode'];
+        return requiredFields.every(field => {
+          const value = formValues[field as keyof typeof formValues];
+          return value !== undefined && value !== null && value !== '';
+        });
+      }
+      
+      if (currentStep === 3) {
+        // Step 3: Property Details - Only Total Units required
+        const requiredFields = ['totalUnits'];
+        return requiredFields.every(field => {
+          const value = formValues[field as keyof typeof formValues];
+          if (field === 'totalUnits') {
+            return typeof value === 'number' && value >= 1 && value <= 10000;
+          }
+          return true; // Other fields are optional
+        });
+      }
+      
+      if (currentStep === 4) {
+        // Step 4: Media - No required fields
+        return true;
+      }
+      
+      if (currentStep === 5) {
+        // Step 5: Financial - Rent Due Day, Allow Online Payments, Enable Maintenance Requests required
+        const requiredFields = ['rentDueDay', 'allowOnlinePayments', 'enableMaintenanceRequests'];
+        return requiredFields.every(field => {
+          const value = formValues[field as keyof typeof formValues];
+          if (field === 'rentDueDay') {
+            return typeof value === 'number' && value >= 1 && value <= 28;
+          }
+          if (field === 'allowOnlinePayments' || field === 'enableMaintenanceRequests') {
+            return typeof value === 'boolean';
+          }
+          return true;
+        });
+      }
+      
+      // Step 6: Review - All previous steps must be valid
       return true;
+      
     } catch (error) {
       console.log(`Step ${currentStep} validation failed:`, error);
       console.log('Current form values:', formValues);
