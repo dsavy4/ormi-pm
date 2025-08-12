@@ -2460,8 +2460,8 @@ const PropertyImage: React.FC<PropertyImageProps> = ({ property, className, onVi
       {/* Hover overlay with subtle visual cue */}
       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all duration-300 rounded-2xl" />
       
-      {/* Eye icon in top-right corner - standard UX pattern */}
-      <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-all duration-300 transform scale-90 group-hover:scale-100">
+      {/* Eye icon in bottom-left corner - avoids star rating conflict */}
+      <div className="absolute bottom-3 left-3 opacity-0 group-hover:opacity-100 transition-all duration-300 transform scale-90 group-hover:scale-100">
         <div className="bg-white/90 dark:bg-gray-800/90 rounded-full p-2 shadow-lg">
           <Eye className="h-4 w-4 text-gray-700 dark:text-gray-300" />
         </div>
