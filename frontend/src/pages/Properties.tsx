@@ -7606,6 +7606,7 @@ const PropertyEditSheet: React.FC<PropertyEditSheetProps> = ({
   const [isDirty, setIsDirty] = useState(false);
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
   const [managers, setManagers] = useState<PropertyManager[]>([]);
+  const [savedFormData, setSavedFormData] = useState<PropertyFormData | null>(null);
 
   // Enhanced form with React Hook Form and Zod validation
   const form = useForm<PropertyFormData>({
@@ -7688,42 +7689,53 @@ const PropertyEditSheet: React.FC<PropertyEditSheetProps> = ({
       console.log('Property city value:', property.city);
       console.log('Property zipCode value:', property.zipCode);
       
-      form.reset({
-        name: property.name || '',
-        propertyType: mapPropertyType(property.propertyType),
-        ownershipType: 'Owned',
-        tags: property.tags || [],
-        address: property.address || '',
-        unitSuite: '',
-        city: property.city || '',
-        state: property.state || '',
-        zipCode: property.zipCode || '',
-        country: 'United States',
-        totalUnits: property.totalUnits || undefined,
-        yearBuilt: property.yearBuilt,
-        sqft: undefined,
-        lotSize: undefined,
-        description: property.description || '',
-        propertyManager: typeof property.manager === 'string' ? property.manager : property.manager?.id || '',
-        rentDueDay: 1,
-        allowOnlinePayments: true,
-        enableMaintenanceRequests: true,
-        images: [],
-        amenities: property.amenities || [],
-        neighborhood: property.neighborhood || '',
-        marketValue: property.marketValue,
-        purchasePrice: property.purchasePrice,
-        purchaseDate: property.purchaseDate || '',
-        expenses: property.expenses,
-        notes: property.notes || '',
-      });
+      // Check if we have saved form data to restore
+      if (savedFormData) {
+        console.log('Restoring saved form data:', savedFormData);
+        form.reset(savedFormData);
+        setImagePreviews(savedFormData.images || []);
+        setIsDirty(true); // Mark as dirty since we have unsaved changes
+        setSavedFormData(null); // Clear saved data after restoring
+      } else {
+        // Reset to original property data
+        form.reset({
+          name: property.name || '',
+          propertyType: mapPropertyType(property.propertyType),
+          ownershipType: 'Owned',
+          tags: property.tags || [],
+          address: property.address || '',
+          unitSuite: '',
+          city: property.city || '',
+          state: property.state || '',
+          zipCode: property.zipCode || '',
+          country: 'United States',
+          totalUnits: property.totalUnits || undefined,
+          yearBuilt: property.yearBuilt,
+          sqft: undefined,
+          lotSize: undefined,
+          description: property.description || '',
+          propertyManager: typeof property.manager === 'string' ? property.manager : property.manager?.id || '',
+          rentDueDay: 1,
+          allowOnlinePayments: true,
+          enableMaintenanceRequests: true,
+          images: [],
+          amenities: property.amenities || [],
+          neighborhood: property.neighborhood || '',
+          marketValue: property.marketValue,
+          purchasePrice: property.purchasePrice,
+          purchaseDate: property.purchaseDate || '',
+          expenses: property.expenses,
+          notes: property.notes || '',
+        });
+        
+        // Set image previews for existing images
+        setImagePreviews(property.images || []);
+        setIsDirty(false);
+      }
       
-      // Set image previews for existing images
-      setImagePreviews(property.images || []);
       setCurrentStep(1);
-      setIsDirty(false);
     }
-  }, [property, form]);
+  }, [property, form, savedFormData]);
 
   // Fetch managers when sheet opens
   useEffect(() => {
@@ -7831,6 +7843,8 @@ const PropertyEditSheet: React.FC<PropertyEditSheetProps> = ({
   };
 
   const handleConfirmClose = () => {
+    // Save current form data before closing
+    setSavedFormData(form.getValues());
     setIsDirty(false);
     setCurrentStep(1);
     onClose();
@@ -7888,6 +7902,9 @@ const PropertyEditSheet: React.FC<PropertyEditSheetProps> = ({
 
       // Update property data using the API function
       const { propertiesApi } = await import('@/lib/api');
+
+      // Clear saved form data since we're successfully saving
+      setSavedFormData(null);
 
       // Build payload restricted to fields supported by backend model
       const updateData: Record<string, any> = {
