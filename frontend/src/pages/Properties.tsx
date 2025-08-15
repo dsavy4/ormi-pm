@@ -6151,7 +6151,7 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
   return (
     <>
     <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent side="right" className="w-full sm:w-[92%] md:w-[65%] lg:w-[50%] xl:w-[45%] flex flex-col h-full p-0 gap-0">
+      <SheetContent side="right" className="w-full sm:w-[92%] md:w-[65%] lg:w-[50%] xl:w-[45%] flex flex-col h-full p-0 gap-0 [&>button]:hidden">
         {/* Professional Header with Property Identity */}
         <div className="border-b bg-gradient-to-r from-slate-50 to-gray-50 dark:from-slate-900 dark:to-gray-900">
           {/* Header */}
@@ -6190,34 +6190,36 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
             </div>
           </SheetHeader>
 
-          {/* Enhanced Quick Stats Bar - Mobile Responsive */}
-          <div className="px-4 sm:px-6 pb-4 sm:pb-6">
-            <div className="flex flex-col sm:grid sm:grid-cols-3 gap-4 sm:gap-6">
-              <div className="text-center p-5 bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-md hover:shadow-lg transition-shadow">
-                <div className="text-2xl sm:text-3xl font-bold text-blue-600 dark:text-blue-400 mb-2">
-                  {property.totalUnits || 0}
-                </div>
-                <div className="text-sm sm:text-base text-gray-600 dark:text-gray-400 font-medium">Total Units</div>
-              </div>
-              <div className="text-center p-5 bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-md hover:shadow-lg transition-shadow">
-                <div className="text-2xl sm:text-3xl font-bold text-green-600 dark:text-green-400 mb-2">
-                  {property.occupiedUnits || 0}
-                </div>
-                <div className="text-sm sm:text-base text-gray-600 dark:text-gray-400 font-medium">Occupied</div>
-              </div>
-              <div className="text-center p-5 bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-md hover:shadow-lg transition-shadow">
-                <div className="text-2xl sm:text-3xl font-bold text-purple-600 dark:text-purple-400 mb-2">
-                  {formatCurrency(property.monthlyRent || 0)}
-                </div>
-                <div className="text-sm sm:text-base text-gray-600 dark:text-gray-400 font-medium">Monthly Rent</div>
-              </div>
-            </div>
-          </div>
+
         </div>
         
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 sm:py-6">
           <div className="space-y-6">
+
+            {/* Quick Stats Bar - Now in Scrollable Content */}
+            <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-blue-600 dark:text-blue-400 mb-1">
+                    {property.totalUnits || 0}
+                  </div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400 font-medium">Total Units</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-green-600 dark:text-green-400 mb-1">
+                    {property.occupiedUnits || 0}
+                  </div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400 font-medium">Occupied</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-purple-600 dark:text-purple-400 mb-1">
+                    {formatCurrency(property.monthlyRent || 0)}
+                  </div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400 font-medium">Monthly Rent</div>
+                </div>
+              </div>
+            </div>
 
             {/* Professional Action Section */}
             <div className="bg-gradient-to-r from-slate-50 to-gray-50 dark:from-slate-800/50 dark:to-gray-800/50 rounded-2xl p-5 sm:p-6 border border-gray-200 dark:border-slate-700">
