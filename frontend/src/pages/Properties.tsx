@@ -3769,9 +3769,9 @@ const AddPropertySheet: React.FC<AddPropertySheetProps> = ({ isOpen, onClose, on
                         step.id <= currentStep ? 'text-foreground' : 'text-muted-foreground'
                       }`}>
                         {step.title}
-                      </div>
-                    </div>
-                  </div>
+                </div>
+                </div>
+              </div>
                   
                   {index < WIZARD_STEPS.length - 1 && (
                     <div className="flex-1 mx-4 mt-2">
@@ -3780,9 +3780,9 @@ const AddPropertySheet: React.FC<AddPropertySheetProps> = ({ isOpen, onClose, on
                           ? 'bg-primary' 
                           : 'bg-gray-200'
                       }`} />
-                    </div>
+              </div>
                   )}
-                </div>
+            </div>
               ))}
             </div>
             
@@ -3802,15 +3802,15 @@ const AddPropertySheet: React.FC<AddPropertySheetProps> = ({ isOpen, onClose, on
                     opacity: currentStep < WIZARD_STEPS.length ? 1 : 0
                   }}
                 />
-              </div>
+                </div>
               
               <div className="flex justify-between text-xs text-gray-500 mt-2">
                 <span>Step {currentStep} of {WIZARD_STEPS.length}</span>
                 <span>{Math.round((currentStep / WIZARD_STEPS.length) * 100)}% Complete</span>
               </div>
-            </div>
-          </div>
-        </div>
+                </div>
+              </div>
+                </div>
 
         {/* Form Content - Scrollable */}
         <div className="flex-1 overflow-y-auto px-6 py-6">
@@ -3879,7 +3879,7 @@ const AddPropertySheet: React.FC<AddPropertySheetProps> = ({ isOpen, onClose, on
             {/* Bottom padding to ensure content is not hidden behind sticky footer */}
             <div className="h-16" />
           </form>
-        </div>
+              </div>
 
         {/* Sticky Footer */}
         <div className="border-t bg-card p-6 flex-shrink-0 shadow-lg">
@@ -3890,16 +3890,16 @@ const AddPropertySheet: React.FC<AddPropertySheetProps> = ({ isOpen, onClose, on
                 <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/30 rounded-lg">
                   <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                   <span className="text-sm text-amber-700 dark:text-amber-300 font-medium">Complete required fields to continue</span>
-                </div>
+            </div>
               )}
               
               {isCurrentStepValid && (
                 <div className="flex items-center gap-2 px-3 py-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/30 rounded-lg">
                   <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
                   <span className="text-sm text-green-700 dark:text-green-300 font-medium">Step completed</span>
-                </div>
+          </div>
               )}
-            </div>
+        </div>
           )}
           
           {/* Navigation Buttons */}
@@ -3908,7 +3908,7 @@ const AddPropertySheet: React.FC<AddPropertySheetProps> = ({ isOpen, onClose, on
             </div>
             
             <div className="flex items-center gap-3">
-              <Button
+                <Button 
                 type="button"
                 variant="outline"
                 onClick={isFirstStep ? handleClose : handleBack}
@@ -3926,10 +3926,10 @@ const AddPropertySheet: React.FC<AddPropertySheetProps> = ({ isOpen, onClose, on
                     Back
                   </>
                 )}
-              </Button>
-              
+                </Button>
+
               {isLastStep ? (
-                <Button
+                <Button 
                   type="submit"
                   onClick={form.handleSubmit(onSubmit)}
                   disabled={isSubmitting || !isCurrentStepValid}
@@ -3948,7 +3948,7 @@ const AddPropertySheet: React.FC<AddPropertySheetProps> = ({ isOpen, onClose, on
                   )}
                 </Button>
               ) : (
-                <Button
+                <Button 
                   type="button"
                   onClick={handleNext}
                   disabled={!isCurrentStepValid}
@@ -4014,14 +4014,14 @@ const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({ dialog, onClose
         <DialogFooter className="flex-col sm:flex-row gap-2">
           <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">
             Cancel
-          </Button>
-          <Button
+                </Button>
+                <Button 
             variant={dialog.type === 'destructive' ? 'destructive' : 'default'}
             onClick={dialog.onConfirm}
             className="w-full sm:w-auto"
           >
             {dialog.confirmText}
-          </Button>
+                </Button>
         </DialogFooter>
       </DialogContent>
           </Dialog>
@@ -6151,107 +6151,117 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
   return (
     <>
     <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent side="right" className="w-full sm:w-[45%] md:w-[40%] flex flex-col h-full p-0 gap-0">
+      <SheetContent side="right" className="w-full sm:w-[92%] md:w-[65%] lg:w-[50%] xl:w-[45%] flex flex-col h-full p-0 gap-0">
         {/* Professional Header with Property Identity */}
         <div className="border-b bg-gradient-to-r from-slate-50 to-gray-50 dark:from-slate-900 dark:to-gray-900">
           {/* Header */}
-          <SheetHeader className="px-6 py-6">
-            <div className="flex items-start gap-4">
+          <SheetHeader className="px-4 sm:px-6 py-4 sm:py-6">
+            <div className="flex items-start gap-3 sm:gap-4">
+              {/* Enhanced Mobile-Friendly Close Button */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onClose}
+                className="absolute right-4 top-4 h-12 w-12 p-0 rounded-full bg-white dark:bg-slate-800 border-2 border-gray-300 dark:border-slate-600 shadow-xl hover:shadow-2xl hover:bg-gray-50 dark:hover:bg-slate-700 transition-all duration-200 hover:scale-110 z-10"
+              >
+                <X className="h-6 w-6 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors font-bold" />
+              </Button>
+              
               <div className="relative">
-                <div className="p-4 bg-gradient-to-br from-blue-100 to-blue-50 dark:from-blue-900/30 dark:to-blue-800/30 rounded-2xl shadow-lg">
-                  <Building2 className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+                <div className="p-4 sm:p-5 bg-gradient-to-br from-blue-100 to-blue-50 dark:from-blue-900/30 dark:to-blue-800/30 rounded-2xl shadow-lg">
+                  <Building2 className="h-8 w-8 sm:h-10 sm:w-10 text-blue-600 dark:text-blue-400" />
                 </div>
-                <div className="absolute -top-2 -right-2 w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center shadow-md">
-                  <Eye className="h-2.5 w-2.5 text-white" />
+                <div className="absolute -top-2 -right-2 w-5 h-5 sm:w-6 sm:h-6 bg-emerald-500 rounded-full flex items-center justify-center shadow-lg">
+                  <Eye className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-white" />
                 </div>
               </div>
               <div className="flex-1 min-w-0">
-                <SheetTitle className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3 mb-2">
+                <SheetTitle className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-3">
                   {property.name}
-                  <Badge variant="secondary" className="text-xs font-semibold px-3 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 border-blue-200 dark:border-blue-700">
+                  <Badge variant="secondary" className="text-xs font-semibold px-3 py-1.5 bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 border-blue-200 dark:border-blue-700 w-fit">
                     {mapPropertyType(property.propertyType)}
                   </Badge>
                 </SheetTitle>
-                <SheetDescription className="text-base text-gray-600 dark:text-gray-300 flex items-center gap-2">
-                  <MapPin className="h-5 w-5 text-gray-500" />
-                  <span className="font-medium">{property.address}, {property.city}, {property.state} {property.zipCode}</span>
+                <SheetDescription className="text-sm sm:text-base text-gray-600 dark:text-gray-300 flex items-start gap-2">
+                  <MapPin className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500 mt-0.5 flex-shrink-0" />
+                  <span className="font-medium leading-relaxed">{property.address}, {property.city}, {property.state} {property.zipCode}</span>
                 </SheetDescription>
               </div>
             </div>
           </SheetHeader>
 
-          {/* Enhanced Quick Stats Bar */}
-          <div className="px-6 pb-6">
-            <div className="grid grid-cols-3 gap-6">
-              <div className="text-center p-4 bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
-                <div className="text-2xl font-bold text-blue-600 dark:text-blue-400 mb-1">
+          {/* Enhanced Quick Stats Bar - Mobile Responsive */}
+          <div className="px-4 sm:px-6 pb-4 sm:pb-6">
+            <div className="flex flex-col sm:grid sm:grid-cols-3 gap-4 sm:gap-6">
+              <div className="text-center p-5 bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-md hover:shadow-lg transition-shadow">
+                <div className="text-2xl sm:text-3xl font-bold text-blue-600 dark:text-blue-400 mb-2">
                   {property.totalUnits || 0}
                 </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400 font-medium">Total Units</div>
+                <div className="text-sm sm:text-base text-gray-600 dark:text-gray-400 font-medium">Total Units</div>
               </div>
-              <div className="text-center p-4 bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
-                <div className="text-2xl font-bold text-green-600 dark:text-green-400 mb-1">
+              <div className="text-center p-5 bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-md hover:shadow-lg transition-shadow">
+                <div className="text-2xl sm:text-3xl font-bold text-green-600 dark:text-green-400 mb-2">
                   {property.occupiedUnits || 0}
                 </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400 font-medium">Occupied</div>
+                <div className="text-sm sm:text-base text-gray-600 dark:text-gray-400 font-medium">Occupied</div>
               </div>
-              <div className="text-center p-4 bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
-                <div className="text-2xl font-bold text-purple-600 dark:text-purple-400 mb-1">
+              <div className="text-center p-5 bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-md hover:shadow-lg transition-shadow">
+                <div className="text-2xl sm:text-3xl font-bold text-purple-600 dark:text-purple-400 mb-2">
                   {formatCurrency(property.monthlyRent || 0)}
                 </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400 font-medium">Monthly Rent</div>
+                <div className="text-sm sm:text-base text-gray-600 dark:text-gray-400 font-medium">Monthly Rent</div>
               </div>
             </div>
           </div>
         </div>
         
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto px-6 py-6">
+        <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 sm:py-6">
           <div className="space-y-6">
 
             {/* Professional Action Section */}
-            <div className="bg-gradient-to-r from-slate-50 to-gray-50 dark:from-slate-800/50 dark:to-gray-800/50 rounded-2xl p-6 border border-gray-200 dark:border-slate-700">
+            <div className="bg-gradient-to-r from-slate-50 to-gray-50 dark:from-slate-800/50 dark:to-gray-800/50 rounded-2xl p-5 sm:p-6 border border-gray-200 dark:border-slate-700">
               {/* Primary Action - Edit Property */}
               <div className="flex justify-center mb-6">
                 <Button 
                   onClick={() => onEdit(property.id)}
-                  className="flex items-center gap-3 px-10 py-5 h-16 text-xl font-semibold bg-primary hover:bg-primary/90 text-white shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+                  className="flex items-center gap-3 px-8 sm:px-10 py-5 sm:py-6 h-16 sm:h-18 text-lg sm:text-xl font-bold bg-primary hover:bg-primary/90 text-white shadow-xl hover:shadow-2xl transition-all duration-200 transform hover:scale-105 w-full sm:w-auto rounded-xl"
                 >
-                  <Edit className="h-6 w-6" />
+                  <Edit className="h-6 w-6 sm:h-7 sm:w-7" />
                   Edit Property
                 </Button>
               </div>
 
-              {/* Secondary Actions */}
-              <div className="grid grid-cols-3 gap-4">
+              {/* Secondary Actions - Mobile Responsive */}
+              <div className="flex flex-col sm:grid sm:grid-cols-3 gap-4">
                 <Button 
                   variant="outline" 
                   size="lg"
                   onClick={() => onArchive(property.id)}
-                  className="h-14 font-semibold hover:bg-red-50 dark:hover:bg-red-900/20 border-red-300 dark:border-red-700 hover:border-red-400 dark:hover:border-red-600 hover:text-red-700 dark:hover:text-red-300 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-all duration-200"
+                  className="h-16 font-semibold hover:bg-red-50 dark:hover:bg-red-900/20 border-red-300 dark:border-red-700 hover:border-red-400 dark:hover:border-red-600 hover:text-red-700 dark:hover:text-red-300 bg-white dark:bg-slate-800 shadow-md hover:shadow-lg transition-all duration-200 rounded-xl"
                 >
-                  <Archive className="h-5 w-5 mr-2" />
+                  <Archive className="h-6 w-6 mr-3" />
                   Archive
                 </Button>
                 <Button 
                   variant="outline" 
                   size="lg"
-                  className="h-14 font-semibold hover:bg-blue-50 dark:hover:bg-blue-900/20 border-blue-300 dark:border-blue-700 hover:border-blue-400 dark:hover:border-blue-600 hover:text-blue-700 dark:hover:text-blue-300 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-all duration-200"
+                  className="h-16 font-semibold hover:bg-blue-50 dark:hover:bg-blue-900/20 border-blue-300 dark:border-blue-700 hover:border-blue-400 dark:hover:border-blue-600 hover:text-blue-700 dark:hover:text-blue-300 bg-white dark:bg-slate-800 shadow-md hover:shadow-lg transition-all duration-200 rounded-xl"
                 >
-                  <FileText className="h-5 w-5 mr-2" />
+                  <FileText className="h-6 w-6 mr-3" />
                   Report
                 </Button>
                 <Button 
                   variant="outline" 
                   size="lg"
-                  className="h-14 font-semibold hover:bg-green-50 dark:hover:bg-green-900/20 border-green-300 dark:border-green-700 hover:border-green-400 dark:hover:border-green-600 hover:text-green-700 dark:hover:text-green-300 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-all duration-200"
+                  className="h-16 font-semibold hover:bg-green-50 dark:hover:bg-green-900/20 border-green-300 dark:border-green-700 hover:border-green-400 dark:hover:border-green-600 hover:text-green-700 dark:hover:text-green-300 bg-white dark:bg-slate-800 shadow-md hover:shadow-lg transition-all duration-200 rounded-xl"
                 >
-                  <ExternalLink className="h-5 w-5 mr-2" />
+                  <ExternalLink className="h-6 w-6 mr-3" />
                   Map
                 </Button>
               </div>
             </div>
-
+          
           {/* Property Images - Enhanced UX */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Property Images</h3>
@@ -6780,7 +6790,7 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
                   {/* Filter Header */}
                   <div className="flex items-center justify-between">
                     <h3 className="text-sm font-medium text-muted-foreground">Filter Units</h3>
-                    <Button
+              <Button 
                       variant="ghost"
                       size="sm"
                                         onClick={() => {
@@ -6797,8 +6807,8 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
                     >
                       <RefreshCw className="h-3 w-3 mr-1.5" />
                       Clear All
-                    </Button>
-                  </div>
+              </Button>
+            </div>
 
                   {/* Mobile-Responsive Filter Grid */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
@@ -7031,17 +7041,17 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
                       <p className="text-muted-foreground mb-8 max-w-md mx-auto">
                         This property doesn't have any units yet. Add your first unit to start managing this property.
                       </p>
-                      <Button 
+              <Button 
                         onClick={() => {
                           // TODO: Implement add unit functionality
                           console.log('Add first unit clicked');
                         }}
                         className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 dark:from-blue-400 dark:to-purple-400 dark:hover:from-blue-500 dark:hover:to-purple-500 dark:text-white"
-                        size="lg"
-                      >
+                size="lg"
+              >
                         <Plus className="h-5 w-5 mr-2" />
                         Add Your First Unit
-                      </Button>
+              </Button>
                       <p className="text-xs text-muted-foreground mt-4">
                         Start building your property portfolio
                       </p>
@@ -7223,8 +7233,8 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
                             }
                           </p>
                           {(unitSearchQuery || unitStatusFilter !== 'all' || unitOccupancyFilter !== 'all' || unitBedroomsFilter !== 'all' || unitFloorFilter !== 'all') && (
-                            <Button
-                              variant="outline"
+              <Button 
+                variant="outline" 
                               size="sm"
                               className="mt-4"
                               onClick={() => {
@@ -7236,7 +7246,7 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
                               }}
                             >
                               Clear filters
-                            </Button>
+              </Button>
                           )}
                         </div>
                       )}
@@ -7247,17 +7257,17 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
                           {loadingUnitsData ? (
                             <LoadMoreSkeleton />
                           ) : (
-                            <Button
+              <Button 
                               onClick={() => loadUnitsData(pagination.page + 1, true)}
-                              variant="outline"
-                              size="lg"
+                variant="outline" 
+                size="lg"
                               className="w-full max-w-md"
-                            >
+              >
                               <Loader className="h-4 w-4 mr-2" />
                               Load More Units ({units.length} of {propertyInfo.totalUnits} loaded)
-                            </Button>
+              </Button>
                           )}
-                        </div>
+            </div>
                       )}
 
                       {loadingStrategy === 'pagination' && pagination.totalPages > 1 && (
@@ -7268,7 +7278,7 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
                             <>
                               <div className="text-sm text-muted-foreground">
                                 {pagination.showing}
-                              </div>
+          </div>
                               <div className="flex items-center space-x-2">
                                 <Button
                                   variant="outline"
