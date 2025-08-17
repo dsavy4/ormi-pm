@@ -1741,9 +1741,19 @@ const AddTeamMemberSheet: React.FC<AddTeamMemberSheetProps> = ({ isOpen, onClose
   return (
     <>
       <Sheet open={isOpen} onOpenChange={handleClose}>
-        <SheetContent side="right" className="w-full sm:w-[45%] md:w-[40%] flex flex-col h-full p-0 gap-0">
+        <SheetContent side="right" className="w-full sm:w-[45%] md:w-[40%] flex flex-col h-full p-0 gap-0 [&>button]:hidden">
                   {/* Header with Progress */}
-        <div className="border-b bg-card">
+        <div className="border-b bg-card relative">
+          {/* Enhanced Mobile-Friendly Close Button - Same as Properties View */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleClose}
+            className="absolute right-4 top-4 h-12 w-12 p-0 rounded-full bg-white dark:bg-slate-800 border-2 border-gray-300 dark:border-slate-600 shadow-xl hover:shadow-2xl hover:bg-gray-50 dark:hover:bg-slate-700 transition-all duration-200 hover:scale-110 z-10"
+          >
+            <X className="h-6 w-6 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors font-bold" />
+          </Button>
+          
           {/* Header */}
           <SheetHeader className="px-6 py-4">
             <SheetTitle className="text-xl font-semibold flex items-center gap-2">

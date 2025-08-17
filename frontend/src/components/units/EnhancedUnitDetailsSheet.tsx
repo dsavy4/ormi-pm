@@ -172,63 +172,92 @@ export const EnhancedUnitDetailsSheet: React.FC<EnhancedUnitDetailsSheetProps> =
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent side="right" className="w-full sm:w-[92%] md:w-[65%] lg:w-[50%] xl:w-[45%] flex flex-col h-full p-0 gap-0">
-        {/* Professional Header with Unit Identity */}
-        <div className="border-b bg-gradient-to-r from-slate-50 to-gray-50 dark:from-slate-900 dark:to-gray-900">
-          {/* Header */}
-          <div className="px-6 py-6">
-            <div className="flex items-start gap-4 mb-6">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-3 mb-3">
-                  <SheetTitle className="text-2xl font-bold text-gray-900 dark:text-white">
-                    Unit {unit.number}
-                  </SheetTitle>
-                  <Badge variant="secondary" className="text-xs font-semibold px-3 py-1 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 border-green-200 dark:border-green-700">
-                    {unit.bedrooms}BR • {unit.bathrooms}BA
-                  </Badge>
-                  <StatusBadge 
-                    status={getStatusType(unit)}
-                    size="sm"
-                    className="flex-shrink-0"
-                  />
+      <SheetContent side="right" className="w-full sm:w-[92%] md:w-[65%] lg:w-[50%] xl:w-[45%] flex flex-col h-full p-0 gap-0 [&>button]:hidden">
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto px-6 py-6">
+          <div className="space-y-6">
+            {/* Unit Header Information - Now in Scrollable Content */}
+            <div className="relative">
+              {/* Enhanced Mobile-Friendly Close Button - Same as Properties View */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onClose}
+                className="absolute right-0 top-0 h-12 w-12 p-0 rounded-full bg-white dark:bg-slate-800 border-2 border-gray-300 dark:border-slate-600 shadow-xl hover:shadow-2xl hover:bg-gray-50 dark:hover:bg-slate-700 transition-all duration-200 hover:scale-110 z-10"
+              >
+                <X className="h-6 w-6 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors font-bold" />
+              </Button>
+              
+              <div className="flex items-start gap-4 mb-6">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-3 mb-3">
+                    <SheetTitle className="text-2xl font-bold text-gray-900 dark:text-white">
+                      Unit {unit.number}
+                    </SheetTitle>
+                    <Badge variant="secondary" className="text-xs font-semibold px-3 py-1 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 border-green-200 dark:border-green-700">
+                      {unit.bedrooms}BR • {unit.bathrooms}BA
+                    </Badge>
+                    <StatusBadge 
+                      status={getStatusType(unit)}
+                      size="sm"
+                      className="flex-shrink-0"
+                    />
+                  </div>
+                  <SheetDescription className="text-base text-gray-600 dark:text-gray-300 flex items-center gap-2">
+                    <Building className="h-5 w-5 text-gray-500" />
+                    <span className="font-medium">Building A • Floor {unit.floor || 'N/A'}</span>
+                  </SheetDescription>
                 </div>
-                <SheetDescription className="text-base text-gray-600 dark:text-gray-300 flex items-center gap-2">
-                  <Building className="h-5 w-5 text-gray-500" />
-                  <span className="font-medium">Building A • Floor {unit.floor || 'N/A'}</span>
-                </SheetDescription>
               </div>
             </div>
 
-            {/* Compact Modern Stats Bar */}
-            <div className="flex items-center gap-4 mt-4">
-              <div className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 shadow-sm">
-                <DollarSign className="h-4 w-4 text-green-600" />
-                <span className="text-lg font-semibold text-gray-900 dark:text-white">
-                  ${unit.monthlyRent?.toLocaleString() || '0'}
-                </span>
-                <span className="text-sm text-gray-500 dark:text-gray-400">/month</span>
-              </div>
-              <div className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 shadow-sm">
-                <Square className="h-4 w-4 text-blue-600" />
-                <span className="text-lg font-semibold text-gray-900 dark:text-white">
-                  {unit.squareFootage ? `${unit.squareFootage}` : 'N/A'}
-                </span>
-                <span className="text-sm text-gray-500 dark:text-gray-400">sqft</span>
-              </div>
-              {unit.tenant && (
-                <div className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 shadow-sm">
-                  <User className="h-4 w-4 text-purple-600" />
-                  <span className="text-lg font-semibold text-gray-900 dark:text-white">
-                    {unit.tenant.name}
-                  </span>
+            {/* Quick Stats Bar - Now in Scrollable Content */}
+            <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-lg border border-green-200 dark:border-green-700">
+                  <DollarSign className="h-5 w-5 text-green-600" />
+                  <div>
+                    <div className="text-xl font-bold text-green-900 dark:text-green-100">
+                      ${unit.monthlyRent?.toLocaleString() || '0'}
+                    </div>
+                    <div className="text-sm text-green-700 dark:text-green-300">Monthly</div>
+                  </div>
                 </div>
-              )}
+                <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-lg border border-blue-200 dark:border-blue-700">
+                  <Square className="h-5 w-5 text-blue-600" />
+                  <div>
+                    <div className="text-xl font-bold text-blue-900 dark:text-blue-100">
+                      {unit.squareFootage ? `${unit.squareFootage}` : 'N/A'}
+                    </div>
+                    <div className="text-sm text-blue-700 dark:text-blue-300">Square Feet</div>
+                  </div>
+                </div>
+                {unit.tenant ? (
+                  <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-lg border border-purple-200 dark:border-purple-700">
+                    <User className="h-5 w-5 text-purple-600" />
+                    <div>
+                      <div className="text-xl font-bold text-purple-900 dark:text-purple-100">
+                        {unit.tenant.name}
+                      </div>
+                      <div className="text-sm text-purple-700 dark:text-purple-300">Current Tenant</div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-900/20 dark:to-gray-800/20 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <User className="h-5 w-5 text-gray-600" />
+                    <div>
+                      <div className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                        Vacant
+                      </div>
+                      <div className="text-sm text-gray-700 dark:text-gray-300">No Tenant</div>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        </div>
 
-        {/* Modern Responsive Action Section */}
-        <div className="mx-6 mt-4 space-y-3">
+            {/* Modern Responsive Action Section */}
+            <div className="space-y-3">
           {/* Primary Action - Edit Unit */}
           <Button 
             onClick={handleEditUnit}
@@ -268,6 +297,8 @@ export const EnhancedUnitDetailsSheet: React.FC<EnhancedUnitDetailsSheetProps> =
               <Wrench className="h-4 w-4 mr-2" />
               Work Order
             </Button>
+          </div>
+        </div>
           </div>
         </div>
 

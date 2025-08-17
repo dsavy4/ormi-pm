@@ -3722,9 +3722,19 @@ const AddPropertySheet: React.FC<AddPropertySheetProps> = ({ isOpen, onClose, on
 
   return (
     <Sheet open={isOpen} onOpenChange={handleClose}>
-      <SheetContent side="right" className="w-full sm:w-[45%] md:w-[40%] flex flex-col h-full p-0 gap-0">
+      <SheetContent side="right" className="w-full sm:w-[45%] md:w-[40%] flex flex-col h-full p-0 gap-0 [&>button]:hidden">
         {/* Header with Progress */}
-        <div className="border-b bg-card">
+        <div className="border-b bg-card relative">
+          {/* Enhanced Mobile-Friendly Close Button - Same as Properties View */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleClose}
+            className="absolute right-4 top-4 h-12 w-12 p-0 rounded-full bg-white dark:bg-slate-800 border-2 border-gray-300 dark:border-slate-600 shadow-xl hover:shadow-2xl hover:bg-gray-50 dark:hover:bg-slate-700 transition-all duration-200 hover:scale-110 z-10"
+          >
+            <X className="h-6 w-6 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors font-bold" />
+          </Button>
+          
           {/* Header */}
           <SheetHeader className="px-6 py-4">
             <SheetTitle className="text-xl font-semibold flex items-center gap-2">
@@ -5714,8 +5724,18 @@ const ManagerAssignmentSheet: React.FC<ManagerAssignmentSheetProps> = ({
   
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent className="w-full sm:w-[700px] lg:w-[900px] xl:w-[1000px] 2xl:w-[1200px] max-w-[95vw] overflow-y-auto">
-        <SheetHeader className="sticky top-0 bg-white z-10 pb-6 border-b">
+      <SheetContent className="w-full sm:w-[700px] lg:w-[900px] xl:w-[1000px] 2xl:w-[1200px] max-w-[95vw] overflow-y-auto [&>button]:hidden">
+        <SheetHeader className="sticky top-0 bg-white z-10 pb-6 border-b relative">
+          {/* Enhanced Mobile-Friendly Close Button - Same as Properties View */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            className="absolute right-4 top-4 h-12 w-12 p-0 rounded-full bg-white dark:bg-slate-800 border-2 border-gray-300 dark:border-slate-600 shadow-xl hover:shadow-2xl hover:bg-gray-50 dark:hover:bg-slate-700 transition-all duration-200 hover:scale-110 z-10"
+          >
+            <X className="h-6 w-6 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors font-bold" />
+          </Button>
+          
           <div className="flex items-center gap-3">
             <div className="p-3 bg-gradient-to-r from-blue-600/20 to-purple-600/20 rounded-lg border border-blue-500/30">
               <UserPlus className="h-6 w-6 text-blue-700" />
@@ -6151,23 +6171,23 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
   return (
     <>
     <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent side="right" className="w-full sm:w-[92%] md:w-[65%] lg:w-[50%] xl:w-[45%] flex flex-col h-full p-0 gap-0 [&>button]:hidden">
+              <SheetContent side="right" className="w-full sm:w-[92%] md:w-[65%] lg:w-[50%] xl:w-[45%] flex flex-col h-full p-0 gap-0 [&>button]:hidden">
         {/* Professional Header with Property Identity */}
         <div className="border-b bg-gradient-to-r from-slate-50 to-gray-50 dark:from-slate-900 dark:to-gray-900">
           {/* Header */}
           <SheetHeader className="px-4 sm:px-6 py-4 sm:py-6">
-            <div className="flex items-start gap-3 sm:gap-4">
-              {/* Enhanced Mobile-Friendly Close Button */}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onClose}
-                className="absolute right-4 top-4 h-12 w-12 p-0 rounded-full bg-white dark:bg-slate-800 border-2 border-gray-300 dark:border-slate-600 shadow-xl hover:shadow-2xl hover:bg-gray-50 dark:hover:bg-slate-700 transition-all duration-200 hover:scale-110 z-10"
-              >
-                <X className="h-6 w-6 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors font-bold" />
-              </Button>
-              
-              <div className="relative">
+                          <div className="flex items-start gap-3 sm:gap-4">
+                {/* Enhanced Mobile-Friendly Close Button */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onClose}
+                  className="absolute right-4 top-4 h-12 w-12 p-0 rounded-full bg-white dark:bg-slate-800 border-2 border-gray-300 dark:border-slate-600 shadow-xl hover:shadow-2xl hover:bg-gray-50 dark:hover:bg-slate-700 transition-all duration-200 hover:scale-110 z-10"
+                >
+                  <X className="h-6 w-6 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors font-bold" />
+                </Button>
+                
+                <div className="relative">
                 <div className="p-4 sm:p-5 bg-gradient-to-br from-blue-100 to-blue-50 dark:from-blue-900/30 dark:to-blue-800/30 rounded-2xl shadow-lg">
                   <Building2 className="h-8 w-8 sm:h-10 sm:w-10 text-blue-600 dark:text-blue-400" />
                 </div>
@@ -6200,23 +6220,32 @@ export const PropertyViewSheet: React.FC<PropertyViewSheetProps> = ({
             {/* Quick Stats Bar - Now in Scrollable Content */}
             <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-4">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600 dark:text-blue-400 mb-1">
-                    {property.totalUnits || 0}
+                <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-lg border border-blue-200 dark:border-blue-700">
+                  <Building2 className="h-5 w-5 text-blue-600" />
+                  <div>
+                    <div className="text-xl font-bold text-blue-900 dark:text-blue-100">
+                      {property.totalUnits || 0}
+                    </div>
+                    <div className="text-sm text-blue-700 dark:text-blue-300">Units</div>
                   </div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400 font-medium">Total Units</div>
                 </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-green-600 dark:text-green-400 mb-1">
-                    {property.occupiedUnits || 0}
+                <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-lg border border-green-200 dark:border-green-700">
+                  <User className="h-5 w-5 text-green-600" />
+                  <div>
+                    <div className="text-xl font-bold text-green-900 dark:text-green-100">
+                      {property.occupiedUnits || 0}
+                    </div>
+                    <div className="text-sm text-green-700 dark:text-green-300">Occupied</div>
                   </div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400 font-medium">Occupied</div>
                 </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-purple-600 dark:text-purple-400 mb-1">
-                    {formatCurrency(property.monthlyRent || 0)}
+                <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-lg border border-purple-200 dark:border-purple-700">
+                  <DollarSign className="h-5 w-5 text-purple-600" />
+                  <div>
+                    <div className="text-xl font-bold text-purple-900 dark:text-purple-100">
+                      {formatCurrency(property.monthlyRent || 0)}
+                    </div>
+                    <div className="text-sm text-purple-700 dark:text-purple-300">Monthly</div>
                   </div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400 font-medium">Monthly Rent</div>
                 </div>
               </div>
             </div>
@@ -7452,8 +7481,18 @@ const AdvancedFiltersSheet: React.FC<AdvancedFiltersSheetProps> = ({
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent className="w-[500px] sm:w-[500px] overflow-y-auto">
-        <SheetHeader>
+      <SheetContent className="w-[500px] sm:w-[500px] overflow-y-auto [&>button]:hidden">
+        <SheetHeader className="relative">
+          {/* Enhanced Mobile-Friendly Close Button - Same as Properties View */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            className="absolute right-4 top-4 h-12 w-12 p-0 rounded-full bg-white dark:bg-slate-800 border-2 border-gray-300 dark:border-slate-600 shadow-xl hover:shadow-2xl hover:bg-gray-50 dark:hover:bg-slate-700 transition-all duration-200 hover:scale-110 z-10"
+          >
+            <X className="h-6 w-6 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors font-bold" />
+          </Button>
+          
           <SheetTitle className="flex items-center gap-2">
             <SlidersHorizontal className="h-5 w-5 text-primary" />
             Advanced Filters
@@ -8196,7 +8235,17 @@ const PropertyEditSheet: React.FC<PropertyEditSheetProps> = ({
     <Sheet open={isOpen} onOpenChange={handleClose}>
       <SheetContent side="right" className="w-full sm:w-[45%] md:w-[40%] flex flex-col h-full p-0 gap-0">
         {/* Header with Progress */}
-        <div className="border-b bg-card">
+        <div className="border-b bg-card relative">
+          {/* Enhanced Mobile-Friendly Close Button - Same as Properties View */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleClose}
+            className="absolute right-4 top-4 h-12 w-12 p-0 rounded-full bg-white dark:bg-slate-800 border-2 border-gray-300 dark:border-slate-600 shadow-xl hover:shadow-2xl hover:bg-gray-50 dark:hover:bg-slate-700 transition-all duration-200 hover:scale-110 z-10"
+          >
+            <X className="h-6 w-6 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors font-bold" />
+          </Button>
+          
           {/* Header */}
           <SheetHeader className="px-6 py-4">
             <SheetTitle className="text-xl font-semibold flex items-center gap-2">
