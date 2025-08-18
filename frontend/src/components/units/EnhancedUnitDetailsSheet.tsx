@@ -31,7 +31,8 @@ import {
   Image as ImageIcon,
   Plus,
   Calendar,
-  Square
+  Square,
+  Eye
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -173,45 +174,55 @@ export const EnhancedUnitDetailsSheet: React.FC<EnhancedUnitDetailsSheetProps> =
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
       <SheetContent side="right" className="w-full sm:w-[92%] md:w-[65%] lg:w-[50%] xl:w-[45%] flex flex-col h-full p-0 gap-0 [&>button]:hidden">
-        {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto px-6 py-6">
-          <div className="space-y-6">
-            {/* Unit Header Information - Now in Scrollable Content */}
-            <div className="relative">
-              {/* Enhanced Mobile-Friendly Close Button - Same as Properties View */}
+        {/* Professional Header with Unit Identity */}
+        <div className="border-b bg-gradient-to-r from-slate-50 to-gray-50 dark:from-slate-900 dark:to-gray-900">
+          {/* Header */}
+          <SheetHeader className="px-4 sm:px-6 py-4 sm:py-6">
+            <div className="flex items-start gap-3 sm:gap-4">
+              {/* Enhanced Mobile-Friendly Close Button */}
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={onClose}
-                className="absolute right-0 top-0 h-12 w-12 p-0 rounded-full bg-white dark:bg-slate-800 border-2 border-gray-300 dark:border-slate-600 shadow-xl hover:shadow-2xl hover:bg-gray-50 dark:hover:bg-slate-700 transition-all duration-200 hover:scale-110 z-10"
+                className="absolute right-4 top-4 h-12 w-12 p-0 rounded-full bg-white dark:bg-slate-800 border-2 border-gray-300 dark:border-slate-600 shadow-xl hover:shadow-2xl hover:bg-gray-50 dark:hover:bg-slate-700 transition-all duration-200 hover:scale-110 z-10"
               >
                 <X className="h-6 w-6 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors font-bold" />
               </Button>
               
-              <div className="flex items-start gap-4 mb-6">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-3 mb-3">
-                    <SheetTitle className="text-2xl font-bold text-gray-900 dark:text-white">
-                      Unit {unit.number}
-                    </SheetTitle>
-                    <Badge variant="secondary" className="text-xs font-semibold px-3 py-1 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 border-green-200 dark:border-green-700">
-                      {unit.bedrooms}BR • {unit.bathrooms}BA
-                    </Badge>
-                    <StatusBadge 
-                      status={getStatusType(unit)}
-                      size="sm"
-                      className="flex-shrink-0"
-                    />
-                  </div>
-                  <SheetDescription className="text-base text-gray-600 dark:text-gray-300 flex items-center gap-2">
-                    <Building className="h-5 w-5 text-gray-500" />
-                    <span className="font-medium">Building A • Floor {unit.floor || 'N/A'}</span>
-                  </SheetDescription>
+              <div className="relative">
+                <div className="p-4 sm:p-5 bg-gradient-to-br from-blue-100 to-blue-50 dark:from-blue-900/30 dark:to-blue-800/30 rounded-2xl shadow-lg">
+                  <Building className="h-8 w-8 sm:h-10 sm:w-10 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div className="absolute -top-2 -right-2 w-5 h-5 sm:w-6 sm:h-6 bg-emerald-500 rounded-full flex items-center justify-center shadow-lg">
+                  <Eye className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-white" />
                 </div>
               </div>
+              <div className="flex-1 min-w-0">
+                <SheetTitle className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-3">
+                  Unit {unit.number}
+                  <Badge variant="secondary" className="text-xs font-semibold px-3 py-1.5 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 border-green-200 dark:border-green-700 w-fit">
+                    {unit.bedrooms}BR • {unit.bathrooms}BA
+                  </Badge>
+                  <StatusBadge
+                    status={getStatusType(unit)}
+                    size="sm"
+                    className="flex-shrink-0"
+                  />
+                </SheetTitle>
+                <SheetDescription className="text-sm sm:text-base text-gray-600 dark:text-gray-300 flex items-start gap-2">
+                  <Building className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500 mt-0.5 flex-shrink-0" />
+                  <span className="font-medium leading-relaxed">Building A • Floor {unit.floor || 'N/A'}</span>
+                </SheetDescription>
+              </div>
             </div>
+          </SheetHeader>
+        </div>
+        
+        {/* Scrollable Content - ONE UNIFIED AREA */}
+        <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 sm:py-6">
+          <div className="space-y-6">
 
-            {/* Quick Stats Bar - Now in Scrollable Content */}
+            {/* Quick Stats Bar - Essential Unit Metrics */}
             <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-4">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-lg border border-green-200 dark:border-green-700">
@@ -256,75 +267,94 @@ export const EnhancedUnitDetailsSheet: React.FC<EnhancedUnitDetailsSheetProps> =
               </div>
             </div>
 
-            {/* Modern Responsive Action Section */}
-            <div className="space-y-3">
-          {/* Primary Action - Edit Unit */}
-          <Button 
-            onClick={handleEditUnit}
-            className="w-full flex items-center justify-center gap-3 py-4 h-14 text-lg font-semibold bg-primary hover:bg-primary/90 text-white shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 rounded-xl"
-          >
-            <Edit className="h-5 w-5" />
-            Edit Unit
-          </Button>
+            {/* Professional Action Section - Same as Properties View */}
+            <div className="bg-gradient-to-r from-slate-50 to-gray-50 dark:from-slate-800/50 dark:to-gray-800/50 rounded-2xl p-5 sm:p-6 border border-gray-200 dark:border-slate-700">
+              {/* Primary Action - Edit Unit */}
+              <div className="flex justify-center mb-6">
+                <Button 
+                  onClick={handleEditUnit}
+                  className="flex items-center gap-3 px-8 sm:px-10 py-5 sm:py-6 h-16 sm:h-18 text-lg sm:text-xl font-bold bg-primary hover:bg-primary/90 text-white shadow-xl hover:shadow-2xl transition-all duration-200 transform hover:scale-105 w-full sm:w-auto rounded-xl"
+                >
+                  <Edit className="h-6 w-6 sm:h-7 sm:w-7" />
+                  Edit Unit
+                </Button>
+              </div>
 
-          {/* Secondary Actions - Horizontal Layout */}
-          <div className="flex gap-3">
-            {!unit.tenant ? (
-              <Button 
-                variant="outline" 
-                size="lg"
-                className="flex-1 h-12 font-semibold hover:bg-blue-50 dark:hover:bg-blue-900/20 border-blue-300 dark:border-blue-700 hover:border-blue-400 dark:hover:border-blue-600 hover:text-blue-700 dark:hover:text-blue-300 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-all duration-200 rounded-xl"
-              >
-                <User className="h-4 w-4 mr-2" />
-                Add Tenant
-              </Button>
-            ) : (
-              <Button 
-                variant="outline" 
-                size="lg"
-                className="flex-1 h-12 font-semibold hover:bg-blue-50 dark:hover:bg-blue-900/20 border-blue-300 dark:border-blue-700 hover:border-blue-400 dark:hover:border-blue-600 hover:text-blue-700 dark:hover:text-blue-300 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-all duration-200 rounded-xl"
-              >
-                <User className="h-4 w-4 mr-2" />
-                Manage Tenant
-              </Button>
-            )}
-            <Button 
-              variant="outline" 
-              size="lg"
-              onClick={handleCreateMaintenanceRequest}
-              className="flex-1 h-12 font-semibold hover:bg-orange-50 dark:hover:bg-orange-900/20 border-orange-300 dark:border-orange-700 hover:border-orange-400 dark:hover:border-orange-600 hover:text-orange-700 dark:hover:text-orange-300 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-all duration-200 rounded-xl"
-            >
-              <Wrench className="h-4 w-4 mr-2" />
-              Work Order
-            </Button>
-          </div>
-        </div>
-          </div>
-        </div>
-
-        {/* Tabbed Content */}
-        <div className="flex-1 min-h-0">
-          <Tabs defaultValue="overview" className="h-full flex flex-col" key={unit?.id}>
-            {/* Tab Navigation */}
-            <div className="border-b bg-background px-4 sm:px-6">
-              <TabsList className="w-full grid grid-cols-3 h-12">
-                <TabsTrigger value="overview" className="text-sm px-3 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                  Overview
-                </TabsTrigger>
-                <TabsTrigger value="details" className="text-sm px-3 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                  Details
-                </TabsTrigger>
-                <TabsTrigger value="history" className="text-sm px-3 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                  History
-                </TabsTrigger>
-              </TabsList>
+              {/* Secondary Actions - Mobile Responsive */}
+              <div className="flex flex-col sm:grid sm:grid-cols-3 gap-4">
+                {!unit.tenant ? (
+                  <Button 
+                    variant="outline" 
+                    size="lg"
+                    className="h-16 font-semibold hover:bg-blue-50 dark:hover:bg-blue-900/20 border-blue-300 dark:border-blue-700 hover:border-blue-400 dark:hover:border-blue-600 hover:text-blue-700 dark:hover:text-blue-300 bg-white dark:bg-slate-800 shadow-md hover:shadow-lg transition-all duration-200 rounded-xl"
+                  >
+                    <User className="h-6 w-6 mr-3" />
+                    Add Tenant
+                  </Button>
+                ) : (
+                  <Button 
+                    variant="outline" 
+                    size="lg"
+                    className="h-16 font-semibold hover:bg-blue-50 dark:hover:bg-blue-900/20 border-blue-300 dark:border-blue-700 hover:border-blue-400 dark:hover:border-blue-600 hover:text-blue-700 dark:hover:text-blue-300 bg-white dark:bg-slate-800 shadow-md hover:shadow-lg transition-all duration-200 rounded-xl"
+                  >
+                    <User className="h-6 w-6 mr-3" />
+                    Manage Tenant
+                  </Button>
+                )}
+                <Button 
+                  variant="outline" 
+                  size="lg"
+                  onClick={handleCreateMaintenanceRequest}
+                  className="h-16 font-semibold hover:bg-orange-50 dark:hover:bg-orange-900/20 border-orange-300 dark:border-orange-700 hover:border-orange-400 dark:hover:border-orange-600 hover:text-orange-700 dark:hover:text-orange-300 bg-white dark:bg-slate-800 shadow-md hover:shadow-lg transition-all duration-200 rounded-xl"
+                >
+                  <Wrench className="h-6 w-6 mr-3" />
+                  Work Order
+                </Button>
+              </div>
             </div>
 
-            {/* Tab Content */}
-            <div className="flex-1 min-h-0">
-              <TabsContent value="overview" className="h-full data-[state=inactive]:hidden">
-                <ScrollArea className="h-full">
-                  <div className="p-4 sm:p-6 space-y-8">
+            {/* Unit Images - Same as Properties View */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Unit Images</h3>
+              
+              {/* Unit Image Gallery - Display existing images */}
+              <UnitImageGallery
+                unitId={unit.id}
+                images={unitImages}
+                onImagesChange={setUnitImages}
+                canDelete={true}
+                className="mb-6"
+              />
+              
+              {/* Unit Image Upload - Add new images */}
+              <UnitImageUpload
+                unitId={unit.id}
+                currentImages={unitImages}
+                onImagesChange={setUnitImages}
+              />
+            </div>
+
+            {/* Tabbed Content - NOW PART OF THE SAME SCROLLABLE AREA */}
+            <div className="space-y-6">
+              <Tabs defaultValue="overview" className="w-full" key={unit?.id}>
+                {/* Tab Navigation */}
+                <div className="border-b bg-background">
+                  <TabsList className="w-full grid grid-cols-3 h-12">
+                    <TabsTrigger value="overview" className="text-sm px-3 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                      Overview
+                    </TabsTrigger>
+                    <TabsTrigger value="details" className="text-sm px-3 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                      Details
+                    </TabsTrigger>
+                    <TabsTrigger value="history" className="text-sm px-3 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                      History
+                    </TabsTrigger>
+                  </TabsList>
+                </div>
+
+                {/* Tab Content */}
+                <div className="pt-6">
+                  <TabsContent value="overview" className="space-y-6 data-[state=inactive]:hidden">
                     {/* Modern Compact Unit Information Section */}
                     <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm">
                       <div className="p-4 border-b border-gray-100 dark:border-slate-700">
@@ -414,388 +444,320 @@ export const EnhancedUnitDetailsSheet: React.FC<EnhancedUnitDetailsSheetProps> =
                         </div>
                       </div>
                     </div>
+                  </TabsContent>
 
-
-                    {/* Photos Section */}
-                    <div className="space-y-6">
-                      <h4 className="font-semibold text-lg flex items-center gap-2 text-foreground">
-                        <ImageIcon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                        Photos & Media
-                      </h4>
-                      
-                      <UnitImageGallery
-                        unitId={unit.id}
-                        images={unitImages}
-                        onImagesChange={setUnitImages}
-                        canDelete={true}
-                        className="mb-6"
-                      />
-                      
-                      <UnitImageUpload
-                        unitId={unit.id}
-                        currentImages={unitImages}
-                        onImagesChange={setUnitImages}
-                      />
-                    </div>
-                  </div>
-                </ScrollArea>
-              </TabsContent>
-
-              <TabsContent value="details" className="h-full data-[state=inactive]:hidden">
-                <ScrollArea className="h-full">
-                  <div className="p-4 sm:p-6 space-y-8">
-                    {/* Documents Section */}
-                    <div className="space-y-4">
-                      <h4 className="font-semibold text-lg flex items-center gap-2 text-foreground">
-                        <FileText className="h-5 w-5 text-orange-600 dark:text-orange-400" />
-                        Documents & Files
-                      </h4>
+                  <TabsContent value="details" className="space-y-6 data-[state=inactive]:hidden">
+                    <div className="p-4 sm:p-6 space-y-8">
+                      {/* Documents Section */}
                       <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-muted-foreground">Upload new document</span>
-                          <div className="flex items-center gap-2">
-                            <input ref={documentInputRef} type="file" accept=".pdf,.doc,.docx,.txt" onChange={handleUploadDocument} className="hidden" />
-                            <Button variant="outline" size="sm" onClick={() => documentInputRef.current?.click()} className="flex items-center gap-2">
-                              <ArrowUpRight className="h-4 w-4" />
-                              Upload
-                            </Button>
-                          </div>
-                        </div>
-                        {uploadedDocuments.length > 0 ? (
-                          <div className="space-y-2">
-                            {uploadedDocuments.map((doc) => (
-                              <div key={doc.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-                                <div className="flex items-center gap-3">
-                                  <FileText className="h-5 w-5 text-muted-foreground" />
-                                  <div>
-                                    <p className="text-sm font-medium text-foreground">{doc.name}</p>
-                                    <p className="text-xs text-muted-foreground">{doc.type || 'Document'}</p>
-                                  </div>
-                                </div>
-                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                  <Download className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="text-center py-8 border-2 border-dashed border-muted-foreground/20 rounded-lg">
-                            <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                            <p className="text-sm text-muted-foreground">No documents uploaded yet</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Maintenance Section */}
-                    <div className="space-y-4">
-                      <h4 className="font-semibold text-lg flex items-center gap-2 text-foreground">
-                        <Wrench className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-                        Maintenance & Work Orders
-                      </h4>
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-muted-foreground">Create new work order</span>
-                          <Button variant="outline" size="sm" onClick={handleCreateMaintenanceRequest} className="flex items-center gap-2">
-                            <Plus className="h-4 w-4" />
-                            New Order
-                          </Button>
-                        </div>
-                        {maintenanceHistory.length > 0 ? (
-                          <div className="space-y-2">
-                            {maintenanceHistory.slice(0, 5).map((item) => (
-                              <div key={item.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-                                <div className="flex items-center gap-3">
-                                  <Wrench className="h-5 w-5 text-muted-foreground" />
-                                  <div>
-                                    <p className="text-sm font-medium text-foreground">{item.title || `Maintenance ${maintenanceHistory.indexOf(item) + 1}`}</p>
-                                    <p className="text-xs text-muted-foreground">{item.status || 'Pending'}</p>
-                                  </div>
-                                </div>
-                                <Badge variant={item.status === 'COMPLETED' ? 'default' : 'secondary'} className="text-xs">
-                                      {item.status === 'COMPLETED' ? 'Completed' : 
-                                       item.status === 'IN_PROGRESS' ? 'In Progress' : 
-                                       item.status === 'PENDING' ? 'Pending' : 'Unknown'}
-                                    </Badge>
-                              </div>
-                            ))}
-                            {maintenanceHistory.length > 5 && (
-                              <div className="text-center py-2">
-                                <span className="text-sm text-muted-foreground">+{maintenanceHistory.length - 5} more work orders</span>
-                              </div>
-                            )}
-                          </div>
-                        ) : (
-                          <div className="text-center py-8 border-2 border-dashed border-muted-foreground/20 rounded-lg">
-                            <Wrench className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                            <p className="text-sm text-muted-foreground">No maintenance requests yet</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </ScrollArea>
-              </TabsContent>
-
-              <TabsContent value="history" className="h-full data-[state=inactive]:hidden">
-                <ScrollArea className="h-full">
-                  <div className="p-4 sm:p-6 space-y-8">
-                    {/* Tenant History Section */}
-                    <div className="space-y-4">
-                      <h4 className="font-semibold text-lg flex items-center gap-2 text-foreground">
-                        <Clock className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                        Tenant History
-                      </h4>
-                      <div className="space-y-3">
-                        {/* Current Occupancy - Show First (DoorLoop Pattern) */}
-                        {unit?.tenant ? (
-                          <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="text-sm font-medium text-green-800 dark:text-green-200">Current Occupancy</span>
-                              <Badge variant="secondary" className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">
-                                Active
-                              </Badge>
+                        <h4 className="font-semibold text-lg flex items-center gap-2 text-foreground">
+                          <FileText className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                          Documents & Files
+                        </h4>
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-muted-foreground">Upload new document</span>
+                            <div className="flex items-center gap-2">
+                              <input ref={documentInputRef} type="file" accept=".pdf,.doc,.docx,.txt" onChange={handleUploadDocument} className="hidden" />
+                              <Button variant="outline" size="sm" onClick={() => documentInputRef.current?.click()} className="flex items-center gap-2">
+                                <ArrowUpRight className="h-4 w-4" />
+                                Upload
+                              </Button>
                             </div>
+                          </div>
+                          {uploadedDocuments.length > 0 ? (
                             <div className="space-y-2">
-                              <div className="flex items-center gap-2">
-                                <User className="h-4 w-4 text-green-600 dark:text-green-400" />
-                                <span className="text-sm text-foreground">
-                                  {unit.tenant.firstName} {unit.tenant.lastName}
-                                </span>
-                              </div>
-                              <div className="text-sm text-muted-foreground">
-                                <span className="font-medium">Move-in:</span> {unit.tenant.moveInDate ? new Date(unit.tenant.moveInDate).toLocaleDateString() : 'N/A'}
-                              </div>
-                              <div className="text-sm text-muted-foreground">
-                                <span className="font-medium">Lease End:</span> {unit.leaseEndDate ? new Date(unit.leaseEndDate).toLocaleDateString() : 'N/A'}
-                              </div>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="bg-gray-50 dark:bg-gray-950/20 border border-gray-200 dark:border-gray-800 rounded-lg p-4">
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="text-sm font-medium text-gray-800 dark:text-gray-200">Current Status</span>
-                              <Badge variant="secondary" className="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
-                                Vacant
-                              </Badge>
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              No current tenant assigned to this unit.
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Previous Tenants */}
-                        <div className="space-y-2">
-                          <h5 className="text-sm font-medium text-muted-foreground">Previous Tenants</h5>
-                          {unit?.tenantHistory && unit.tenantHistory.length > 0 ? (
-                            unit.tenantHistory.map((tenant, index) => (
-                              <div key={index} className="bg-card border rounded-lg p-3">
-                                <div className="flex items-center justify-between mb-2">
-                                  <span className="text-sm font-medium text-foreground">
-                                    {tenant.firstName} {tenant.lastName}
-                                  </span>
-                                  <Badge variant="outline" className="text-xs">
-                                    {tenant.status}
-                                  </Badge>
+                              {uploadedDocuments.map((doc) => (
+                                <div key={doc.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                                  <div className="flex items-center gap-3">
+                                    <FileText className="h-5 w-5 text-muted-foreground" />
+                                    <div>
+                                      <p className="text-sm font-medium text-foreground">{doc.name}</p>
+                                      <p className="text-xs text-muted-foreground">{doc.type || 'Document'}</p>
+                                    </div>
+                                  </div>
+                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                    <Download className="h-4 w-4" />
+                                  </Button>
                                 </div>
-                                <div className="text-xs text-muted-foreground space-y-1">
-                                  <div>Move-in: {tenant.moveInDate ? new Date(tenant.moveInDate).toLocaleDateString() : 'N/A'}</div>
-                                  <div>Move-out: {tenant.moveOutDate ? new Date(tenant.moveOutDate).toLocaleDateString() : 'N/A'}</div>
-                                </div>
-                              </div>
-                            ))
+                              ))}
+                            </div>
                           ) : (
-                            <div className="text-sm text-muted-foreground text-center py-4">
-                              No previous tenant history available
+                            <div className="text-center py-8 border-2 border-dashed border-muted-foreground/20 rounded-lg">
+                              <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                              <p className="text-sm text-muted-foreground">No documents uploaded yet</p>
                             </div>
                           )}
                         </div>
                       </div>
 
-                      {/* Occupancy Timeline */}
+                      {/* Maintenance Section */}
                       <div className="space-y-4">
                         <h4 className="font-semibold text-lg flex items-center gap-2 text-foreground">
-                          <Calendar className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-                          Occupancy Timeline
+                          <Wrench className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                          Maintenance & Work Orders
                         </h4>
-                        
-                        {/* Timeline Component */}
                         <div className="space-y-4">
-                          {/* Current Period - Highlighted */}
-                          <div className="relative">
-                            <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-green-200 dark:bg-green-800"></div>
-                            <div className="relative flex items-start gap-4 pl-8">
-                              <div className="flex-shrink-0 w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
-                                <div className="w-3 h-3 bg-white rounded-full"></div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-muted-foreground">Create new work order</span>
+                            <Button variant="outline" size="sm" onClick={handleCreateMaintenanceRequest} className="flex items-center gap-2">
+                              <Plus className="h-4 w-4" />
+                              New Order
+                            </Button>
+                          </div>
+                          {maintenanceHistory.length > 0 ? (
+                            <div className="space-y-2">
+                              {maintenanceHistory.slice(0, 5).map((item) => (
+                                <div key={item.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                                  <div className="flex items-center gap-3">
+                                    <Wrench className="h-5 w-5 text-muted-foreground" />
+                                    <div>
+                                      <p className="text-sm font-medium text-foreground">{item.title || `Maintenance ${maintenanceHistory.indexOf(item) + 1}`}</p>
+                                      <p className="text-xs text-muted-foreground">{item.status || 'Pending'}</p>
+                                    </div>
+                                  </div>
+                                  <Badge variant={item.status === 'COMPLETED' ? 'default' : 'secondary'} className="text-xs">
+                                    {item.status === 'COMPLETED' ? 'Completed' : 
+                                     item.status === 'IN_PROGRESS' ? 'In Progress' : 
+                                     item.status === 'PENDING' ? 'Pending' : 'Unknown'}
+                                  </Badge>
+                                </div>
+                              ))}
+                              {maintenanceHistory.length > 5 && (
+                                <div className="text-center py-2">
+                                  <span className="text-sm text-muted-foreground">+{maintenanceHistory.length - 5} more work orders</span>
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="text-center py-8 border-2 border-dashed border-muted-foreground/20 rounded-lg">
+                              <Wrench className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                              <p className="text-sm text-muted-foreground">No maintenance requests yet</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="history" className="space-y-6 data-[state=inactive]:hidden">
+                    <div className="p-4 sm:p-6 space-y-8">
+                      {/* Tenant History Section */}
+                      <div className="space-y-4">
+                        <h4 className="font-semibold text-lg flex items-center gap-2 text-foreground">
+                          <Clock className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                          Tenant History
+                        </h4>
+                        <div className="space-y-3">
+                          {/* Current Occupancy - Show First (DoorLoop Pattern) */}
+                          {unit?.tenant ? (
+                            <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-sm font-medium text-green-800 dark:text-green-200">Current Occupancy</span>
+                                <Badge variant="secondary" className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">
+                                  Active
+                                </Badge>
                               </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
-                                  <div className="flex items-center justify-between mb-2">
-                                    <span className="text-sm font-medium text-green-800 dark:text-green-200">Current Period</span>
-                                    <Badge variant="secondary" className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">
-                                      Active
-                                    </Badge>
-                                  </div>
-                                  <div className="space-y-2">
-                                    <div className="flex items-center gap-2">
-                                      <User className="h-4 w-4 text-green-600 dark:text-green-400" />
-                                      <span className="text-sm font-medium text-foreground">
-                                        {unit?.tenant ? `${unit.tenant.firstName} ${unit.tenant.lastName}` : 'Vacant'}
-                                      </span>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-4 text-xs text-muted-foreground">
-                                      <div>
-                                        <span className="font-medium">Start:</span> January 1, 2024
-                                      </div>
-                                      <div>
-                                        <span className="font-medium">End:</span> December 31, 2024
-                                      </div>
-                                    </div>
-                                    <div className="text-xs text-muted-foreground">
-                                      <span className="font-medium">Rent:</span> ${unit?.monthlyRent?.toLocaleString()}/month
-                                    </div>
-                                  </div>
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2">
+                                  <User className="h-4 w-4 text-green-600 dark:text-green-400" />
+                                  <span className="text-sm text-foreground">
+                                    {unit.tenant.firstName} {unit.tenant.lastName}
+                                  </span>
+                                </div>
+                                <div className="text-sm text-muted-foreground">
+                                  <span className="font-medium">Move-in:</span> {unit.tenant.moveInDate ? new Date(unit.tenant.moveInDate).toLocaleDateString() : 'N/A'}
+                                </div>
+                                <div className="text-sm text-muted-foreground">
+                                  <span className="font-medium">Lease End:</span> {unit.leaseEndDate ? new Date(unit.leaseEndDate).toLocaleDateString() : 'N/A'}
                                 </div>
                               </div>
                             </div>
-                          </div>
-
-                          {/* Previous Periods */}
-                          <div className="relative">
-                            <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-200 dark:bg-gray-700"></div>
-                            <div className="relative flex items-start gap-4 pl-8">
-                              <div className="flex-shrink-0 w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
-                                <div className="w-3 h-3 bg-white rounded-full"></div>
+                          ) : (
+                            <div className="bg-gray-50 dark:bg-gray-950/20 border border-gray-200 dark:border-gray-800 rounded-lg p-4">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-sm font-medium text-gray-800 dark:text-gray-200">Current Status</span>
+                                <Badge variant="secondary" className="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
+                                  Vacant
+                                </Badge>
                               </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="bg-card border rounded-lg p-4">
+                              <div className="text-sm text-muted-foreground">
+                                No current tenant assigned to this unit.
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Previous Tenants */}
+                          <div className="space-y-2">
+                            <h5 className="text-sm font-medium text-muted-foreground">Previous Tenants</h5>
+                            {unit?.tenantHistory && unit.tenantHistory.length > 0 ? (
+                              unit.tenantHistory.map((tenant, index) => (
+                                <div key={index} className="bg-card border rounded-lg p-3">
                                   <div className="flex items-center justify-between mb-2">
-                                    <span className="text-sm font-medium text-foreground">Previous Period</span>
+                                    <span className="text-sm font-medium text-foreground">
+                                      {tenant.firstName} {tenant.lastName}
+                                    </span>
                                     <Badge variant="outline" className="text-xs">
-                                      Completed
+                                      {tenant.status}
                                     </Badge>
                                   </div>
-                                  <div className="space-y-2">
-                                    <div className="flex items-center gap-2">
-                                      <User className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                                      <span className="text-sm font-medium text-foreground">Sarah Johnson</span>
+                                  <div className="text-xs text-muted-foreground space-y-1">
+                                    <div>Move-in: {tenant.moveInDate ? new Date(tenant.moveInDate).toLocaleDateString() : 'N/A'}</div>
+                                    <div>Move-out: {tenant.moveOutDate ? new Date(tenant.moveOutDate).toLocaleDateString() : 'N/A'}</div>
+                                  </div>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="text-sm text-muted-foreground text-center py-4">
+                                No previous tenant history available
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Occupancy Timeline */}
+                        <div className="space-y-4">
+                          <h4 className="font-semibold text-lg flex items-center gap-2 text-foreground">
+                            <Calendar className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                            Occupancy Timeline
+                          </h4>
+                          
+                          {/* Timeline Component */}
+                          <div className="space-y-4">
+                            {/* Current Period - Highlighted */}
+                            <div className="relative">
+                              <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-green-200 dark:bg-green-800"></div>
+                              <div className="relative flex items-start gap-4 pl-8">
+                                <div className="flex-shrink-0 w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                                  <div className="w-3 h-3 bg-white rounded-full"></div>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                                    <div className="flex items-center justify-between mb-2">
+                                      <span className="text-sm font-medium text-green-800 dark:text-green-200">Current Period</span>
+                                      <Badge variant="secondary" className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">
+                                        Active
+                                      </Badge>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-4 text-xs text-muted-foreground">
-                                      <div>
-                                        <span className="font-medium">Start:</span> March 1, 2023
+                                    <div className="space-y-2">
+                                      <div className="flex items-center gap-2">
+                                        <User className="h-4 w-4 text-green-600 dark:text-green-400" />
+                                        <span className="text-sm text-foreground">
+                                          {unit?.tenant ? `${unit.tenant.firstName} ${unit.tenant.lastName}` : 'Vacant'}
+                                        </span>
                                       </div>
-                                      <div>
-                                        <span className="font-medium">End:</span> December 31, 2023
+                                      <div className="text-xs text-muted-foreground">
+                                        <span className="font-medium">Start:</span> {unit?.tenant?.moveInDate ? new Date(unit.tenant.moveInDate).toLocaleDateString() : 'N/A'}
                                       </div>
-                                    </div>
-                                    <div className="text-xs text-muted-foreground">
-                                      <span className="font-medium">Rent:</span> $2,700/month
+                                      <div className="text-xs text-muted-foreground">
+                                        <span className="font-medium">End:</span> {unit?.leaseEndDate ? new Date(unit.leaseEndDate).toLocaleDateString() : 'N/A'}
+                                      </div>
+                                      <div className="text-xs text-muted-foreground">
+                                        <span className="font-medium">Rent:</span> ${unit?.monthlyRent?.toLocaleString()}/month
+                                      </div>
                                     </div>
                                   </div>
                                 </div>
                               </div>
                             </div>
-                          </div>
 
-                          {/* Earlier Period */}
-                          <div className="relative">
-                            <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-200 dark:bg-gray-700"></div>
-                            <div className="relative flex items-start gap-4 pl-8">
-                              <div className="flex-shrink-0 w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center">
-                                <div className="w-3 h-3 bg-white rounded-full"></div>
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="bg-card border rounded-lg p-4">
-                                  <div className="flex items-center justify-between mb-2">
-                                    <span className="text-sm font-medium text-foreground">Earlier Period</span>
-                                    <Badge variant="outline" className="text-xs">
-                                      Completed
-                                    </Badge>
-                                  </div>
-                                  <div className="space-y-2">
-                                    <div className="flex items-center gap-2">
-                                      <User className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-                                      <span className="text-sm font-medium text-foreground">Michael Chen</span>
+                            {/* Previous Period */}
+                            <div className="relative">
+                              <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-200 dark:bg-gray-700"></div>
+                              <div className="relative flex items-start gap-4 pl-8">
+                                <div className="flex-shrink-0 w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center">
+                                  <div className="w-3 h-3 bg-white rounded-full"></div>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="bg-card border rounded-lg p-4">
+                                    <div className="flex items-center justify-between mb-2">
+                                      <span className="text-sm font-medium text-foreground">Earlier Period</span>
+                                      <Badge variant="outline" className="text-xs">
+                                        Completed
+                                      </Badge>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-4 text-xs text-muted-foreground">
-                                      <div>
-                                        <span className="font-medium">Start:</span> June 1, 2022
+                                    <div className="space-y-2">
+                                      <div className="flex items-center gap-2">
+                                        <User className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                                        <span className="text-sm text-medium text-foreground">Michael Chen</span>
                                       </div>
-                                      <div>
-                                        <span className="font-medium">End:</span> February 28, 2023
+                                      <div className="grid grid-cols-2 gap-4 text-xs text-muted-foreground">
+                                        <div>
+                                          <span className="font-medium">Start:</span> June 1, 2022
+                                        </div>
+                                        <div>
+                                          <span className="font-medium">End:</span> February 28, 2023
+                                        </div>
                                       </div>
-                                    </div>
-                                    <div className="text-xs text-muted-foreground">
-                                      <span className="font-medium">Rent:</span> $2,600/month
+                                      <div className="text-xs text-muted-foreground">
+                                        <span className="font-medium">Rent:</span> $2,600/month
+                                      </div>
                                     </div>
                                   </div>
                                 </div>
                               </div>
                             </div>
-                          </div>
 
-                          {/* Future Availability */}
-                          <div className="relative">
-                            <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-200 dark:bg-gray-700"></div>
-                            <div className="relative flex items-start gap-4 pl-8">
-                              <div className="flex-shrink-0 w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center">
-                                <div className="w-3 h-3 bg-white rounded-full"></div>
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4">
-                                  <div className="flex items-center justify-between mb-2">
-                                    <span className="text-sm font-medium text-orange-800 dark:text-orange-200">Future Availability</span>
-                                    <Badge variant="secondary" className="bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200">
-                                      Available
-                                    </Badge>
-                                  </div>
-                                  <div className="space-y-2">
-                                    <div className="text-sm text-muted-foreground">
-                                      Unit will be available for new tenants starting January 1, 2025
+                            {/* Future Availability */}
+                            <div className="relative">
+                              <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-200 dark:bg-gray-700"></div>
+                              <div className="relative flex items-start gap-4 pl-8">
+                                <div className="flex-shrink-0 w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center">
+                                  <div className="w-3 h-3 bg-white rounded-full"></div>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4">
+                                    <div className="flex items-center justify-between mb-2">
+                                      <span className="text-sm font-medium text-orange-800 dark:text-orange-200">Future Availability</span>
+                                      <Badge variant="secondary" className="bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200">
+                                        Available
+                                      </Badge>
                                     </div>
-                                    <div className="text-xs text-muted-foreground">
-                                      <span className="font-medium">Projected Rent:</span> $2,900/month
+                                    <div className="space-y-2">
+                                      <div className="text-sm text-muted-foreground">
+                                        Unit will be available for new tenants starting January 1, 2025
+                                      </div>
+                                      <div className="text-xs text-muted-foreground">
+                                        <span className="font-medium">Projected Rent:</span> $2,900/month
+                                      </div>
                                     </div>
                                   </div>
                                 </div>
                               </div>
                             </div>
-                          </div>
 
-                          {/* Timeline Summary */}
-                          <div className="mt-6 p-4 bg-muted/30 rounded-lg">
-                            <h5 className="text-sm font-medium text-foreground mb-3">Timeline Summary</h5>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
-                              <div className="text-center">
-                                <div className="text-lg font-semibold text-foreground">3</div>
-                                <div className="text-muted-foreground">Total Tenants</div>
-                              </div>
-                              <div className="text-center">
-                                <div className="text-lg font-semibold text-foreground">$2,600</div>
-                                <div className="text-muted-foreground">Lowest Rent</div>
-                              </div>
-                              <div className="text-center">
-                                <div className="text-lg font-semibold text-foreground">$2,900</div>
-                                <div className="text-muted-foreground">Highest Rent</div>
-                              </div>
-                              <div className="text-center">
-                                <div className="text-lg font-semibold text-foreground">92%</div>
-                                <div className="text-muted-foreground">Occupancy Rate</div>
+                            {/* Timeline Summary */}
+                            <div className="mt-6 p-4 bg-muted/30 rounded-lg">
+                              <h5 className="text-sm font-medium text-foreground mb-3">Timeline Summary</h5>
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+                                <div className="text-center">
+                                  <div className="text-lg font-semibold text-foreground">3</div>
+                                  <div className="text-muted-foreground">Total Tenants</div>
+                                </div>
+                                <div className="text-center">
+                                  <div className="text-lg font-semibold text-foreground">$2,600</div>
+                                  <div className="text-muted-foreground">Lowest Rent</div>
+                                </div>
+                                <div className="text-center">
+                                  <div className="text-lg font-semibold text-foreground">$2,900</div>
+                                  <div className="text-muted-foreground">Highest Rent</div>
+                                </div>
+                                <div className="text-center">
+                                  <div className="text-lg font-semibold text-foreground">92%</div>
+                                  <div className="text-muted-foreground">Occupancy Rate</div>
+                                </div>
                               </div>
                             </div>
                           </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                </ScrollArea>
-              </TabsContent>
+                  </TabsContent>
+                </div>
+              </Tabs>
             </div>
-          </Tabs>
+          </div>
         </div>
-
-
       </SheetContent>
     </Sheet>
   );
